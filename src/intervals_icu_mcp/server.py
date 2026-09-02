@@ -19,10 +19,14 @@ from .middleware import ConfigMiddleware
 
 mcp.add_middleware(ConfigMiddleware())
 
-# Read delete mode at startup. This decides which destructive tools are
-# *registered* with the server — the safety floor sits outside the LLM's reach
-# (no parameter the model invents can summon a tool that wasn't registered).
-_DELETE_MODE = load_config().intervals_icu_delete_mode
+# Read delete mode and tool profile at startup. Both gates sit outside the
+# LLM's reach — a prompt cannot summon a tool that was never registered.
+from .tool_profile import install_tool_profile_filter
+
+_CONFIG = load_config()
+_DELETE_MODE = _CONFIG.intervals_icu_delete_mode
+_TOOL_PROFILE = _CONFIG.intervals_icu_tool_profile
+install_tool_profile_filter(mcp, _TOOL_PROFILE)
 
 # Import and register tools
 from .tools.activities import (
@@ -1095,6 +1099,11 @@ Flag 401/403 on reads as a missing follow/coach relationship. Flag 403 on writes
 (Step 6) as read-only access, which is expected for a follower."""
 
 
+from .prompts.coach_with_goals import coach_with_goals
+
+mcp.prompt()(coach_with_goals)
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments for transport selection.
 
@@ -1143,7 +1152,8 @@ def _emit_startup_log() -> None:
     except Exception:
         count = -1
     print(
-        f"intervals-icu MCP starting: delete_mode={_DELETE_MODE}, registered_tools={count}",
+        f"intervals-icu MCP starting: delete_mode={_DELETE_MODE}, "
+        f"tool_profile={_TOOL_PROFILE}, registered_tools={count}",
         file=sys.stderr,
     )
 

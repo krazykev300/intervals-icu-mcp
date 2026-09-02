@@ -14,6 +14,16 @@ that preserve the information (key renames, restructuring, added fields) ship in
 clients. (Releases up to and including 4.0.0 treated any response-shape change as
 breaking; this narrower contract applies from the next release onward.)
 
+## [Unreleased]
+
+### Added
+- `INTERVALS_ICU_TOOL_PROFILE` (`coaching` / `full`). `coaching` is the daily training surface (calendar CRUD, fitness, curves, wellness, activities, streams/histograms, workout library — 31 tools with `DELETE_MODE=safe`). `full` is the upstream catalog. The allow-list lives in `tool_profile.py`; new upstream tools stay out of coaching until opted in.
+- MCP prompt `coach_with_goals` — overlay for when a separate goals/identity MCP is also connected. Dates and A/B/C races stay on Intervals; identity stays in the other store. Prompt body lives in `prompts/coach_with_goals.py` so upstream prompt edits rebase cleanly.
+- Generic self-host files: `docs/self-host.md`, `deploy/intervals-icu.service.example`, `scripts/host-pull.sh`, gitignored `deploy/host.local/` overlay for User/paths/hostname.
+
+### Changed
+- **BREAKING:** default tool registration is `coaching` (31 tools), not the previous safe-mode catalog (59). Set `INTERVALS_ICU_TOOL_PROFILE=full` to restore the upstream set. Changing which tools register by default is a major under the contract above.
+
 ## [5.0.0] — 2026-08-31
 
 First major since the narrowed SemVer contract, and it drains the whole deferred-breaking-changes

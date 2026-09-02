@@ -15,7 +15,7 @@ A Model Context Protocol (MCP) server for Intervals.icu integration. Access your
 
 ## Overview
 
-62 tools spanning activities, activity analysis, activity messages, athlete profile, wellness, events/calendar, performance curves, workout library, gear, sport settings, and custom items — plus 4 MCP Resources (athlete profile, workout syntax, event categories, custom item schemas) and 7 MCP Prompts (training analysis, recovery check, weekly planning, and more). See [Available Tools](#available-tools) for the per-category breakdown.
+This fork defaults to `INTERVALS_ICU_TOOL_PROFILE=coaching` (31 tools: calendar, fitness, curves, wellness, activities, streams/histograms, workout library) plus 4 MCP Resources and 10 MCP Prompts. Set `INTERVALS_ICU_TOOL_PROFILE=full` for the complete catalog (up to 62 tools). See [Available Tools](#available-tools) and [docs/tools.md](docs/tools.md).
 
 ## Quick Start
 
@@ -213,7 +213,7 @@ For the full catalogue of example prompts by category, see [docs/examples.md](ht
 
 ## Available Tools
 
-62 tools, 4 resources, and 7 prompt templates. One-line summary below — full reference in [docs/tools.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md).
+62 tools exist in the `full` profile; this fork's default `coaching` profile registers 31. One-line summary below — full reference in [docs/tools.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md).
 
 | Category | Tools | Summary |
 |---|---|---|
@@ -233,13 +233,17 @@ For the full catalogue of example prompts by category, see [docs/examples.md](ht
 
 Destructive tools are gated by the optional `INTERVALS_ICU_DELETE_MODE` env var (`safe` / `full` / `none`, default `safe`) — a server-side gate outside the model's reach, so unregistered tools can't be invoked. See [docs/tools.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md#delete-safety-mode) for the full mode table, response envelope, and TZ-buffer rationale.
 
+## Tool Profile
+
+This fork defaults to `INTERVALS_ICU_TOOL_PROFILE=coaching`. Gear, custom items, activity messages, sport-settings writes, and similar ops-catalog tools stay unregistered until you set `full`. See [docs/tools.md](docs/tools.md#tool-profile).
+
 ## Remote Deployment (HTTP / SSE)
 
 The server runs over **stdio** by default — the right transport for local clients like Claude Desktop, Claude Code, and Cursor. HTTP and SSE transports are available for remote or hosted use.
 
 > ⚠️ MCP has **no built-in authentication** — never expose an HTTP-mode server to an untrusted network without a tunnel (Tailscale, Cloudflare Tunnel) or an authenticating reverse proxy.
 
-See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) for transport flags and the full security model.
+See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) for transport flags and the full security model. For systemd + Tailscale Serve, see [docs/self-host.md](docs/self-host.md).
 
 ## Documentation
 
@@ -247,6 +251,7 @@ See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob
 - [Tool reference](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md) — complete tool, resource, and prompt inventory
 - [Architecture overview](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/architecture.md) — how the server, middleware, client, and tools fit together
 - [Remote deployment (HTTP/SSE)](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) — transports, flags, and the security model for hosted/remote setups
+- [Self-host (systemd + Tailscale Serve)](docs/self-host.md) — coaching instance layout; host-specific paths stay out of git
 - [Testing guide](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/testing.md) — conventions for pytest + respx, fixtures, and running the suite
 - [Changelog](CHANGELOG.md) — release history
 - [Adding a new tool](https://github.com/hhopke/intervals-icu-mcp/blob/main/.claude/skills/add-tool/SKILL.md) — step-by-step workflow for contributors
