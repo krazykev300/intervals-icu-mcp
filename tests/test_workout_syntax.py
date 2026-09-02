@@ -29,6 +29,20 @@ def test_minutes_vs_meters_warning_present():
     assert "never meters" in WORKOUT_SYNTAX_SPEC
 
 
+def test_duration_ranges_are_rejected():
+    """The spec tells callers not to write duration ranges like ``3-4h``."""
+    assert "3-4h" in WORKOUT_SYNTAX_SPEC
+    assert "silently drops" in WORKOUT_SYNTAX_SPEC
+
+
+def test_repeat_blank_line_counterexample_present():
+    """The spec shows the broken blank-line-after-Nx form as a counter-example."""
+    assert "broken" in WORKOUT_SYNTAX_SPEC.lower()
+    assert "ignore the repeat" in WORKOUT_SYNTAX_SPEC
+    # Canonical form: header immediately followed by a step.
+    assert "Main Set 3x\n- 5m 90%" in WORKOUT_SYNTAX_SPEC
+
+
 def test_no_example_step_uses_bare_m_for_distance():
     """No worked example writes a swim/run distance as a bare ``m`` step.
 

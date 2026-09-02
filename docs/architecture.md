@@ -65,6 +65,10 @@ All tools return JSON with consistent structure:
 
 Pydantic models for all API responses. Models include: Activity, Athlete, Wellness, Event, PowerCurve, etc.
 
+## Workout parser (`workout_parser.py`)
+
+Local linter used by `icu_preview_workout` and the create/update/bulk event tools. It estimates duration and catches silent Intervals.icu parse traps (duration ranges, a blank line between an `Nx` header and its steps) *before* a calendar write. Create/update collapse that blank line so the repeat actually applies, and return a `warnings` array whenever a token was dropped, clamped, or guessed.
+
 ## MCP Resources
 
 Resources expose reference content the LLM can pull on demand. They are paid only when fetched, unlike tool descriptions (paid every session). We use this to keep tool descriptions lean — long enum lists, schema definitions, and DSL specs live in resources.
@@ -87,7 +91,7 @@ Tools are organized into 11 categories in `src/intervals_icu_mcp/tools/`:
 3. **athlete.py** — Profile and fitness metrics (CTL/ATL/TSB)
 4. **wellness.py** — HRV, sleep, recovery metrics
 5. **events.py** — Calendar queries
-6. **event_management.py** — Create/update/delete events
+6. **event_management.py** — Create/update/delete events; `icu_preview_workout` dry-run
 7. **performance.py** — Power/HR/pace curves
 8. **curves.py** — HR and pace curve analysis
 9. **workout_library.py** — Browse workout folders and plans

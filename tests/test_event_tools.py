@@ -17,6 +17,7 @@ from intervals_icu_mcp.tools.event_management import (
     create_event,
     delete_event,
     duplicate_events,
+    preview_workout,
     update_event,
 )
 
@@ -1346,3 +1347,198 @@ class TestSwimLoadHint:
             },
         ]
         assert _swim_work_lacks_intensity(steps) is False
+
+
+class TestWorkoutLintOnWrite:
+    """Duration ranges are rejected; blank-line repeats warn and are collapsed."""
+
+    async def test_create_rejects_duration_range_without_http(self, mock_config, respx_mock):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        route = respx_mock.post("/athlete/i123456/events").mock(
+            return_value=Response(200, json={"id": 1})
+        )
+        result = await create_event(
+            start_date="2026-03-20",
+            name="Endurance",
+            category="WORKOUT",
+            description="Main\n- 3-4h Z2",
+            ctx=mock_ctx,
+        )
+        response = json.loads(result)
+        assert response["error"]["type"] == "validation_error"
+        assert "3-4h" in response["error"]["message"]
+        assert route.call_count == 0
+
+    async def test_update_rejects_duration_range_without_http(self, mock_config, respx_mock):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        route = respx_mock.put("/athlete/i123456/events/2003").mock(
+            return_value=Response(200, json={"id": 2003})
+        )
+        result = await update_event(
+            event_id=2003,
+            description="- 15-20m 90%",
+            ctx=mock_ctx,
+        )
+        response = json.loads(result)
+        assert response["error"]["type"] == "validation_error"
+        assert "15-20m" in response["error"]["message"]
+        assert route.call_count == 0
+
+    async def test_bulk_rejects_duration_range(self, mock_config, respx_mock):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        route = respx_mock.post("/athlete/i123456/events/bulk").mock(
+            return_value=Response(200, json=[])
+        )
+        result = await bulk_create_events(
+            events=json.dumps(
+                [
+                    {
+                        "start_date_local": "2026-03-20",
+                        "name": "Endurance",
+                        "category": "WORKOUT",
+                        "description": "- 3-4h Z2",
+                    }
+                ]
+            ),
+            ctx=mock_ctx,
+        )
+        response = json.loads(result)
+        assert response["error"]["type"] == "validation_error"
+        assert "Event 0" in response["error"]["message"]
+        assert route.call_count == 0
+
+    async def test_create_collapses_blank_line_after_nx_and_warns(self, mock_config, respx_mock):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        original = "Main 3x\n\n- 15m 90%\n- 5m Z2"
+        collapsed = "Main 3x\n- 15m 90%\n- 5m Z2"
+        route = respx_mock.post("/athlete/i123456/events").mock(
+            return_value=Response(
+                200,
+                json={
+                    "id": 5001,
+                    "name": "Intervals",
+                    "start_date_local": "2026-03-20",
+                    "category": "WORKOUT",
+                    "description": collapsed,
+                    "workout_doc": {
+                        "steps": [
+                            {
+                                "reps": 3,
+                                "text": "Main 3x",
+                                "steps": [
+                                    {"duration": 900},
+                                    {"duration": 300},
+                                ],
+                            }
+                        ]
+                    },
+                },
+            )
+        )
+        result = await create_event(
+            start_date="2026-03-20",
+            name="Intervals",
+            category="WORKOUT",
+            description=original,
+            ctx=mock_ctx,
+        )
+        sent = json.loads(route.calls.last.request.content)
+        assert sent["description"] == collapsed
+        data = json.loads(result)["data"]
+        assert data["warnings"]
+        assert "blank line" in data["warnings"][0].lower()
+
+    async def test_update_collapses_blank_line_after_nx(self, mock_config, respx_mock):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        original = "Main 3x\n\n- 15m 90%"
+        collapsed = "Main 3x\n- 15m 90%"
+        route = respx_mock.put("/athlete/i123456/events/2003").mock(
+            return_value=Response(
+                200,
+                json={
+                    "id": 2003,
+                    "name": "Intervals",
+                    "start_date_local": "2026-03-20",
+                    "category": "WORKOUT",
+                    "description": collapsed,
+                    "workout_doc": {"steps": [{"reps": 3, "steps": [{"duration": 900}]}]},
+                },
+            )
+        )
+        result = await update_event(event_id=2003, description=original, ctx=mock_ctx)
+        sent = json.loads(route.calls.last.request.content)
+        assert sent["description"] == collapsed
+        assert json.loads(result)["data"]["warnings"]
+
+    async def test_clean_workout_has_no_warnings(self, mock_config, respx_mock):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        desc = "Main 5x\n- 3m 110%\n- 3m 50%"
+        respx_mock.post("/athlete/i123456/events").mock(
+            return_value=Response(
+                200,
+                json={
+                    "id": 2001,
+                    "name": "Intervals",
+                    "start_date_local": "2026-03-20",
+                    "category": "WORKOUT",
+                    "description": desc,
+                    "workout_doc": WORKOUT_DOC_STRUCTURED,
+                },
+            )
+        )
+        result = await create_event(
+            start_date="2026-03-20",
+            name="Intervals",
+            category="WORKOUT",
+            description=desc,
+            ctx=mock_ctx,
+        )
+        data = json.loads(result)["data"]
+        assert "warnings" not in data
+
+
+class TestPreviewWorkout:
+    async def test_preview_returns_steps_and_duration(self, mock_config):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        result = await preview_workout(
+            description="Warmup\n- 10m 50%\n\nMain 3x\n- 15m 90%\n- 5m Z2",
+            ctx=mock_ctx,
+        )
+        data = json.loads(result)["data"]
+        assert data["total_duration_seconds"] == 10 * 60 + 3 * (15 * 60 + 5 * 60)
+        assert len(data["steps"]) == 2
+        assert data["steps"][1]["reps"] == 3
+        assert "warnings" not in data
+
+    async def test_preview_rejects_duration_range(self, mock_config):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        result = await preview_workout(description="- 3-4h Z2", ctx=mock_ctx)
+        response = json.loads(result)
+        assert response["error"]["type"] == "validation_error"
+        assert "3-4h" in response["error"]["message"]
+
+    async def test_preview_warns_on_blank_line_after_header(self, mock_config):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        result = await preview_workout(
+            description="Main 3x\n\n- 15m 90%\n- 5m Z2",
+            ctx=mock_ctx,
+        )
+        data = json.loads(result)["data"]
+        assert data["total_duration_seconds"] == 3 * (15 * 60 + 5 * 60)
+        assert data["warnings"]
+        assert data["normalized_description"] == "Main 3x\n- 15m 90%\n- 5m Z2"
+
+    async def test_preview_requires_description(self, mock_config):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        result = await preview_workout(description="  ", ctx=mock_ctx)
+        assert json.loads(result)["error"]["type"] == "validation_error"

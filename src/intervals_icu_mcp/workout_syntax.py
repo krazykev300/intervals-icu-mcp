@@ -42,7 +42,9 @@ Another Section
 ## Sections
 Sections group related steps. Common names: `Warmup`, `Warm Up`, `Main Set`, `Main`, `Cooldown`, `Cool Down`.
 
-Add repeat count after section name:
+Add repeat count after section name. The first step MUST sit on the line
+immediately after the header — a blank line between them makes Intervals.icu
+ignore the repeat (it runs once) with no error:
 
 ```
 Main Set 3x
@@ -58,7 +60,16 @@ Intervals 5x
 - 400mtr Z1
 ```
 
-**Important**: Leave a blank line before and after repeat blocks.
+Blank lines belong *around* the block (before the header and after the last
+step), never *inside* it. This form is **broken** — the `3x` is silently
+dropped:
+
+```
+Main Set 3x
+
+- 5m 90%
+- 2m 50%
+```
 
 ## Duration Formats
 
@@ -72,6 +83,10 @@ Intervals 5x
 | `XmYs` | `5m30s` | Minutes and seconds |
 | `X:YY` | `5:00` | Minutes:seconds |
 | `X:YY:ZZ` | `1:30:00` | Hours:minutes:seconds |
+
+Duration **ranges** (`3-4h`, `15-20m`, `400-800mtr`) are not valid — Intervals.icu
+silently drops the step from the total rather than taking a midpoint. Pick one
+fixed value (`3h30m`, `18m`, `400mtr`).
 
 ### Distance-Based
 | Format | Example | Description |
