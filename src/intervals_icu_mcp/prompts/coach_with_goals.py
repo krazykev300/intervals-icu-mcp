@@ -21,7 +21,9 @@ async def coach_with_goals() -> str:
    intervals-icu://workout-syntax) only after the user agrees.
 5. The Intervals.icu calendar UI is the review point before execution.
 
-Never write an API key, athlete id, race date, or CTL/ATL/TSB number into a
-goals/knowledge store. Named goals elsewhere are WHY they matter. WHEN and A/B/C
-priority are Intervals events.
+Never write an Intervals API key, athlete id, race date, or CTL/ATL/TSB number
+into a goals/knowledge store. A link token in that store (if present) only names
+which HTTP identity this MCP should use; clients send it as Authorization:
+Bearer, not as a tool argument. Named goals elsewhere are WHY they matter.
+WHEN and A/B/C priority are Intervals events.
 """

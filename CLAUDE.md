@@ -12,8 +12,10 @@ and 10 prompts.
 
 This repository is the source of truth for calendar, wellness, and fitness
 numbers. Goals, racing identity, and constraints belong in a separate knowledge
-store if you use one. Do not put `INTERVALS_*` credentials or CTL numbers there,
-and do not add wrappers whose only purpose is another product's fact inbox.
+store if you use one. Do not put Intervals API keys, athlete ids, or CTL numbers
+there. A **link token** (HTTP bearer that selects an identity on this server) may
+be stored as a personal secret; it is not the Intervals API key. See
+`docs/identities.md`.
 
 - **Language**: Python 3.11+
 - **Framework**: FastMCP
@@ -49,6 +51,7 @@ make docker/run       # Run Docker container
 | Models | `models.py` | Pydantic models for API responses |
 | Workout syntax | `workout_syntax.py` | Intervals.icu workout DSL reference for LLMs |
 | Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-list + `mcp.tool` filter |
+| Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
 | Prompts | `prompts/` | Overlay prompts kept out of `server.py` for easier rebases |
 | Tools | `tools/` | 13 tool modules (see below) |
 

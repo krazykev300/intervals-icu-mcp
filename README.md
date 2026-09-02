@@ -243,7 +243,7 @@ The server runs over **stdio** by default — the right transport for local clie
 
 > ⚠️ MCP has **no built-in authentication** — never expose an HTTP-mode server to an untrusted network without a tunnel (Tailscale, Cloudflare Tunnel) or an authenticating reverse proxy.
 
-See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) for transport flags and the full security model. For systemd + Tailscale Serve, see [docs/self-host.md](docs/self-host.md).
+See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) for transport flags and the full security model. For systemd + Tailscale Serve/Funnel, identities, and Claude.ai, see [docs/self-host.md](docs/self-host.md), [docs/identities.md](docs/identities.md), and [docs/claude-connector.md](docs/claude-connector.md).
 
 ## Documentation
 
@@ -251,7 +251,9 @@ See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob
 - [Tool reference](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md) — complete tool, resource, and prompt inventory
 - [Architecture overview](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/architecture.md) — how the server, middleware, client, and tools fit together
 - [Remote deployment (HTTP/SSE)](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) — transports, flags, and the security model for hosted/remote setups
-- [Self-host (systemd + Tailscale Serve)](docs/self-host.md) — coaching instance layout; host-specific paths stay out of git
+- [Self-host (systemd + Tailscale)](docs/self-host.md) — coaching instance layout; host-specific paths stay out of git
+- [Identities / link tokens](docs/identities.md) — Funnel without baking one Intervals account into the process
+- [Claude.ai / iOS connector](docs/claude-connector.md) — Funnel 8443 + Bearer header
 - [Testing guide](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/testing.md) — conventions for pytest + respx, fixtures, and running the suite
 - [Changelog](CHANGELOG.md) — release history
 - [Adding a new tool](https://github.com/hhopke/intervals-icu-mcp/blob/main/.claude/skills/add-tool/SKILL.md) — step-by-step workflow for contributors

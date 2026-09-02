@@ -1170,6 +1170,15 @@ def main() -> None:
     kwargs: dict[str, Any] = {"host": args.host, "port": args.port}
     if args.path is not None:
         kwargs["path"] = args.path
+    from .http_auth import starlette_middleware
+    from .identity import http_auth_required, list_identities
+
+    kwargs["middleware"] = starlette_middleware()
+    print(
+        f"intervals-icu MCP HTTP: http_auth_required={http_auth_required()}, "
+        f"identities={len(list_identities())}",
+        file=sys.stderr,
+    )
     mcp.run(transport=args.transport, **kwargs)
 
 

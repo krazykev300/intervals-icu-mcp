@@ -14,7 +14,7 @@ Detailed component documentation for the Intervals.icu MCP server.
 ## Middleware (`middleware.py`)
 
 - `ConfigMiddleware` runs before every tool call
-- Loads and validates Intervals.icu configuration from environment
+- Uses the HTTP-selected identity when a link token was presented (`identity.current_http_config`); otherwise loads `.env`
 - Injects `ICUConfig` into context state via `ctx.set_state("config", config)`
 - Tools access config via `ctx.get_state("config")`
 
