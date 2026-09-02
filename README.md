@@ -15,7 +15,7 @@ A Model Context Protocol (MCP) server for Intervals.icu integration. Access your
 
 ## Overview
 
-This fork defaults to `INTERVALS_ICU_TOOL_PROFILE=coaching` (31 tools: calendar, fitness, curves, wellness, activities, streams/histograms, workout library) plus 4 MCP Resources and 10 MCP Prompts. Set `INTERVALS_ICU_TOOL_PROFILE=full` for the complete catalog (up to 62 tools). See [Available Tools](#available-tools) and [docs/tools.md](docs/tools.md).
+This fork defaults to `INTERVALS_ICU_TOOL_PROFILE=coaching` (31 tools: calendar, fitness, curves, wellness, activities, streams/histograms, workout library) plus 5 MCP Resources and 10 MCP Prompts. Set `INTERVALS_ICU_TOOL_PROFILE=full` for the complete catalog (up to 62 tools). See [Available Tools](#available-tools) and [docs/tools.md](docs/tools.md).
 
 ## Quick Start
 
@@ -167,6 +167,19 @@ Then in any Claude Code session, run `/mcp` to confirm `intervals-icu` is connec
 </details>
 
 <details>
+<summary><b>Claude.ai / Claude iOS</b> — custom connector; needs public HTTPS (Tailscale Funnel)</summary>
+
+Phone Claude and claude.ai call MCP from Anthropic’s cloud, not from the device. Tailscale Serve (tailnet-only) is invisible to them.
+
+1. Self-host over HTTP with a [link token](docs/identities.md) (`INTERVALS_ICU_LINK_TOKEN`).
+2. Funnel **443** (Anthropic does not dial `:8443`). If another MCP already owns `/`, add a path: `sudo tailscale funnel --bg --https=443 --set-path=/intervals-icu http://127.0.0.1:8788`.
+3. In Claude: **Customize → Connectors**. URL `https://<magicdns>/intervals-icu/mcp` (no port), auth **None**, header `Authorization: Bearer <link_token>`. Enable the connector **in the chat**.
+
+Full steps, status lines, and the “Couldn’t reach MCP” checklist: [docs/claude-connector.md](docs/claude-connector.md).
+
+</details>
+
+<details>
 <summary><b>Cursor</b></summary>
 
 Add to `~/.cursor/mcp.json` (or the project-local `.cursor/mcp.json`):
@@ -209,7 +222,7 @@ Ask Claude to interact with your Intervals.icu data in natural language. A few s
 "What's my 20-minute power and FTP?"
 ```
 
-For the full catalogue of example prompts by category, see [docs/examples.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/examples.md).
+For the full catalogue of example prompts by category, see [docs/examples.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/examples.md). Phone coaching loop (log a race, compare fitness, write weeks around group rides, add off-season strength): [docs/claude-ios-coaching.md](docs/claude-ios-coaching.md).
 
 ## Available Tools
 
@@ -253,7 +266,8 @@ See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob
 - [Remote deployment (HTTP/SSE)](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) — transports, flags, and the security model for hosted/remote setups
 - [Self-host (systemd + Tailscale)](docs/self-host.md) — coaching instance layout; host-specific paths stay out of git
 - [Identities / link tokens](docs/identities.md) — Funnel without baking one Intervals account into the process
-- [Claude.ai / iOS connector](docs/claude-connector.md) — Funnel 8443 + Bearer header
+- [Claude.ai / iOS connector](docs/claude-connector.md) — Funnel 443 + Bearer header
+- [Claude iOS coaching workflow](docs/claude-ios-coaching.md) — race → fitness → calendar (group rides, strength)
 - [Testing guide](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/testing.md) — conventions for pytest + respx, fixtures, and running the suite
 - [Changelog](CHANGELOG.md) — release history
 - [Adding a new tool](https://github.com/hhopke/intervals-icu-mcp/blob/main/.claude/skills/add-tool/SKILL.md) — step-by-step workflow for contributors

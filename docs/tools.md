@@ -1,6 +1,6 @@
 # Tool, Resource, and Prompt Reference
 
-Complete inventory of everything the Intervals.icu MCP server exposes: up to 62 tools across 11 categories, 4 MCP Resources, and 10 MCP Prompts.
+Complete inventory of everything the Intervals.icu MCP server exposes: up to 62 tools across 11 categories, 5 MCP Resources, and 10 MCP Prompts.
 
 ## Delete Safety Mode
 
@@ -225,6 +225,7 @@ Resources provide ongoing context to the LLM without requiring explicit tool cal
 | `intervals-icu://athlete/profile`     | Complete athlete profile with current fitness metrics and sport settings |
 | `intervals-icu://workout-syntax`      | Structured workout syntax reference for generating valid Intervals.icu workouts (cycling, running, swimming) |
 | `intervals-icu://event-categories`    | Calendar event category enum (WORKOUT, RACE_A/B/C, HOLIDAY, …), training_availability values, legacy aliases, and use-case guidance for create_event / update_event / bulk_create_events |
+| `intervals-icu://coaching-playbook`   | Coaching skill: log a race, compare fitness, write weeks around immovable sessions, add off-season strength. Same text as FastMCP server instructions + `coach_with_goals` |
 | `intervals-icu://custom-item-schemas` | Per-item_type `content` schema for create_custom_item / update_custom_item — INPUT_FIELD/ACTIVITY_FIELD/INTERVAL_FIELD constraints with worked examples; chart/panel/zones/stream guidance |
 
 ## MCP Prompts
@@ -240,4 +241,4 @@ Prompt templates for common queries, accessible via prompt suggestions in Claude
 | `icu_training_plan_review`    | Weekly training plan evaluation with workout library                     |
 | `icu_plan_training_week`      | AI-assisted weekly training plan creation based on current fitness       |
 | `generate_workout`            | Generate a structured workout with sport, type, and duration parameters  |
-| `coach_with_goals`            | Overlay: pull identity/constraints from a separate goals MCP if connected; calendar, CTL, and race dates stay here |
+| `coach_with_goals`            | Coaching skill (also server instructions + `intervals-icu://coaching-playbook`): race → fitness → calendar around group rides and off-season strength. Goals MCP is WHY; dates stay here |

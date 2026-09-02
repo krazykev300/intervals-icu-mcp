@@ -7,8 +7,10 @@ This file provides guidance to Claude Code when working with this repository.
 MCP (Model Context Protocol) server for Intervals.icu — this fork defaults to
 `INTERVALS_ICU_TOOL_PROFILE=coaching` (31 tools with `DELETE_MODE=safe`: calendar,
 fitness, curves, wellness, activities, streams/histograms, workout library).
-`full` restores the upstream catalog (59 / 62 / 56 with delete mode). 4 resources
-and 10 prompts.
+`full` restores the upstream catalog (59 / 62 / 56 with delete mode). 5 resources
+and 10 prompts. Server `instructions` plus `intervals-icu://coaching-playbook`
+are the coaching skill (race → fitness → calendar); `coach_with_goals` returns
+the same playbook.
 
 This repository is the source of truth for calendar, wellness, and fitness
 numbers. Goals, racing identity, and constraints belong in a separate knowledge
@@ -52,7 +54,7 @@ make docker/run       # Run Docker container
 | Workout syntax | `workout_syntax.py` | Intervals.icu workout DSL reference for LLMs |
 | Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-list + `mcp.tool` filter |
 | Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
-| Prompts | `prompts/` | Overlay prompts kept out of `server.py` for easier rebases |
+| Prompts | `prompts/` | Overlay prompts + coaching playbook (`coaching_playbook.py`); kept out of `server.py` for rebases |
 | Tools | `tools/` | 13 tool modules (see below) |
 
 **For detailed architecture**: see `docs/architecture.md`

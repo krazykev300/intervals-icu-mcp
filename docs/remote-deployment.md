@@ -25,7 +25,7 @@ intervals-icu-mcp --transport sse --host 127.0.0.1 --port 8000
 >
 > For remote access, prefer one of the following:
 > - **Tailscale Serve** — tailnet-only. Simplest for Cursor / Claude Code on a node already on the tailnet.
-> - **Tailscale Funnel** — public HTTPS for Claude.ai / iOS. **Require a [link token](identities.md)**; do not Funnel an unauthenticated MCP.
+> - **Tailscale Funnel** — public HTTPS for Claude.ai / iOS. **Require a [link token](identities.md)**; do not Funnel an unauthenticated MCP. Walkthrough (Serve vs Funnel, Tailscale 1.52+ CLI, Claude UI, troubleshooting): [claude-connector.md](claude-connector.md).
 > - **Cloudflare Tunnel / ZeroTier** — only your authenticated devices can reach the endpoint.
 > - **Reverse proxy with auth** (nginx + basic auth, Cloudflare Access, etc.) — terminates TLS and gates access.
 > - **SSH tunnel** — `ssh -L 8000:localhost:8000 host` if you just need occasional access from one machine.

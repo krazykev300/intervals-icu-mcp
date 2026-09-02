@@ -27,6 +27,21 @@ _UNAUTHORIZED = json.dumps(
 ).encode()
 
 
+_PUBLIC_PATH_PREFIXES = ("/.well-known/",)
+_PUBLIC_PATHS = frozenset({"/register", "/.well-known/oauth-protected-resource"})
+
+
+def _is_auth_exempt(path: str) -> bool:
+    """Claude custom connectors probe OAuth metadata before sending the Bearer header.
+
+    401 on those URLs looks like a dead server. Let FastMCP 404 them instead.
+    `/mcp` still requires a link token.
+    """
+    if path in _PUBLIC_PATHS:
+        return True
+    return any(path.startswith(prefix) for prefix in _PUBLIC_PATH_PREFIXES)
+
+
 class LinkTokenMiddleware:
     """Pure ASGI middleware so request-scoped identity uses contextvars correctly."""
 
@@ -35,6 +50,11 @@ class LinkTokenMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or not http_auth_required():
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path") or ""
+        if _is_auth_exempt(path):
             await self.app(scope, receive, send)
             return
 

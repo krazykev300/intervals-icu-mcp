@@ -8,7 +8,7 @@ Detailed component documentation for the Intervals.icu MCP server.
 - Registers all tools, resources, and prompts
 - Tools are imported from `tools/` modules but registered in server.py
 - `INTERVALS_ICU_TOOL_PROFILE` wraps `mcp.tool` via `tool_profile.install_tool_profile_filter` so coaching omits tools not in `COACHING_TOOLS` without editing every registration
-- Overlay prompts live in `prompts/` and are registered from server.py
+- Overlay prompts live in `prompts/` (including `coaching_playbook.py` server instructions + resource body) and are registered from server.py
 - Middleware is added before tools are registered
 
 ## Middleware (`middleware.py`)
@@ -76,6 +76,7 @@ Resources expose reference content the LLM can pull on demand. They are paid onl
 | `intervals-icu://athlete/profile` | inline in `server.py` | Live athlete profile + fitness metrics; loads via `ICUClient` |
 | `intervals-icu://workout-syntax` | `workout_syntax.py` | Intervals.icu structured workout DSL reference (cycling/running/swimming) |
 | `intervals-icu://event-categories` | `event_categories.py` | Calendar event category enum + use-case mapping + training_availability values, referenced from `create_event` / `update_event` / `bulk_create_events` |
+| `intervals-icu://coaching-playbook` | `prompts/coaching_playbook.py` | Coaching skill (also FastMCP `instructions` and `coach_with_goals`) |
 | `intervals-icu://custom-item-schemas` | `custom_item_schemas.py` | Per-`item_type` `content` schema for `create_custom_item` / `update_custom_item` (INPUT_FIELD / ACTIVITY_FIELD / INTERVAL_FIELD constraints + worked examples) |
 
 When adding a new tool whose description repeats >~200 chars of reference content (enums, schemas, DSL), prefer extracting that content into a new module and registering it as a resource. The pattern: a single `*_SPEC = """..."""` constant per module, imported lazily inside the resource function.

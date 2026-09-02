@@ -1,6 +1,8 @@
 # Usage Examples
 
-Ask Claude to interact with your Intervals.icu data using natural language. This page collects example prompts organized by tool category. For the full tool reference, see [tools.md](tools.md).
+For a full Claude iOS coaching loop (log a race from a sheet/GCal/chat,
+compare fitness, write weeks around immovable group rides, add off-season
+strength), see [claude-ios-coaching.md](claude-ios-coaching.md).
 
 ## MCP Prompts
 
@@ -13,6 +15,7 @@ Built-in prompt templates for common queries, available via prompt suggestions i
 - `training-plan-review` — weekly training plan evaluation with workout library
 - `plan-training-week` — AI-assisted weekly training plan creation based on current fitness
 - `generate-workout` — generate a structured workout for any sport (cycling, running, swimming) with proper Intervals.icu syntax
+- `coach_with_goals` — coaching skill (race → fitness → calendar). Same text as `intervals-icu://coaching-playbook`; also injected as MCP server instructions so Claude iOS can follow it without picking a prompt
 
 ## Activities
 

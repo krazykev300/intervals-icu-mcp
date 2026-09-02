@@ -7,11 +7,15 @@ from typing import Any
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+from .prompts.coaching_playbook import COACHING_PLAYBOOK, SERVER_INSTRUCTIONS
+
 # Load environment variables
 load_dotenv()
 
-# Initialize FastMCP server
-mcp = FastMCP("intervals_icu_mcp")
+# Initialize FastMCP server. `instructions` are the coaching skill: clients
+# that honor MCP server instructions (Claude.ai / iOS) follow the playbook
+# without the user pasting a kickoff prompt.
+mcp = FastMCP("intervals_icu_mcp", instructions=SERVER_INSTRUCTIONS)
 
 # Register middleware
 from .auth import load_config
@@ -759,6 +763,16 @@ async def event_categories_resource() -> str:
     from .event_categories import EVENT_CATEGORIES_SPEC
 
     return EVENT_CATEGORIES_SPEC
+
+
+@mcp.resource("intervals-icu://coaching-playbook")
+async def coaching_playbook_resource() -> str:
+    """How to coach from this server: log races, compare fitness, write weeks around immovable sessions, add off-season strength.
+
+    Read this when the user asks for coaching, race prep, a training plan, or
+    calendar changes. Same text as the `coach_with_goals` prompt.
+    """
+    return COACHING_PLAYBOOK
 
 
 @mcp.resource("intervals-icu://custom-item-schemas")

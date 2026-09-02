@@ -92,6 +92,7 @@ class TestInMemoryTransport:
             assert "intervals-icu://workout-syntax" in uris
             assert "intervals-icu://event-categories" in uris
             assert "intervals-icu://custom-item-schemas" in uris
+            assert "intervals-icu://coaching-playbook" in uris
 
     async def test_prompts_registered(self):
         async with Client(mcp) as client:

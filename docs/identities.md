@@ -2,7 +2,7 @@
 
 How this server binds an HTTP client to an Intervals.icu account **without**
 baking that account into the process, and without putting Intervals API keys in
-a knowledge store (Brain or otherwise).
+a knowledge store.
 
 ## The problem
 
@@ -11,8 +11,8 @@ calls the MCP URL, not your phone. MCP has no protocol login. If the process
 always uses `INTERVALS_ICU_API_KEY` from `.env`, two bad outcomes follow:
 
 1. Anyone who finds the Funnel URL is you, on Intervals.icu.
-2. The daemon is permanently “Kevin’s Intervals,” not a gateway that can select
-   an account.
+2. The daemon is permanently one Intervals.icu account, not a gateway that can
+   select an identity per client.
 
 A knowledge store holding the Intervals API key would violate isolation (goals
 and racing identity live there; API secrets and CTL numbers do not).
@@ -25,7 +25,7 @@ identity on *this* MCP.” It is **not** the Intervals Developer API key.
 | Secret | Where it lives | Who sees it |
 | --- | --- | --- |
 | Intervals.icu API key + athlete id | Host `.env` and/or `identities.json` (mode 600, never git) | This process only |
-| Link token | Same host files **and optionally** a knowledge store as a personal secret | HTTP client (Claude connector header) and, if you choose, Brain |
+| Link token | Same host files **and optionally** a knowledge store as a personal secret | HTTP client (Claude connector header) and, if you choose, that store |
 
 Rotate the link token without rotating the Intervals API key. Revoke one
 identity without taking the process down.
@@ -95,25 +95,26 @@ one Intervals account. The process is shared.
 
 See `deploy/identities.json.example`.
 
-## Why Brain cannot “log you in” at request time
+## Why another MCP cannot “log you in” at request time
 
 Claude.ai (and the iOS app) open **two separate HTTPS connections** from
-Anthropic’s cloud: one to Brain, one to this server. The model can *read* a
-link token from Brain. It **cannot** attach that value as an HTTP header on the
-Intervals connector. Connector headers are static in Claude’s UI.
+Anthropic’s cloud: one to each custom connector. The model can *read* a
+link token from another MCP. It **cannot** attach that value as an HTTP header
+on the Intervals connector. Connector headers are static in Claude’s UI.
 
 So the working design is:
 
 1. Generate a link token on the Intervals host.
 2. Paste it into the Claude custom connector as `Authorization: Bearer …`
    (auth = None; the header *is* the login).
-3. Optionally store **the same link token** (not the API key) in Brain as a
-   personal secret so you remember which identity that Claude account uses.
+3. Optionally store **the same link token** (not the API key) in a knowledge
+   store as a personal secret so you remember which identity that Claude
+   account uses.
 
 Do **not** add an `icu_bind_session(token)` tool. That would put the secret in
 the model’s tool arguments every turn (logs, prompt injection, leakage).
 
-## What not to put in Brain
+## What not to put in a knowledge store
 
 Never: `INTERVALS_ICU_API_KEY`, athlete id as a credential, CTL/ATL numbers,
 race dates as facts (dates are Intervals events).

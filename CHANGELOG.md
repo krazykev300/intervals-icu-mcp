@@ -18,9 +18,10 @@ breaking; this narrower contract applies from the next release onward.)
 
 ### Added
 - `INTERVALS_ICU_TOOL_PROFILE` (`coaching` / `full`). `coaching` is the daily training surface (calendar CRUD, fitness, curves, wellness, activities, streams/histograms, workout library — 31 tools with `DELETE_MODE=safe`). `full` is the upstream catalog. The allow-list lives in `tool_profile.py`; new upstream tools stay out of coaching until opted in.
-- MCP prompt `coach_with_goals` — overlay for when a separate goals/identity MCP is also connected. Dates and A/B/C races stay on Intervals; identity stays in the other store. Prompt body lives in `prompts/coach_with_goals.py` so upstream prompt edits rebase cleanly.
+- MCP prompt `coach_with_goals` — coaching skill (race → fitness → calendar). Same body as resource `intervals-icu://coaching-playbook` and FastMCP server `instructions`. Overlay for a separate goals MCP: WHY there, dates here. Lives in `prompts/`.
 - Generic self-host files: `docs/self-host.md`, `deploy/intervals-icu.service.example`, `scripts/host-pull.sh`, gitignored `deploy/host.local/` overlay for User/paths/hostname.
-- HTTP **link tokens**: `Authorization: Bearer` (or `X-Intervals-Link`) selects an Intervals.icu identity before MCP runs. `INTERVALS_ICU_HTTP_AUTH=auto` (default) turns the gate on only when a token or identities file is configured. Identities JSON and Claude.ai/iOS Funnel steps: `docs/identities.md`, `docs/claude-connector.md`.
+- HTTP **link tokens**: `Authorization: Bearer` (or `X-Intervals-Link`) selects an Intervals.icu identity before MCP runs. `INTERVALS_ICU_HTTP_AUTH=auto` (default) turns the gate on only when a token or identities file is configured. Identities JSON: `docs/identities.md`. Claude.ai/iOS Funnel walkthrough (Serve vs Funnel, Tailscale 1.52+ CLI, connector UI, troubleshooting): `docs/claude-connector.md`. OAuth discovery paths (`/.well-known/…`, `/register`) are exempt so Claude custom connectors can detect “no OAuth” instead of treating a 401 as a dead server.
+- Claude iOS coaching playbook: `docs/claude-ios-coaching.md`. The same loop is an MCP skill: FastMCP `instructions`, resource `intervals-icu://coaching-playbook`, prompt `coach_with_goals` (body in `prompts/coaching_playbook.py`).
 
 ### Changed
 - **BREAKING:** default tool registration is `coaching` (31 tools), not the previous safe-mode catalog (59). Set `INTERVALS_ICU_TOOL_PROFILE=full` to restore the upstream set. Changing which tools register by default is a major under the contract above.

@@ -15,7 +15,7 @@ layout for a **coaching / management** instance.
 | Not | Goals, racing identity, constraints — keep those in a separate knowledge store if you use one |
 | Transport | Streamable HTTP, bind `127.0.0.1`, path `/mcp` |
 | Front door (tailnet) | Tailscale **Serve** HTTPS **8443** → localhost 8788 |
-| Front door (Claude.ai / iOS) | **Funnel 8443** plus a [link token](identities.md). Do not Funnel with HTTP auth off. Brain keeps Funnel **443**. |
+| Front door (Claude.ai / iOS) | **Funnel 443** (path `/intervals-icu` if `/` is taken) plus a [link token](identities.md). Anthropic does not dial `:8443`. Do not Funnel with HTTP auth off. |
 | Writes | Straight to Intervals.icu. Review planned workouts in the Intervals calendar UI. |
 
 If a change would not make sense to a client that only has this MCP, it does not
@@ -31,8 +31,9 @@ identity on this server; it is not the Intervals API key. See
 bind:              127.0.0.1
 port:              8788          # not 8000 (FastMCP default); pick any free localhost port
 Tailscale Serve:   --bg --https=8443 http://127.0.0.1:8788
-Tailscale Funnel:  8443 on only after INTERVALS_ICU_LINK_TOKEN is set
-MCP URL:           https://<magicdns-host>:8443/mcp
+Tailscale Funnel:  --bg --https=443 --set-path=/intervals-icu http://127.0.0.1:8788
+Claude MCP URL:    https://<magicdns-host>/intervals-icu/mcp   (port 443 only)
+Cursor (optional): Funnel/Serve 8443 → same localhost port
 INTERVALS_ICU_DELETE_MODE: safe
 INTERVALS_ICU_TOOL_PROFILE: coaching
 INTERVALS_ICU_HTTP_AUTH: auto
@@ -79,9 +80,12 @@ sudo cp deploy/host.local/intervals-icu.service /etc/systemd/system/intervals-ic
 sudo systemctl daemon-reload
 sudo systemctl enable --now intervals-icu.service
 
+# Tailnet-only (Cursor on the same tailnet):
 sudo tailscale serve --bg --https=8443 http://127.0.0.1:8788
-sudo tailscale serve status
-# Funnel 8443 only after INTERVALS_ICU_LINK_TOKEN is set — see docs/claude-connector.md
+# Claude.ai / iOS — Funnel 443 (path if another MCP already owns /). Not :8443.
+sudo tailscale funnel --bg --https=443 --set-path=/intervals-icu http://127.0.0.1:8788
+sudo tailscale funnel status
+# Funnel only after INTERVALS_ICU_LINK_TOKEN is set — see docs/claude-connector.md
 ```
 
 After later pushes, run `scripts/host-pull.sh` on the host. Do not hook that
@@ -105,8 +109,8 @@ token is configured, they must send it (see [identities.md](identities.md)).
 }
 ```
 
-Claude.ai / iOS cannot use Serve. Funnel 8443 + connector header:
-[claude-connector.md](claude-connector.md).
+Claude.ai / iOS cannot use Serve or Funnel `:8443`. Funnel **443** + connector
+header: [claude-connector.md](claude-connector.md).
 
 ## Seed races in the Intervals UI
 
@@ -121,6 +125,6 @@ Dates live here. Why a race matters belongs in a goals store, if you have one.
 - [ ] `deploy/host.local/intervals-icu.service` filled in
 - [ ] `systemctl enable --now intervals-icu`
 - [ ] `tailscale serve` to localhost:8788
-- [ ] Link token set before Funnel; Funnel 8443 only (443 stays Brain)
+- [ ] Link token set before Funnel; Funnel 443 for Claude (path if `/` is taken)
 - [ ] Client `mcp.json` / Claude connector sends `Authorization: Bearer`
 - [ ] Seed A/B/C races in the Intervals calendar UI

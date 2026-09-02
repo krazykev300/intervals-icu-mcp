@@ -145,3 +145,16 @@ class TestHttpLinkTokenGate:
                 )
         assert resp.status_code == 200
         assert "intervals_icu_mcp" in resp.text
+
+    async def test_well_known_oauth_probe_is_not_401(self, monkeypatch):
+        monkeypatch.setenv("INTERVALS_ICU_HTTP_AUTH", "link_token")
+        monkeypatch.setenv("INTERVALS_ICU_LINK_TOKEN", "gate-token")
+        monkeypatch.setenv("INTERVALS_ICU_API_KEY", "k")
+        monkeypatch.setenv("INTERVALS_ICU_ATHLETE_ID", "i1")
+
+        app = mcp.http_app(middleware=starlette_middleware())
+        async with LifespanManager(app) as manager:
+            transport = httpx.ASGITransport(app=manager.app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.get("/.well-known/oauth-protected-resource")
+        assert resp.status_code != 401
