@@ -69,7 +69,7 @@ _Note: The athlete profile resource (`intervals-icu://athlete/profile`) automati
 "Create 5 workouts for my build phase"
 ```
 
-> **Structured Workouts**: The server includes a complete workout syntax reference (`intervals-icu://workout-syntax`) that enables LLMs to generate valid structured workouts with proper power/HR/pace targets, zones, ramps, repeats, and cadence for cycling, running, and swimming.
+> **Structured Workouts**: The server includes a complete workout syntax reference (`intervals-icu://workout-syntax`) that enables LLMs to generate valid structured workouts with proper power/HR/pace targets, zones, ramps, repeats, and cadence for cycling, running, and swimming. Call `icu_preview_workout` with the description to verify steps and duration before writing the event.
 
 ## Performance Analysis
 

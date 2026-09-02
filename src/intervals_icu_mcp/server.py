@@ -72,6 +72,7 @@ from .tools.event_management import (
     create_event,
     delete_event,
     duplicate_events,
+    preview_workout,
     update_event,
 )
 from .tools.events import get_calendar_events, get_event, get_upcoming_workouts
@@ -393,6 +394,15 @@ mcp.tool(
         "openWorldHint": True,
     },
 )(get_annual_training_plan)
+mcp.tool(
+    name="icu_preview_workout",
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)(preview_workout)
 mcp.tool(
     name="icu_create_event",
     annotations={
@@ -796,7 +806,8 @@ Steps:
 1. Read the workout syntax resource (intervals-icu://workout-syntax)
 2. Check the athlete's current fitness using icu_get_fitness_summary and icu_get_sport_settings
 3. Design an appropriate {workout_type} workout for {sport} based on their fitness level
-4. Create the workout using icu_create_event with:
+4. Call icu_preview_workout with the description; fix any errors or warnings
+5. Create the workout using icu_create_event with:
    - category: "WORKOUT"
    - event_type: "{sport}"
    - description: The structured workout text using the syntax from the resource
@@ -806,7 +817,9 @@ Guidelines:
 - Always include Warmup, Main Set, and Cooldown sections
 - Use appropriate intensity targets based on the athlete's thresholds
 - Include cadence targets for cycling workouts
-- Use blank lines between sections
+- Use blank lines between sections, not between an Nx header and its steps
+- Put 'Nx' on the section header and the first step on the immediately following line
+- Do not use duration ranges ('3-4h'); pick a single value
 - For {workout_type} workouts, follow standard training methodology
 - Present the workout plan for approval before creating the event"""
 

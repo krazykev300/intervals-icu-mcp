@@ -100,7 +100,7 @@ class TestPromptToolReferences:
 
         assert prompts, "expected the server to expose prompts"
 
-        verb = "get|create|update|delete|search|list|bulk|apply|add|download|duplicate"
+        verb = "get|create|update|delete|search|list|bulk|apply|add|download|duplicate|preview"
         offenders: dict[str, list[str]] = {}
         for prompt in prompts:
             fn = getattr(server_mod, prompt.name, None)
