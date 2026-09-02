@@ -4,7 +4,16 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-MCP (Model Context Protocol) server for Intervals.icu — provides up to 62 tools, 4 resources, and 9 prompts for accessing training data, wellness metrics, and performance analysis through Claude and other LLMs. The default `INTERVALS_ICU_DELETE_MODE=safe` registers 59 tools; `full` registers all 62, `none` registers 56.
+MCP (Model Context Protocol) server for Intervals.icu — this fork defaults to
+`INTERVALS_ICU_TOOL_PROFILE=coaching` (31 tools with `DELETE_MODE=safe`: calendar,
+fitness, curves, wellness, activities, streams/histograms, workout library).
+`full` restores the upstream catalog (59 / 62 / 56 with delete mode). 4 resources
+and 10 prompts.
+
+This repository is the source of truth for calendar, wellness, and fitness
+numbers. Goals, racing identity, and constraints belong in a separate knowledge
+store if you use one. Do not put `INTERVALS_*` credentials or CTL numbers there,
+and do not add wrappers whose only purpose is another product's fact inbox.
 
 - **Language**: Python 3.11+
 - **Framework**: FastMCP
@@ -39,6 +48,8 @@ make docker/run       # Run Docker container
 | Response | `response_builder.py` | Consistent JSON structure (data/analysis/metadata) |
 | Models | `models.py` | Pydantic models for API responses |
 | Workout syntax | `workout_syntax.py` | Intervals.icu workout DSL reference for LLMs |
+| Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-list + `mcp.tool` filter |
+| Prompts | `prompts/` | Overlay prompts kept out of `server.py` for easier rebases |
 | Tools | `tools/` | 13 tool modules (see below) |
 
 **For detailed architecture**: see `docs/architecture.md`

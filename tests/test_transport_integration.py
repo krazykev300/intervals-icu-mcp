@@ -15,6 +15,7 @@ from asgi_lifespan import LifespanManager
 from fastmcp import Client
 
 from intervals_icu_mcp.server import mcp
+from intervals_icu_mcp.tool_profile import coaching_tools_for_delete_mode
 
 
 class TestInMemoryTransport:
@@ -31,24 +32,33 @@ class TestInMemoryTransport:
             assert client.is_connected()
 
     async def test_all_default_mode_tools_registered(self):
-        """Default delete_mode=safe registers 59 tools (3 destructive tools gated)."""
+        """Default tool_profile=coaching + delete_mode=safe registers the coaching allow-list."""
         async with Client(mcp) as client:
             tools = await client.list_tools()
-            assert len(tools) == 59
             names = {t.name for t in tools}
-            # Spot-check tools from different modules / tiers
+            assert names == set(coaching_tools_for_delete_mode("safe"))
             assert "icu_get_recent_activities" in names
             assert "icu_get_athlete_profile" in names
             assert "icu_get_fitness_chart" in names
-            assert "icu_bulk_create_events" in names  # Tier 2 coverage addition
+            assert "icu_bulk_create_events" in names
             assert "icu_duplicate_events" in names
-            assert "icu_get_activity_messages" in names  # Activity messages
-            assert "icu_get_custom_items" in names  # Custom items
-            assert "icu_update_sport_settings" in names
+            assert "icu_get_activity_streams" in names
+            assert "icu_get_custom_items" not in names
+            assert "icu_update_sport_settings" not in names
 
-    async def test_sport_settings_tools_expose_indoor_ftp(self):
-        """Create and update schemas accept the separate indoor power threshold."""
-        async with Client(mcp) as client:
+    async def test_sport_settings_tools_expose_indoor_ftp(self, monkeypatch):
+        """Create and update schemas accept the separate indoor power threshold.
+
+        These tools are full-profile only; reload so we inspect the live schemas.
+        """
+        import importlib
+        import sys
+
+        monkeypatch.setenv("INTERVALS_ICU_TOOL_PROFILE", "full")
+        sys.modules.pop("intervals_icu_mcp.server", None)
+        server = importlib.import_module("intervals_icu_mcp.server")
+
+        async with Client(server.mcp) as client:
             tools = {tool.name: tool for tool in await client.list_tools()}
             for name in {"icu_create_sport_settings", "icu_update_sport_settings"}:
                 assert "indoor_ftp" in tools[name].inputSchema["properties"]
@@ -92,6 +102,7 @@ class TestInMemoryTransport:
             assert "analyze_recent_training" in names
             assert "generate_workout" in names
             assert "recovery_check" in names
+            assert "coach_with_goals" in names
 
 
 class TestHTTPTransport:
@@ -202,5 +213,5 @@ class TestHTTPTransport:
                 tools_body = (await tools_resp.aread()).decode()
                 tools_payload = self._parse_sse_response(tools_body)
                 tool_names = {t["name"] for t in tools_payload["result"]["tools"]}
-                assert len(tool_names) == 59  # safe mode default
+                assert tool_names == set(coaching_tools_for_delete_mode("safe"))
                 assert "icu_get_recent_activities" in tool_names

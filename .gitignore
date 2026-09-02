@@ -33,6 +33,10 @@ ENV/
 .env
 .env.local
 
+# Host-specific overlay (User, paths, Tailscale hostname). See deploy/host.local/README.md
+deploy/host.local/*
+!deploy/host.local/README.md
+
 # IDE
 .vscode/
 .idea/

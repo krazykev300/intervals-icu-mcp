@@ -7,6 +7,8 @@ Detailed component documentation for the Intervals.icu MCP server.
 - Entry point that initializes the FastMCP server
 - Registers all tools, resources, and prompts
 - Tools are imported from `tools/` modules but registered in server.py
+- `INTERVALS_ICU_TOOL_PROFILE` wraps `mcp.tool` via `tool_profile.install_tool_profile_filter` so coaching omits tools not in `COACHING_TOOLS` without editing every registration
+- Overlay prompts live in `prompts/` and are registered from server.py
 - Middleware is added before tools are registered
 
 ## Middleware (`middleware.py`)

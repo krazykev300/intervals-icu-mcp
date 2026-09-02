@@ -1,0 +1,22 @@
+[Unit]
+Description=Intervals.icu MCP server
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Copy this file to deploy/host.local/intervals-icu.service and replace the
+# three path/user lines. Do not commit the copy.
+WorkingDirectory=/path/to/intervals-icu-mcp
+EnvironmentFile=/path/to/intervals-icu-mcp/.env
+# `which uv` on the host — systemd does not use your login PATH.
+ExecStart=/usr/local/bin/uv run intervals-icu-mcp --transport http --host 127.0.0.1 --port 8788
+User=YOUR_USER
+Group=YOUR_USER
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -8,6 +8,8 @@ from dotenv import load_dotenv, set_key
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .tool_profile import VALID_TOOL_PROFILES, ToolProfile
+
 DeleteMode = Literal["safe", "full", "none"]
 VALID_DELETE_MODES: tuple[DeleteMode, ...] = ("safe", "full", "none")
 
@@ -25,6 +27,7 @@ class ICUConfig(BaseSettings):
     intervals_icu_api_key: str = ""
     intervals_icu_athlete_id: str = ""
     intervals_icu_delete_mode: DeleteMode = "safe"
+    intervals_icu_tool_profile: ToolProfile = "coaching"
 
     @field_validator("intervals_icu_delete_mode", mode="before")
     @classmethod
@@ -36,6 +39,19 @@ class ICUConfig(BaseSettings):
             raise ValueError(
                 "INTERVALS_ICU_DELETE_MODE must be one of: "
                 f"{', '.join(VALID_DELETE_MODES)}. Got: '{v}'"
+            )
+        return normalized
+
+    @field_validator("intervals_icu_tool_profile", mode="before")
+    @classmethod
+    def _normalize_tool_profile(cls, v: object) -> str:
+        if v is None or v == "":
+            return "coaching"
+        normalized = str(v).lower().strip()
+        if normalized not in VALID_TOOL_PROFILES:
+            raise ValueError(
+                "INTERVALS_ICU_TOOL_PROFILE must be one of: "
+                f"{', '.join(VALID_TOOL_PROFILES)}. Got: '{v}'"
             )
         return normalized
 

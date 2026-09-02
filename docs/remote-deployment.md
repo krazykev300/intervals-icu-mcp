@@ -24,8 +24,11 @@ intervals-icu-mcp --transport sse --host 127.0.0.1 --port 8000
 > The MCP protocol has **no built-in authentication**. Anyone who can reach the URL can exercise every tool with your credentials — read every activity, delete activities, modify your FTP, create calendar events, etc. Binding to `0.0.0.0` on a direct-exposed host (VPS, LAN with open port) is equivalent to publishing your Intervals.icu API key.
 >
 > For remote access, prefer one of the following:
-> - **Tailscale / Cloudflare Tunnel / ZeroTier** — only your authenticated devices can reach the endpoint. Zero code changes, simplest option.
+> - **Tailscale Serve / Cloudflare Tunnel / ZeroTier** — only your authenticated devices can reach the endpoint. Zero code changes, simplest option. If you use Tailscale, prefer **Serve** (tailnet-only) over **Funnel** (public internet) for this process.
 > - **Reverse proxy with auth** (nginx + basic auth, Cloudflare Access, etc.) — terminates TLS and gates access.
 > - **SSH tunnel** — `ssh -L 8000:localhost:8000 host` if you just need occasional access from one machine.
 >
 > Credentials are always read from `INTERVALS_ICU_API_KEY` and `INTERVALS_ICU_ATHLETE_ID` — use env vars (not a committed `.env`) when deploying to a shared host.
+
+For a systemd unit, Tailscale Serve on a dedicated localhost port, and a gitignored host overlay, see [self-host.md](self-host.md). The default HTTP port is 8000; `8788` in the example unit is only a suggestion when another MCP already occupies 8000.
+
