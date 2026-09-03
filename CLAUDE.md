@@ -87,6 +87,7 @@ Tests use pytest + pytest-asyncio with `respx` for HTTP mocking.
 - `docs/examples.md` — Usage examples
 - `docs/testing.md` — Testing conventions
 - `docs/chatgpt-connector.md` — ChatGPT custom-connector setup walkthrough
+- `docs/user-setup.md` — friend-facing setup: own credentials, chat-client memory, public-repo privacy boundary
 
 ### README discipline
 
