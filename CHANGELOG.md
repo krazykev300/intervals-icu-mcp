@@ -14,6 +14,12 @@ that preserve the information (key renames, restructuring, added fields) ship in
 clients. (Releases up to and including 4.0.0 treated any response-shape change as
 breaking; this narrower contract applies from the next release onward.)
 
+## [Unreleased]
+
+### Added
+
+- Friend-facing MCP user setup guide (`docs/user-setup.md`): own Intervals.icu credentials, the shared coaching prompts, where personal context lives (fetch-every-prompt / chat memory / a local notes file), and what must stay out of a public git repo.
+
 ## [5.0.0] — 2026-08-31
 
 First major since the narrowed SemVer contract, and it drains the whole deferred-breaking-changes
