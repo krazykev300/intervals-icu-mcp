@@ -156,4 +156,4 @@ Running list of deferred breaking cleanups (do together in the next major; keep 
 - `uv.lock` — Locked dependencies (commit this)
 - `.github/workflows/test.yml` — CI tests
 - `.github/workflows/release.yml` — Docker release automation
-- `.github/workflows/deploy-host.yml` — optional self-hosted `host-pull.sh` after main is green
+- `.github/workflows/deploy-host.yml` — optional self-hosted `host-pull.sh` after the live branch is green

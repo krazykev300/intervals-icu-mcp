@@ -93,11 +93,12 @@ sudo tailscale funnel status
 After later pushes, run `scripts/host-pull.sh` on the host. Do not hook that
 script from another project's pull helper.
 
-### Optional: GitHub Actions on push to `main`
+### Optional: GitHub Actions after a push
 
 `.github/workflows/deploy-host.yml` is the same script after the test suite
-passes. GitHub-hosted runners cannot reach a tailnet or LAN host, so this is
-opt-in and uses a **self-hosted** runner.
+passes. It runs on `main` and on `feat/coaching-profile-self-host` (the branch
+this host currently tracks). GitHub-hosted runners cannot reach a tailnet or
+LAN host, so this is opt-in and uses a **self-hosted** runner.
 
 1. Clone still lives at `~/intervals-icu-mcp` (see Install above).
 2. Passwordless sudo for the `cp` / `systemctl` lines in `host-pull.sh`.

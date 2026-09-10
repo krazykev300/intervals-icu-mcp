@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - feat/coaching-profile-self-host
   workflow_dispatch:
 
 concurrency:
