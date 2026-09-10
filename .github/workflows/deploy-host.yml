@@ -1,0 +1,41 @@
+name: Deploy host
+
+# Opt-in host update after main is green. Off unless the repository variable
+# ENABLE_HOST_PULL is the string "true" (set this on your fork only). GitHub-hosted
+# runners cannot reach a tailnet/LAN box, so the pull job uses a self-hosted
+# runner labeled intervals-icu-host. Do not add a pull_request trigger — this
+# repository is public and that runner is your host user.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-host
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run Tests
+    if: vars.ENABLE_HOST_PULL == 'true'
+    uses: ./.github/workflows/test.yml
+
+  host-pull:
+    name: Pull and restart on host
+    needs: test
+    if: vars.ENABLE_HOST_PULL == 'true'
+    runs-on: [self-hosted, linux, intervals-icu-host]
+    steps:
+      - name: Fast-forward clone and restart systemd unit
+        run: |
+          set -euo pipefail
+          script="${HOME}/intervals-icu-mcp/scripts/host-pull.sh"
+          if [[ ! -x "$script" ]]; then
+            echo "Missing $script — clone this repo on the runner first (docs/self-host.md)." >&2
+            exit 1
+          fi
+          "$script"

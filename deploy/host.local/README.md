@@ -9,5 +9,6 @@ want them next to the unit — nothing in `host.local/` is committed except this
 README. Copy `../identities.json.example` as a starting point.
 
 `scripts/host-pull.sh` prefers `deploy/host.local/intervals-icu.service` when
-that file exists. Funnel and Claude.ai: `docs/claude-connector.md` and
-`docs/identities.md`.
+that file exists. Optional GitHub Actions: `docs/self-host.md` (self-hosted
+runner lives outside this clone). Funnel and Claude.ai:
+`docs/claude-connector.md` and `docs/identities.md`.

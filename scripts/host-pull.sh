@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Run on the host after a git push to this repo. Does not belong in any other
-# project's pull script — this unit is independent.
+# Run on the host after a git push to this repo (SSH or .github/workflows/deploy-host.yml).
+# Does not belong in any other project's pull script — this unit is independent.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+# Prompt on a TTY; fail immediately from Actions / pipes (no password hang).
+SUDO=(sudo)
+if [[ ! -t 0 ]]; then
+  SUDO=(sudo -n)
+fi
 
 git pull --ff-only
 uv sync
@@ -16,8 +22,8 @@ if [[ ! -f "$UNIT_SRC" ]]; then
   echo "Edit User/WorkingDirectory/ExecStart on the host before relying on this." >&2
 fi
 
-sudo cp "$UNIT_SRC" /etc/systemd/system/intervals-icu.service
-sudo systemctl daemon-reload
-sudo systemctl enable intervals-icu.service
-sudo systemctl restart intervals-icu.service
-sudo systemctl --no-pager --full status intervals-icu.service | head -20
+"${SUDO[@]}" cp "$UNIT_SRC" /etc/systemd/system/intervals-icu.service
+"${SUDO[@]}" systemctl daemon-reload
+"${SUDO[@]}" systemctl enable intervals-icu.service
+"${SUDO[@]}" systemctl restart intervals-icu.service
+"${SUDO[@]}" systemctl --no-pager --full status intervals-icu.service | head -20

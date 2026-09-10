@@ -51,7 +51,9 @@ Committed (generic):
 
 - `.env.example`
 - `deploy/intervals-icu.service.example`
+- `deploy/host-pull.sudoers.example`
 - `scripts/host-pull.sh`
+- `scripts/install-host-runner.sh`
 - this document
 
 Host-only (gitignored overlay):
@@ -90,6 +92,38 @@ sudo tailscale funnel status
 
 After later pushes, run `scripts/host-pull.sh` on the host. Do not hook that
 script from another project's pull helper.
+
+### Optional: GitHub Actions on push to `main`
+
+`.github/workflows/deploy-host.yml` is the same script after the test suite
+passes. GitHub-hosted runners cannot reach a tailnet or LAN host, so this is
+opt-in and uses a **self-hosted** runner.
+
+1. Clone still lives at `~/intervals-icu-mcp` (see Install above).
+2. Passwordless sudo for the `cp` / `systemctl` lines in `host-pull.sh`.
+   Actions has no TTY — without this the job fails immediately. Template:
+   `deploy/host-pull.sudoers.example`. Fill User/paths on the host, then
+   `sudo install -m 440 … /etc/sudoers.d/intervals-icu-host-pull`.
+3. Register a runner on **this** repository with label `intervals-icu-host`.
+   Keep it *outside* the clone (default `~/actions-runner`). Token: GitHub →
+   Settings → Actions → Runners.
+
+   ```bash
+   cd ~/intervals-icu-mcp
+   RUNNER_TOKEN=<registration-token> \
+     scripts/install-host-runner.sh https://github.com/<you>/<this-repo>
+   cd ~/actions-runner && sudo ./svc.sh install && sudo ./svc.sh start
+   ```
+
+4. Set repository variable `ENABLE_HOST_PULL` to `true` (Settings → Secrets
+   and variables → Actions → Variables). Until that is set, the workflow is
+   a no-op — including on other forks.
+
+Do **not** add a `pull_request` trigger. A public repo plus a self-hosted
+runner would let a fork PR execute as your host user.
+
+Manual run: Actions → Deploy host → Run workflow. One job at a time
+(`concurrency` does not cancel an in-flight pull).
 
 ## Client config
 
