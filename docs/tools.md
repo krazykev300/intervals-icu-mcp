@@ -1,6 +1,6 @@
 # Tool, Resource, and Prompt Reference
 
-Complete inventory of everything the Intervals.icu MCP server exposes: up to 63 tools across 11 categories, 4 MCP Resources, and 7 MCP Prompts.
+Complete inventory of everything the Intervals.icu MCP server exposes: up to 63 tools across 11 categories, 5 MCP Resources, and 10 MCP Prompts.
 
 ## Delete Safety Mode
 
@@ -11,6 +11,8 @@ Destructive tools are gated by the optional `INTERVALS_ICU_DELETE_MODE` env var.
 | `safe` (default) | 60 | tomorrow or later | ✗ | ✓ | ✗ | ✗ |
 | `full` | 63 | any date | ✓ | ✓ | ✓ | ✓ |
 | `none` | 57 | ✗ | ✗ | ✗ | ✗ | ✗ |
+
+Counts in this table assume `INTERVALS_ICU_TOOL_PROFILE=full`. The default `coaching` profile is a subset (32 tools in `safe` delete mode); see [Tool Profile](#tool-profile).
 
 In `safe` mode, `icu_delete_event` and `icu_bulk_delete_events` return a uniform envelope showing what was deleted and what was skipped:
 
@@ -45,6 +47,20 @@ Set the mode in your client config alongside the credentials:
 **Why today is treated as past:** Safe mode only deletes events dated *strictly after today* in the server's local timezone. The one-day buffer absorbs server-vs-athlete TZ skew. If you run the server in Docker (defaults to UTC) and live in a different timezone, set the container's `TZ` env var to match your athlete profile (e.g., `TZ=Europe/Berlin`) so "today" lines up.
 
 **Why sport settings and custom items are full-only:** Sport-settings deletion shifts retroactive chart math (current FTP/zones drive past activity calculations on Intervals.icu, so deleting them re-renders historical training load). Custom items can be data-bearing fields whose values are stored across activities. Neither is recoverable by re-creating the deleted record.
+
+## Tool Profile
+
+A second registration gate, also outside the model's reach:
+`INTERVALS_ICU_TOOL_PROFILE`.
+
+| Profile | Default on this fork | What registers |
+|---|---|---|
+| `coaching` | yes | 32 tools (`DELETE_MODE=safe`): calendar CRUD, fitness, sport-settings **read**, curves, wellness, activity reads, streams, intervals, best efforts, histograms, workout library. `icu_delete_event` still follows delete mode. |
+| `full` | set `INTERVALS_ICU_TOOL_PROFILE=full` | Upstream catalog (60 / 63 / 57 with delete mode), including gear, custom items, activity messages, sport-settings writes, ATP, downloads. |
+
+`coaching` includes: `icu_get_calendar_events`, `icu_get_upcoming_workouts`, `icu_get_event`, `icu_create_event`, `icu_update_event`, `icu_delete_event`, `icu_bulk_create_events`, `icu_duplicate_events`, `icu_preview_workout`, `icu_get_athlete_profile`, `icu_get_fitness_summary`, `icu_get_fitness_chart`, `icu_get_sport_settings`, `icu_get_power_curves`, `icu_get_hr_curves`, `icu_get_pace_curves`, `icu_get_wellness_data`, `icu_get_wellness_for_date`, `icu_update_wellness`, `icu_get_recent_activities`, `icu_get_activities_by_date`, `icu_get_activity_details`, `icu_search_activities`, `icu_get_activity_intervals`, `icu_get_best_efforts`, `icu_get_activity_streams`, `icu_get_power_histogram`, `icu_get_hr_histogram`, `icu_get_pace_histogram`, `icu_get_gap_histogram`, `icu_get_workout_library`, `icu_get_workouts_in_folder`.
+
+The allow-list is `COACHING_TOOLS` in [`tool_profile.py`](../src/intervals_icu_mcp/tool_profile.py). New tools stay out of coaching until added there.
 
 ## Tools
 
@@ -210,6 +226,7 @@ Resources provide ongoing context to the LLM without requiring explicit tool cal
 | `intervals-icu://athlete/profile`     | Complete athlete profile with current fitness metrics and sport settings |
 | `intervals-icu://workout-syntax`      | Structured workout syntax reference for generating valid Intervals.icu workouts (cycling, running, swimming) |
 | `intervals-icu://event-categories`    | Calendar event category enum (WORKOUT, RACE_A/B/C, HOLIDAY, …), training_availability values, legacy aliases, and use-case guidance for create_event / update_event / bulk_create_events |
+| `intervals-icu://coaching-playbook`   | Coaching skill: log a race, compare fitness, write weeks around immovable sessions, add off-season strength. Same text as FastMCP server instructions + `coach_with_goals` |
 | `intervals-icu://custom-item-schemas` | Per-item_type `content` schema for create_custom_item / update_custom_item — INPUT_FIELD/ACTIVITY_FIELD/INTERVAL_FIELD constraints with worked examples; chart/panel/zones/stream guidance |
 
 ## MCP Prompts
@@ -225,3 +242,4 @@ Prompt templates for common queries, accessible via prompt suggestions in Claude
 | `icu_training_plan_review`    | Weekly training plan evaluation with workout library                     |
 | `icu_plan_training_week`      | AI-assisted weekly training plan creation based on current fitness       |
 | `generate_workout`            | Generate a structured workout with sport, type, and duration parameters  |
+| `coach_with_goals`            | Coaching skill (also server instructions + `intervals-icu://coaching-playbook`): race → fitness → calendar around group rides and off-season strength. Goals MCP is WHY; dates stay here |

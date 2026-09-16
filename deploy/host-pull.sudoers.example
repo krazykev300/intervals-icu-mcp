@@ -1,0 +1,13 @@
+# Passwordless sudo for scripts/host-pull.sh (GitHub Actions has no TTY).
+# Copy to the host, replace YOUR_USER and /path/to/intervals-icu-mcp, then:
+#   sudo install -m 440 host-pull.sudoers /etc/sudoers.d/intervals-icu-host-pull
+#   sudo visudo -cf /etc/sudoers.d/intervals-icu-host-pull
+# Do not commit the filled copy.
+
+YOUR_USER ALL=(root) NOPASSWD: \
+  /usr/bin/cp /path/to/intervals-icu-mcp/deploy/host.local/intervals-icu.service /etc/systemd/system/intervals-icu.service, \
+  /usr/bin/cp /path/to/intervals-icu-mcp/deploy/intervals-icu.service.example /etc/systemd/system/intervals-icu.service, \
+  /usr/bin/systemctl daemon-reload, \
+  /usr/bin/systemctl enable intervals-icu.service, \
+  /usr/bin/systemctl restart intervals-icu.service, \
+  /usr/bin/systemctl --no-pager --full status intervals-icu.service

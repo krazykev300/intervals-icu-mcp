@@ -7,11 +7,15 @@ from typing import Any
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+from .prompts.coaching_playbook import COACHING_PLAYBOOK, SERVER_INSTRUCTIONS
+
 # Load environment variables
 load_dotenv()
 
-# Initialize FastMCP server
-mcp = FastMCP("intervals_icu_mcp")
+# Initialize FastMCP server. `instructions` are the coaching skill: clients
+# that honor MCP server instructions (Claude.ai / iOS) follow the playbook
+# without the user pasting a kickoff prompt.
+mcp = FastMCP("intervals_icu_mcp", instructions=SERVER_INSTRUCTIONS)
 
 # Register middleware
 from .auth import load_config
@@ -19,10 +23,14 @@ from .middleware import ConfigMiddleware
 
 mcp.add_middleware(ConfigMiddleware())
 
-# Read delete mode at startup. This decides which destructive tools are
-# *registered* with the server — the safety floor sits outside the LLM's reach
-# (no parameter the model invents can summon a tool that wasn't registered).
-_DELETE_MODE = load_config().intervals_icu_delete_mode
+# Read delete mode and tool profile at startup. Both gates sit outside the
+# LLM's reach — a prompt cannot summon a tool that was never registered.
+from .tool_profile import install_tool_profile_filter
+
+_CONFIG = load_config()
+_DELETE_MODE = _CONFIG.intervals_icu_delete_mode
+_TOOL_PROFILE = _CONFIG.intervals_icu_tool_profile
+install_tool_profile_filter(mcp, _TOOL_PROFILE)
 
 # Import and register tools
 from .tools.activities import (
@@ -767,6 +775,16 @@ async def event_categories_resource() -> str:
     return EVENT_CATEGORIES_SPEC
 
 
+@mcp.resource("intervals-icu://coaching-playbook")
+async def coaching_playbook_resource() -> str:
+    """How to coach from this server: log races, compare fitness, write weeks around immovable sessions, add off-season strength.
+
+    Read this when the user asks for coaching, race prep, a training plan, or
+    calendar changes. Same text as the `coach_with_goals` prompt.
+    """
+    return COACHING_PLAYBOOK
+
+
 @mcp.resource("intervals-icu://custom-item-schemas")
 async def custom_item_schemas_resource() -> str:
     """Intervals.icu custom item content schemas reference.
@@ -1108,6 +1126,11 @@ Flag 401/403 on reads as a missing follow/coach relationship. Flag 403 on writes
 (Step 6) as read-only access, which is expected for a follower."""
 
 
+from .prompts.coach_with_goals import coach_with_goals
+
+mcp.prompt()(coach_with_goals)
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments for transport selection.
 
@@ -1156,7 +1179,8 @@ def _emit_startup_log() -> None:
     except Exception:
         count = -1
     print(
-        f"intervals-icu MCP starting: delete_mode={_DELETE_MODE}, registered_tools={count}",
+        f"intervals-icu MCP starting: delete_mode={_DELETE_MODE}, "
+        f"tool_profile={_TOOL_PROFILE}, registered_tools={count}",
         file=sys.stderr,
     )
 
@@ -1173,6 +1197,15 @@ def main() -> None:
     kwargs: dict[str, Any] = {"host": args.host, "port": args.port}
     if args.path is not None:
         kwargs["path"] = args.path
+    from .http_auth import starlette_middleware
+    from .identity import http_auth_required, list_identities
+
+    kwargs["middleware"] = starlette_middleware()
+    print(
+        f"intervals-icu MCP HTTP: http_auth_required={http_auth_required()}, "
+        f"identities={len(list_identities())}",
+        file=sys.stderr,
+    )
     mcp.run(transport=args.transport, **kwargs)
 
 

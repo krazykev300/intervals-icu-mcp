@@ -1,0 +1,10 @@
+{
+  "identities": [
+    {
+      "name": "personal",
+      "link_token": "replace-with-openssl-rand-hex-32",
+      "intervals_icu_api_key": "your_api_key_here",
+      "intervals_icu_athlete_id": "i123456"
+    }
+  ]
+}

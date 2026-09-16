@@ -8,8 +8,13 @@ from dotenv import load_dotenv, set_key
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .tool_profile import VALID_TOOL_PROFILES, ToolProfile
+
 DeleteMode = Literal["safe", "full", "none"]
 VALID_DELETE_MODES: tuple[DeleteMode, ...] = ("safe", "full", "none")
+
+HttpAuthMode = Literal["off", "link_token", "auto"]
+VALID_HTTP_AUTH_MODES: tuple[HttpAuthMode, ...] = ("off", "link_token", "auto")
 
 
 class ICUConfig(BaseSettings):
@@ -25,6 +30,10 @@ class ICUConfig(BaseSettings):
     intervals_icu_api_key: str = ""
     intervals_icu_athlete_id: str = ""
     intervals_icu_delete_mode: DeleteMode = "safe"
+    intervals_icu_tool_profile: ToolProfile = "coaching"
+    intervals_icu_http_auth: HttpAuthMode = "auto"
+    intervals_icu_link_token: str = ""
+    intervals_icu_identities_file: str = ""
 
     @field_validator("intervals_icu_delete_mode", mode="before")
     @classmethod
@@ -36,6 +45,32 @@ class ICUConfig(BaseSettings):
             raise ValueError(
                 "INTERVALS_ICU_DELETE_MODE must be one of: "
                 f"{', '.join(VALID_DELETE_MODES)}. Got: '{v}'"
+            )
+        return normalized
+
+    @field_validator("intervals_icu_tool_profile", mode="before")
+    @classmethod
+    def _normalize_tool_profile(cls, v: object) -> str:
+        if v is None or v == "":
+            return "coaching"
+        normalized = str(v).lower().strip()
+        if normalized not in VALID_TOOL_PROFILES:
+            raise ValueError(
+                "INTERVALS_ICU_TOOL_PROFILE must be one of: "
+                f"{', '.join(VALID_TOOL_PROFILES)}. Got: '{v}'"
+            )
+        return normalized
+
+    @field_validator("intervals_icu_http_auth", mode="before")
+    @classmethod
+    def _normalize_http_auth(cls, v: object) -> str:
+        if v is None or v == "":
+            return "auto"
+        normalized = str(v).lower().strip()
+        if normalized not in VALID_HTTP_AUTH_MODES:
+            raise ValueError(
+                "INTERVALS_ICU_HTTP_AUTH must be one of: "
+                f"{', '.join(VALID_HTTP_AUTH_MODES)}. Got: '{v}'"
             )
         return normalized
 

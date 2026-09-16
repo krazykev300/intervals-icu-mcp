@@ -4,7 +4,20 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-MCP (Model Context Protocol) server for Intervals.icu — provides up to 63 tools, 4 resources, and 9 prompts for accessing training data, wellness metrics, and performance analysis through Claude and other LLMs. The default `INTERVALS_ICU_DELETE_MODE=safe` registers 60 tools; `full` registers all 63, `none` registers 57.
+MCP (Model Context Protocol) server for Intervals.icu — this fork defaults to
+`INTERVALS_ICU_TOOL_PROFILE=coaching` (32 tools with `DELETE_MODE=safe`: calendar,
+fitness, curves, wellness, activities, streams/histograms, workout library).
+`full` restores the upstream catalog (60 / 63 / 57 with delete mode). 5 resources
+and 10 prompts. Server `instructions` plus `intervals-icu://coaching-playbook`
+are the coaching skill (race → fitness → calendar); `coach_with_goals` returns
+the same playbook.
+
+This repository is the source of truth for calendar, wellness, and fitness
+numbers. Goals, racing identity, and constraints belong in a separate knowledge
+store if you use one. Do not put Intervals API keys, athlete ids, or CTL numbers
+there. A **link token** (HTTP bearer that selects an identity on this server) may
+be stored as a personal secret; it is not the Intervals API key. See
+`docs/identities.md`.
 
 - **Language**: Python 3.11+
 - **Framework**: FastMCP
@@ -40,6 +53,9 @@ make docker/run       # Run Docker container
 | Models | `models.py` | Pydantic models for API responses |
 | Workout syntax | `workout_syntax.py` | Intervals.icu workout DSL reference for LLMs |
 | Workout parser | `workout_parser.py` | Local linter/preview for workout descriptions |
+| Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-list + `mcp.tool` filter |
+| Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
+| Prompts | `prompts/` | Overlay prompts + coaching playbook (`coaching_playbook.py`); kept out of `server.py` for rebases |
 | Tools | `tools/` | 13 tool modules (see below) |
 
 **For detailed architecture**: see `docs/architecture.md`
@@ -141,3 +157,4 @@ Running list of deferred breaking cleanups (do together in the next major; keep 
 - `uv.lock` — Locked dependencies (commit this)
 - `.github/workflows/test.yml` — CI tests
 - `.github/workflows/release.yml` — Docker release automation
+- `.github/workflows/deploy-host.yml` — optional self-hosted `host-pull.sh` after the live branch is green

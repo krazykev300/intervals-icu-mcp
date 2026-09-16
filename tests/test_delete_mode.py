@@ -71,6 +71,7 @@ class TestConditionalRegistration:
         return {t.name for t in tools}
 
     def test_safe_mode_registers_event_and_gear_only(self, monkeypatch):
+        monkeypatch.setenv("INTERVALS_ICU_TOOL_PROFILE", "full")
         monkeypatch.setenv("INTERVALS_ICU_DELETE_MODE", "safe")
         names = self._tool_names(_reload_server())
         assert "icu_delete_event" in names
@@ -81,6 +82,7 @@ class TestConditionalRegistration:
         assert "icu_delete_custom_item" not in names
 
     def test_full_mode_registers_all_delete_tools(self, monkeypatch):
+        monkeypatch.setenv("INTERVALS_ICU_TOOL_PROFILE", "full")
         monkeypatch.setenv("INTERVALS_ICU_DELETE_MODE", "full")
         names = self._tool_names(_reload_server())
         for tool in (
@@ -94,6 +96,7 @@ class TestConditionalRegistration:
             assert tool in names, f"expected {tool} registered in full mode"
 
     def test_none_mode_registers_no_delete_tools(self, monkeypatch):
+        monkeypatch.setenv("INTERVALS_ICU_TOOL_PROFILE", "full")
         monkeypatch.setenv("INTERVALS_ICU_DELETE_MODE", "none")
         names = self._tool_names(_reload_server())
         for tool in (
