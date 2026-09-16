@@ -13,6 +13,12 @@ if [[ ! -t 0 ]]; then
 fi
 
 git pull --ff-only
+# Actions/systemd PATH often omits the uv installer location.
+export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv not on PATH (looked in ~/.local/bin and /usr/local/bin)." >&2
+  exit 1
+fi
 uv sync
 
 UNIT_SRC="$ROOT/deploy/host.local/intervals-icu.service"
