@@ -258,13 +258,17 @@ The server runs over **stdio** by default — the right transport for local clie
 
 See [docs/remote-deployment.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) for transport flags and the full security model. For systemd + Tailscale Serve/Funnel, identities, and Claude.ai, see [docs/self-host.md](docs/self-host.md), [docs/identities.md](docs/identities.md), and [docs/claude-connector.md](docs/claude-connector.md).
 
+### Host auto-update
+
+A push to `main` or `feat/coaching-profile-self-host` runs the test suite, then a **self-hosted** runner on the box runs `scripts/host-pull.sh` (fast-forward, `uv sync`, restart the systemd unit). It is opt-in: repository variable `ENABLE_HOST_PULL=true`. Pull requests never trigger it. One-time runner + scoped sudoers: [docs/self-host.md](docs/self-host.md). Manual fallback: SSH and run `scripts/host-pull.sh`.
+
 ## Documentation
 
 - [Example prompts](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/examples.md) — full catalogue of natural-language prompts by category
 - [Tool reference](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md) — complete tool, resource, and prompt inventory
 - [Architecture overview](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/architecture.md) — how the server, middleware, client, and tools fit together
 - [Remote deployment (HTTP/SSE)](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/remote-deployment.md) — transports, flags, and the security model for hosted/remote setups
-- [Self-host (systemd + Tailscale)](docs/self-host.md) — coaching instance layout; optional Actions host-pull; host-specific paths stay out of git
+- [Self-host (systemd + Tailscale)](docs/self-host.md) — coaching instance layout; Actions host auto-update; host-specific paths stay out of git
 - [Identities / link tokens](docs/identities.md) — Funnel without baking one Intervals account into the process
 - [Claude.ai / iOS connector](docs/claude-connector.md) — Funnel 443 + Bearer header
 - [Claude iOS coaching workflow](docs/claude-ios-coaching.md) — race → fitness → calendar (group rides, strength)

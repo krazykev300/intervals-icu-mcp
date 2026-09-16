@@ -90,10 +90,11 @@ sudo tailscale funnel status
 # Funnel only after INTERVALS_ICU_LINK_TOKEN is set — see docs/claude-connector.md
 ```
 
-After later pushes, run `scripts/host-pull.sh` on the host. Do not hook that
-script from another project's pull helper.
+After later pushes, GitHub Actions runs `scripts/host-pull.sh` on the host
+when `ENABLE_HOST_PULL=true` (see below). You can still run that script over
+SSH. Do not hook it from another project's pull helper.
 
-### Optional: GitHub Actions after a push
+### GitHub Actions after a push
 
 `.github/workflows/deploy-host.yml` is the same script after the test suite
 passes. It runs on `main` and on `feat/coaching-profile-self-host` (the branch
