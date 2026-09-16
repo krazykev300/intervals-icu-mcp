@@ -28,6 +28,7 @@ COACHING_TOOLS: frozenset[str] = frozenset(
         "icu_delete_event",
         "icu_bulk_create_events",
         "icu_duplicate_events",
+        "icu_preview_workout",
         "icu_get_athlete_profile",
         "icu_get_fitness_summary",
         "icu_get_fitness_chart",

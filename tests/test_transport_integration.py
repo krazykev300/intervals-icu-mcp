@@ -42,6 +42,7 @@ class TestInMemoryTransport:
             assert "icu_get_fitness_chart" in names
             assert "icu_bulk_create_events" in names
             assert "icu_duplicate_events" in names
+            assert "icu_preview_workout" in names
             assert "icu_get_activity_streams" in names
             assert "icu_get_custom_items" not in names
             assert "icu_update_sport_settings" not in names

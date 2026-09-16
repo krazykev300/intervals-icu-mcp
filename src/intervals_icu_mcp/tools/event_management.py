@@ -10,6 +10,7 @@ from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
 from ..models import Event
 from ..response_builder import ResponseBuilder
+from ..workout_parser import WorkoutLint, lint_workout_description, looks_like_workout_syntax
 
 PAST_EVENT_HINT = (
     "Past events (today and earlier) require INTERVALS_ICU_DELETE_MODE=full. "
@@ -112,10 +113,12 @@ WORKOUT_SYNTAX_HINT = (
     "threshold is relative — run '- 25m 100% pace', swim CSS '- 200mtr 100% pace' — "
     "the words 'threshold'/'CSS'/'5K pace' are NOT parsed as targets. "
     "Add cadence to any step: '- 3m Z2 90rpm'. "
-    "No target: '- 20m free'. Repeats: put "
-    "'Nx' after a section name with steps flat beneath, and leave a blank line "
-    "before and after the repeat block (without it the repeat silently runs only "
-    "once) — e.g. 'Main 5x' then '- 3m 110%' / '- 3m 50%'. Ramps: '- 10m ramp "
+    "No target: '- 20m free'. Repeats: 'Nx' on the header, steps on the very next "
+    "line — e.g. 'Main 5x' then immediately '- 3m 110%' / '- 3m 50%'. A blank line "
+    "BETWEEN header and steps makes Intervals.icu ignore the repeat (runs 1x); "
+    "blank lines go before the header and after the last step, never between. "
+    "Duration ranges ('3-4h', '15-20m') are rejected — pick one value. "
+    "Dry-run with icu_preview_workout before writing. Ramps: '- 10m ramp "
     "50-70%'. Rest: append 'Ns rest' "
     "to a step ('- 200mtr Z2 20s rest') or use a separate '- 20s intensity=rest' "
     "step (only intensity=rest exports as a device rest step) — never a bare "
@@ -175,9 +178,7 @@ def _swim_work_lacks_intensity(steps: list[Any]) -> bool:
                     cast(list[Any], nested),
                     excluded or text.startswith(("warmup", "cooldown")),
                 )
-            elif (
-                not excluded and not step_dict.get("warmup") and not step_dict.get("cooldown")
-            ):
+            elif not excluded and not step_dict.get("warmup") and not step_dict.get("cooldown"):
                 work.append(step_dict)
 
     _collect(steps, False)
@@ -233,6 +234,66 @@ def _workout_parse_info(event: Event) -> dict[str, Any] | None:
             "See intervals-icu://workout-syntax."
         ),
     }
+
+
+_LINT_SUGGESTIONS = [
+    "Use icu_preview_workout to inspect the parse before writing.",
+    "Duration ranges like '3-4h' or '15-20m' are not parsed — pick a single value.",
+    "Put steps on the line immediately after an Nx header, with no blank line in between.",
+]
+
+
+def _lint_description(description: str | None) -> WorkoutLint | None:
+    """Lint a description that looks like workout syntax; otherwise skip."""
+    if not description or not looks_like_workout_syntax(description):
+        return None
+    return lint_workout_description(description)
+
+
+def _lint_error_response(lint: WorkoutLint) -> str | None:
+    """Validation-error JSON when the linter found fatal issues, else None."""
+    if not lint.errors:
+        return None
+    return ResponseBuilder.build_error_response(
+        " ".join(lint.errors),
+        error_type="validation_error",
+        suggestions=_LINT_SUGGESTIONS,
+    )
+
+
+def _server_parse_warnings(lint: WorkoutLint, event: Event) -> list[str]:
+    """Warnings from comparing our lint to the API's workout_doc, if present."""
+    expected_repeats = [s for s in lint.steps if int(s.get("reps") or 1) > 1]
+    if not expected_repeats:
+        return []
+    doc: dict[str, Any] = event.workout_doc or {}
+    doc_steps: list[Any] = doc.get("steps") or []
+    if not doc_steps:
+        return []
+    if any(
+        isinstance(s, dict) and int(cast(dict[str, Any], s).get("reps") or 1) > 1 for s in doc_steps
+    ):
+        return []
+    return [
+        "Intervals.icu did not apply an Nx repeat from the description; "
+        "duration may be too low. Put steps on the line immediately after "
+        "the Nx header, with no blank line in between."
+    ]
+
+
+def _attach_workout_warnings(
+    result: dict[str, Any],
+    event: Event,
+    lint: WorkoutLint | None,
+) -> dict[str, Any]:
+    """Add a ``warnings`` array when the linter or the API parse dropped tokens."""
+    if lint is None:
+        return result
+    warnings = list(lint.warnings)
+    warnings.extend(_server_parse_warnings(lint, event))
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 def _normalize_category(category: str) -> tuple[str | None, str | None]:
@@ -296,6 +357,50 @@ def _event_to_dict(event: Event) -> dict[str, Any]:
     return result
 
 
+async def preview_workout(
+    description: Annotated[
+        str,
+        "Workout description in Intervals.icu syntax — the same text you would "
+        "put in icu_create_event's description. Parses locally; does not write "
+        "to the calendar. Use to verify steps and total duration before creating.",
+    ],
+    ctx: Context | None = None,
+) -> str:
+    """PREVIEW how a workout description parses — steps and duration, no calendar write.
+
+    Use before icu_create_event / icu_update_event / icu_bulk_create_events to
+    check intent against the parse. Duration ranges ('3-4h', '15-20m') are
+    rejected; other silent-parse traps (blank line after an Nx header, dropped
+    targets) surface as warnings. The sibling write tools actually create or
+    update events.
+    """
+    assert ctx is not None
+
+    if not description or not description.strip():
+        return ResponseBuilder.build_error_response(
+            "description is required.",
+            error_type="validation_error",
+        )
+
+    lint = lint_workout_description(description)
+    if lint.errors:
+        return ResponseBuilder.build_error_response(
+            " ".join(lint.errors),
+            error_type="validation_error",
+            suggestions=_LINT_SUGGESTIONS,
+        )
+
+    data: dict[str, Any] = {
+        "steps": lint.steps,
+        "total_duration_seconds": lint.total_duration_seconds,
+    }
+    if lint.warnings:
+        data["warnings"] = lint.warnings
+    if lint.rewritten:
+        data["normalized_description"] = lint.normalized_description
+    return ResponseBuilder.build_response(data, query_type="preview_workout")
+
+
 async def create_event(
     start_date: Annotated[str, "Start date in YYYY-MM-DD format"],
     name: Annotated[str, "Event name"],
@@ -347,6 +452,7 @@ async def create_event(
     For category guidance and the training_availability enum, read the
     intervals-icu://event-categories resource. For structured WORKOUT events,
     put workout-syntax text in `description` — see intervals-icu://workout-syntax.
+    Call icu_preview_workout first to verify steps and duration before writing.
     """
     assert ctx is not None
     config: ICUConfig = await ctx.get_state("config")
@@ -393,6 +499,13 @@ async def create_event(
                 error_type="validation_error",
             )
 
+    lint = _lint_description(description)
+    if lint is not None:
+        lint_error = _lint_error_response(lint)
+        if lint_error is not None:
+            return lint_error
+        description = lint.normalized_description
+
     try:
         event_data: dict[str, Any] = {
             "start_date_local": start_date,
@@ -427,7 +540,7 @@ async def create_event(
             event = await client.create_event(event_data, athlete_id=athlete_id)
 
             return ResponseBuilder.build_response(
-                data=_event_to_dict(event),
+                data=_attach_workout_warnings(_event_to_dict(event), event, lint),
                 query_type="create_event",
                 metadata={"message": f"Successfully created {normalized_category.lower()}: {name}"},
             )
@@ -498,6 +611,13 @@ async def update_event(
     else:
         normalized_availability = None
 
+    lint = _lint_description(description)
+    if lint is not None:
+        lint_error = _lint_error_response(lint)
+        if lint_error is not None:
+            return lint_error
+        description = lint.normalized_description
+
     try:
         event_data: dict[str, Any] = {}
 
@@ -538,7 +658,7 @@ async def update_event(
             event = await client.update_event(event_id, event_data, athlete_id=athlete_id)
 
             return ResponseBuilder.build_response(
-                data=_event_to_dict(event),
+                data=_attach_workout_warnings(_event_to_dict(event), event, lint),
                 query_type="update_event",
                 metadata={"message": f"Successfully updated event {event_id}"},
             )
@@ -655,6 +775,7 @@ async def bulk_create_events(
             )
 
         events_data: list[dict[str, Any]] = parsed_data  # type: ignore[assignment]
+        lints: list[WorkoutLint | None] = []
 
         for i, event_data in enumerate(events_data):
             if "start_date_local" not in event_data:
@@ -735,10 +856,26 @@ async def bulk_create_events(
                     )
                 event_data["training_availability"] = availability
 
+            desc_raw = event_data.get("description")
+            desc = desc_raw if isinstance(desc_raw, str) else None
+            lint = _lint_description(desc)
+            if lint is not None:
+                if lint.errors:
+                    return ResponseBuilder.build_error_response(
+                        f"Event {i}: {' '.join(lint.errors)}",
+                        error_type="validation_error",
+                        suggestions=_LINT_SUGGESTIONS,
+                    )
+                event_data["description"] = lint.normalized_description
+            lints.append(lint)
+
         async with ICUClient(config) as client:
             created_events = await client.bulk_create_events(events_data, athlete_id=athlete_id)
 
-            events_result = [_event_to_dict(event) for event in created_events]
+            events_result = [
+                _attach_workout_warnings(_event_to_dict(event), event, lint)
+                for event, lint in zip(created_events, lints, strict=True)
+            ]
 
             return ResponseBuilder.build_response(
                 data={"events": events_result},

@@ -175,7 +175,7 @@ appointments.
 
 ## Tools this profile actually has
 
-Coaching profile (~31 tools): calendar CRUD (including bulk + duplicate),
+Coaching profile (~32 tools): calendar CRUD (including bulk + duplicate),
 fitness summary/chart, sport settings **read**, power/HR/pace curves,
 wellness, activities + streams/histograms, workout library.
 
