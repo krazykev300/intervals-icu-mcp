@@ -94,8 +94,9 @@ async def get_athlete_state(
     ] = None,
     ctx: Context | None = None,
 ) -> str:
-    """COMPOSITE grounding read for coaching — trajectory, empirical TSB, races, observed load, gaps.
+    """COMPOSITE grounding read (icu_get_athlete_state / athlete state) for coaching.
 
+    Trajectory, empirical TSB tolerance, races, observed load, readiness, gaps.
     Call this FIRST before drafting a plan. Not today's snapshot
     (icu_get_fitness_summary) and not the raw PMC series (icu_get_fitness_chart).
     Season / year-out: horizon_days=365; if no RACE_A, search goals MCP then
@@ -265,8 +266,10 @@ async def get_athlete_state(
                 compliance = compliance_block(events, activities, today, lookback_days)
                 data["compliance"] = compliance
 
+            readiness: dict[str, Any] = {}
             if "readiness" in blocks:
-                data["readiness"] = readiness_block(wellness, today)
+                readiness = readiness_block(wellness, today)
+                data["readiness"] = readiness
 
             if "durability" in blocks:
                 durability = await _durability_block(client, resolved_athlete, activities, today)
@@ -293,6 +296,7 @@ async def get_athlete_state(
                 phase_source=phase.get("source") if "phase_context" in blocks else None,
                 subjective_empty_days=subjective_empty,
                 has_power=bool(power) if "power_profile" in blocks else None,
+                readiness_state=readiness.get("readiness_state") if readiness else None,
             )
 
             metadata: dict[str, Any] = {

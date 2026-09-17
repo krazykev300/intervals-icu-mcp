@@ -14,6 +14,7 @@ from intervals_icu_mcp.athlete_state_compute import (
     durability_from_streams,
     fitness_points,
     gaps,
+    readiness_block,
     tsb_tolerance,
     weekly_fitness_series,
 )
@@ -142,6 +143,84 @@ class TestGaps:
         )
         assert items == []
 
+    def test_unknown_readiness_is_a_gap(self):
+        items = gaps(
+            horizon_days=90,
+            races=[{"category": "RACE_A"}],
+            phase_source="derived_from_race",
+            subjective_empty_days=0,
+            has_power=True,
+            readiness_state="unknown",
+        )
+        assert any(item["field"] == "readiness.signals" for item in items)
+
+
+class TestReadiness:
+    def test_ctl_and_rhr_only_today_is_unknown_not_green(self):
+        today = date(2026, 9, 16)
+        records = [
+            Wellness.model_validate(
+                {
+                    "id": "2026-09-15",
+                    "ctl": 89.0,
+                    "hrv": 61.0,
+                    "restingHR": 43,
+                    "sleepSecs": 7 * 3600,
+                }
+            ),
+            Wellness.model_validate(
+                {
+                    "id": "2026-09-16",
+                    "ctl": 88.9,
+                    "atl": 94.7,
+                    "restingHR": 43,
+                }
+            ),
+        ]
+        block = readiness_block(records, today)
+        assert block["readiness_state"] == "unknown"
+        assert block["gating"] == "do_not_treat_as_green"
+        assert "hrv" in block["missing_today"]
+        assert "sleep" in block["missing_today"]
+        assert "2026-09-16" in block["days_missing_hrv_and_sleep"]
+
+    def test_does_not_reuse_yesterdays_complete_row(self):
+        today = date(2026, 9, 17)
+        records = [
+            Wellness.model_validate(
+                {
+                    "id": "2026-09-15",
+                    "ctl": 89.0,
+                    "hrv": 61.0,
+                    "restingHR": 43,
+                    "sleepSecs": 7 * 3600,
+                }
+            ),
+            Wellness.model_validate({"id": "2026-09-17", "ctl": 88.2, "atl": 90.3}),
+        ]
+        block = readiness_block(records, today)
+        assert block["as_of"] == "2026-09-17"
+        assert block["readiness_state"] == "unknown"
+        assert "today" not in block.get("hrv", {})
+
+    def test_today_complete_is_a_color(self):
+        today = date(2026, 9, 15)
+        records = [
+            Wellness.model_validate(
+                {
+                    "id": (today - timedelta(days=i)).isoformat(),
+                    "ctl": 80.0,
+                    "hrv": 50.0,
+                    "restingHR": 48,
+                    "sleepSecs": 7 * 3600,
+                }
+            )
+            for i in range(20)
+        ]
+        block = readiness_block(records, today)
+        assert block["readiness_state"] in {"green", "amber", "red"}
+        assert "gating" not in block
+
 
 class TestDurability:
     def test_fresh_bin_from_short_trace(self):
@@ -256,6 +335,7 @@ class TestGetAthleteStateTool:
         assert data["calendar"]["goal_events"][0]["category"] == "RACE_A"
         assert data["phase_context"]["source"] == "derived_from_race"
         assert data["readiness"]["readiness_state"] in {"green", "amber", "red"}
+        assert "unknown" != data["readiness"]["readiness_state"]
         assert "compliance" in data
         flags = response["analysis"]["derived_flags"]
         assert any("60m_to_ftp_gap" in flag for flag in flags)

@@ -42,14 +42,29 @@ Another Section
 ## Sections
 Sections group related steps. Common names: `Warmup`, `Warm Up`, `Main Set`, `Main`, `Cooldown`, `Cool Down`.
 
-Add repeat count after section name. The first step MUST sit on the line
-immediately after the header — a blank line between them makes Intervals.icu
-ignore the repeat (it runs once) with no error:
+Add repeat count after section name. Two different blank-line rules — do not
+mix them:
+
+1. **Inside the repeat (header → first step):** the first step MUST sit on
+   the line immediately after `Main Set 3x`. A blank line *between the Nx
+   header and its steps* makes Intervals.icu ignore the repeat (it runs
+   once) with no error.
+2. **Around the block (between sections):** a blank line *before the header*
+   and *after the last step* is correct — that separates Warmup / Main /
+   Cooldown. That is not inside the repeat.
+
+**Good** — blank lines around the block, none inside it:
 
 ```
+Warmup
+- 10m 55%
+
 Main Set 3x
 - 5m 90%
 - 2m 50%
+
+Cooldown
+- 10m 50%
 ```
 
 Or standalone repeat:
@@ -60,9 +75,8 @@ Intervals 5x
 - 400mtr Z1
 ```
 
-Blank lines belong *around* the block (before the header and after the last
-step), never *inside* it. This form is **broken** — the `3x` is silently
-dropped:
+**Broken** — blank line inside the repeat, between `3x` and the first step.
+The `3x` is silently dropped (1x, not 3x):
 
 ```
 Main Set 3x

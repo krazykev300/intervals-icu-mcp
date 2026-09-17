@@ -30,8 +30,13 @@ breaking; this narrower contract applies from the next release onward.)
 
 ### Changed
 - Coaching playbook: year-out sufficiency (search calendar 365d, then goals MCP / Drive / GCal, then ask). Call `icu_get_athlete_state` before planning. Missing ATP is not a blocker — derive phase from nearest `RACE_A`.
-- `icu_get_fitness_summary` analysis now includes a `caveat` that TSB/ramp bands are generic; existing recommendation keys are unchanged.
+- `icu_get_fitness_summary` analysis now includes a `caveat` that TSB/ramp bands are generic; existing recommendation keys are unchanged. The caveat names the registered tool `icu_get_athlete_state` (not a resource).
+- Workout-syntax resource and create/update cheat-sheet: blank lines *between sections* (after the last step) are required; a blank line *inside* a repeat (between the `Nx` header and its first step) still makes Intervals.icu run 1x. `icu_preview_workout` sets `intervals_as_written` when that trap is present.
 - **BREAKING:** default tool registration is `coaching` (32 tools), not the previous safe-mode catalog (59). Set `INTERVALS_ICU_TOOL_PROFILE=full` to restore the upstream set. Changing which tools register by default is a major under the contract above.
+
+### Fixed
+- `icu_get_athlete_state` readiness: a day with CTL/RHR but no HRV and no sleep is `unknown` (with `gating: do_not_treat_as_green`), not a missing `readiness_state` that models treat as green. Scores today's row only — yesterday's complete overnight is not reused. `days_missing_hrv_and_sleep` lists the hole.
+
 
 ## [5.0.0] — 2026-08-31
 

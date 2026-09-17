@@ -857,7 +857,8 @@ Guidelines:
 - Always include Warmup, Main Set, and Cooldown sections
 - Use appropriate intensity targets based on the athlete's thresholds
 - Include cadence targets for cycling workouts
-- Use blank lines between sections, not between an Nx header and its steps
+- Use blank lines BETWEEN sections (after the last step, before the next header)
+- Never put a blank line between an Nx header and its first step (that drops the repeat to 1x)
 - Put 'Nx' on the section header and the first step on the immediately following line
 - Do not use duration ranges ('3-4h'); pick a single value
 - For {workout_type} workouts, follow standard training methodology

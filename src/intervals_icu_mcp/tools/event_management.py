@@ -115,8 +115,9 @@ WORKOUT_SYNTAX_HINT = (
     "Add cadence to any step: '- 3m Z2 90rpm'. "
     "No target: '- 20m free'. Repeats: 'Nx' on the header, steps on the very next "
     "line — e.g. 'Main 5x' then immediately '- 3m 110%' / '- 3m 50%'. A blank line "
-    "BETWEEN header and steps makes Intervals.icu ignore the repeat (runs 1x); "
-    "blank lines go before the header and after the last step, never between. "
+    "BETWEEN the Nx header and its first step makes Intervals.icu ignore the repeat "
+    "(runs 1x). Blank lines BETWEEN sections are required: after the last step of "
+    "one block, then the next header. Never put a blank line inside the repeat."
     "Duration ranges ('3-4h', '15-20m') are rejected — pick one value. "
     "Dry-run with icu_preview_workout before writing. Ramps: '- 10m ramp "
     "50-70%'. Rest: append 'Ns rest' "
@@ -396,6 +397,8 @@ async def preview_workout(
     }
     if lint.warnings:
         data["warnings"] = lint.warnings
+        if any("ignores the repeat" in warning for warning in lint.warnings):
+            data["intervals_as_written"] = "blank_line_after_Nx_header_runs_1x"
     if lint.rewritten:
         data["normalized_description"] = lint.normalized_description
     return ResponseBuilder.build_response(data, query_type="preview_workout")

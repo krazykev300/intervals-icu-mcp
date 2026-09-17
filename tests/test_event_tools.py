@@ -1574,6 +1574,7 @@ class TestPreviewWorkout:
         assert data["total_duration_seconds"] == 3 * (15 * 60 + 5 * 60)
         assert data["warnings"]
         assert data["normalized_description"] == "Main 3x\n- 15m 90%\n- 5m Z2"
+        assert data["intervals_as_written"] == "blank_line_after_Nx_header_runs_1x"
 
     async def test_preview_requires_description(self, mock_config):
         mock_ctx = MagicMock()

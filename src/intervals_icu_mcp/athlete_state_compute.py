@@ -541,13 +541,44 @@ def compliance_block(
     return result
 
 
+def days_missing_hrv_and_sleep(
+    records: list[Wellness], today: date, window: int = 7
+) -> list[str]:
+    """ISO dates in the last `window` days with no HRV and no sleep."""
+    by_date = {parse_iso_date(r.id): r for r in records}
+    missing: list[str] = []
+    for offset in range(window):
+        day = today - timedelta(days=offset)
+        record = by_date.get(day)
+        if record is None:
+            missing.append(day.isoformat())
+            continue
+        has_sleep = record.sleep_secs is not None and record.sleep_secs > 0
+        if record.hrv is None and not has_sleep:
+            missing.append(day.isoformat())
+    missing.sort()
+    return missing
+
+
 def readiness_block(records: list[Wellness], today: date) -> dict[str, Any]:
-    """HRV / RHR / sleep vs 60d baseline and a green|amber|red state."""
+    """HRV / RHR / sleep vs 60d baseline and a green|amber|red|unknown state.
+
+    Scores **today's** row only. A CTL/RHR-only day (training without overnight
+    sleep/HRV) is ``unknown``, not green. Yesterday's complete row is never
+    reused as today's color.
+    """
     by_date = {parse_iso_date(r.id): r for r in records if parse_iso_date(r.id) <= today}
+    today_iso = today.isoformat()
     if not by_date:
-        return {}
-    latest_day = max(by_date)
-    latest = by_date[latest_day]
+        return {
+            "as_of": today_iso,
+            "readiness_state": "unknown",
+            "state_rationale": "no wellness records; do not treat as green",
+            "gating": "do_not_treat_as_green",
+            "missing_today": ["hrv", "sleep", "rhr"],
+        }
+
+    today_record = by_date.get(today)
     window_start = today - timedelta(days=60)
     baseline_records = [r for d, r in by_date.items() if window_start <= d <= today]
 
@@ -561,9 +592,16 @@ def readiness_block(records: list[Wellness], today: date) -> dict[str, Any]:
     rhr_sd = _stdev(rhr_values)
     sleep_mean = _mean(sleep_h)
 
-    today_hrv = float(latest.hrv) if latest.hrv is not None else None
-    today_rhr = float(latest.resting_hr) if latest.resting_hr is not None else None
-    last_night_h = (latest.sleep_secs / 3600.0) if latest.sleep_secs else None
+    today_hrv = None
+    today_rhr = None
+    last_night_h = None
+    if today_record is not None:
+        if today_record.hrv is not None:
+            today_hrv = float(today_record.hrv)
+        if today_record.resting_hr is not None:
+            today_rhr = float(today_record.resting_hr)
+        if today_record.sleep_secs:
+            last_night_h = today_record.sleep_secs / 3600.0
     hrv_z = _z_score(today_hrv, hrv_mean, hrv_sd)
     rhr_z = _z_score(today_rhr, rhr_mean, rhr_sd)
 
@@ -582,7 +620,15 @@ def readiness_block(records: list[Wellness], today: date) -> dict[str, Any]:
     if last_night_h is not None and sleep_mean is not None:
         sleep_debt = round(sleep_mean - last_night_h, 2)
 
-    block: dict[str, Any] = {}
+    missing_today: list[str] = []
+    if today_hrv is None:
+        missing_today.append("hrv")
+    if last_night_h is None:
+        missing_today.append("sleep")
+    if today_rhr is None:
+        missing_today.append("rhr")
+
+    block: dict[str, Any] = {"as_of": today_iso}
     if today_hrv is not None or hrv_mean is not None:
         hrv: dict[str, Any] = {}
         if today_hrv is not None:
@@ -617,11 +663,17 @@ def readiness_block(records: list[Wellness], today: date) -> dict[str, Any]:
         block["sleep"] = sleep
 
     subjective: dict[str, Any] = {}
-    for field in SUBJECTIVE_FIELDS:
-        value = getattr(latest, field, None)
-        if value is not None:
-            subjective[field] = value
+    if today_record is not None:
+        for field in SUBJECTIVE_FIELDS:
+            value = getattr(today_record, field, None)
+            if value is not None:
+                subjective[field] = value
     block["subjective"] = subjective if subjective else None
+    if missing_today:
+        block["missing_today"] = missing_today
+    hole_days = days_missing_hrv_and_sleep(records, today)
+    if hole_days:
+        block["days_missing_hrv_and_sleep"] = hole_days
 
     state, rationale = _readiness_state(
         hrv_z=hrv_z,
@@ -629,9 +681,10 @@ def readiness_block(records: list[Wellness], today: date) -> dict[str, Any]:
         sleep_debt_h=sleep_debt,
         consecutive_hrv_low=consecutive_low,
     )
-    if state:
-        block["readiness_state"] = state
-        block["state_rationale"] = rationale
+    block["readiness_state"] = state
+    block["state_rationale"] = rationale
+    if state == "unknown":
+        block["gating"] = "do_not_treat_as_green"
     return block
 
 
@@ -691,12 +744,17 @@ def _readiness_state(
     rhr_z: float | None,
     sleep_debt_h: float | None,
     consecutive_hrv_low: int,
-) -> tuple[str | None, str]:
+) -> tuple[str, str]:
     thresholds = READINESS_THRESHOLDS
     red = thresholds["red"]
     green = thresholds["green"]
-    if hrv_z is None and rhr_z is None and sleep_debt_h is None:
-        return None, "insufficient wellness signals"
+    # RHR or CTL on a training day is not a recovery signal. Missing both
+    # overnight HRV and sleep → unknown, never green.
+    if hrv_z is None and sleep_debt_h is None:
+        return (
+            "unknown",
+            "today has no HRV and no sleep; do not treat as green",
+        )
     if (
         (hrv_z is not None and hrv_z < red["hrv_z_below"])
         or consecutive_hrv_low >= red["consecutive_days_below_baseline"]
@@ -717,7 +775,7 @@ def _readiness_state(
         and (rhr_z is None or rhr_z <= green["rhr_z_max"])
         and (sleep_debt_h is None or sleep_debt_h < green["sleep_debt_h_max"])
     ):
-        return "green", "HRV, RHR, and sleep debt within green thresholds"
+        return "green", "present recovery signals (HRV/sleep) within green thresholds"
     return "amber", "mixed or partial signals"
 
 
@@ -770,6 +828,7 @@ def gaps(
     phase_source: str | None,
     subjective_empty_days: int | None,
     has_power: bool | None,
+    readiness_state: str | None = None,
 ) -> list[dict[str, str]]:
     """ICU-only gaps. Missing ATP / fuelling / demands are not gaps."""
     items: list[dict[str, str]] = []
@@ -797,6 +856,21 @@ def gaps(
                 "prompt": (
                     "Confirm WHEN on this calendar (365d). Derive phase after an "
                     "A-date exists; do not require an ATP."
+                ),
+            }
+        )
+    if readiness_state == "unknown":
+        items.append(
+            {
+                "field": "readiness.signals",
+                "severity": "medium",
+                "message": (
+                    "Today has no HRV and no sleep. RHR/CTL-only is not green; "
+                    "do not run readiness gating as ready."
+                ),
+                "prompt": (
+                    "Wait for overnight sync or log sleep via icu_update_wellness. "
+                    "Do not treat unknown as green."
                 ),
             }
         )

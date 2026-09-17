@@ -74,6 +74,14 @@ class TestRepeatWhitespace:
         assert lint.rewritten
         assert lint.normalized_description == "Main 3x\n- 15m 90%\n- 5m Z2"
 
+    def test_blank_line_after_last_step_before_next_section_is_fine(self):
+        lint = lint_workout_description(
+            "Warmup\n- 10m 50%\n\nMain 3x\n- 15m 90%\n- 5m Z2\n\nCooldown\n- 10m 50%"
+        )
+        assert not any("blank line" in w.lower() for w in lint.warnings)
+        assert lint.steps[1]["reps"] == 3
+        assert not lint.rewritten
+
     def test_blank_line_before_header_is_fine(self):
         lint = lint_workout_description("Warmup\n- 10m 50%\n\nMain 3x\n- 15m 90%")
         assert not any("blank line" in w.lower() for w in lint.warnings)

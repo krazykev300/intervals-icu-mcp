@@ -417,7 +417,8 @@ async def get_fitness_summary(
             analysis["caveat"] = (
                 "form_status, ramp_rate bands, and recommendations use generic TSB/ramp "
                 "thresholds, not this athlete's history. For empirical TSB depth, weekly "
-                "load, and trajectory use icu_get_athlete_state."
+                "load, and trajectory call the registered tool icu_get_athlete_state "
+                "(athlete state / composite grounding — not a resource)."
             )
 
             data: dict[str, Any] = {

@@ -102,7 +102,11 @@ Hold weekly structure; swap session type. Threshold moves, it does not vanish. \
 If a key session is deferred twice, surface the conflict — do not drop it.
 
 ```
+unknown: today's HRV AND sleep both missing (RHR or CTL on a training day
+         does not count). Do not treat as green. Do not run the amber/red
+         swap. Wait for overnight sync or ask; log via icu_update_wellness.
 green: hrv_z >= -0.5 AND rhr_z <= 1.0 AND sleep_debt_h < 2
+       (only after at least one of HRV or sleep is present today)
 amber: hrv_z in [-1.5, -0.5) OR rhr_z in (1.0, 2.0] OR sleep_debt_h >= 2
   → if today is high-intensity, swap with nearest endurance/recovery day
 red:   hrv_z < -1.5 OR consecutive_days_below_baseline >= 3 OR rhr_z > 2.0
