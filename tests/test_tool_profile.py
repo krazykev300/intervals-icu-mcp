@@ -85,7 +85,7 @@ class TestCoachingRegistration:
         monkeypatch.setenv("INTERVALS_ICU_TOOL_PROFILE", "full")
         monkeypatch.setenv("INTERVALS_ICU_DELETE_MODE", "safe")
         names = self._tool_names(_reload_server())
-        assert len(names) == 60
+        assert len(names) == 61
         assert "icu_get_gear_list" in names
         assert "icu_get_custom_items" in names
         assert "icu_update_sport_settings" in names

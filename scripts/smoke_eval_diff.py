@@ -85,8 +85,10 @@ def main() -> int:
             print(f"  {case_id}: expected {expected!r}; baseline={b_got!r}, branch={n_got!r}")
 
     print()
-    print(f"Summary: {len(wins)} wins, {len(regressions)} regressions, "
-          f"{len(same_pass)} unchanged passes, {len(same_fail)} unchanged fails.")
+    print(
+        f"Summary: {len(wins)} wins, {len(regressions)} regressions, "
+        f"{len(same_pass)} unchanged passes, {len(same_fail)} unchanged fails."
+    )
 
     return 1 if regressions else 0
 

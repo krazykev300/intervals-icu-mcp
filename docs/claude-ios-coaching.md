@@ -175,13 +175,15 @@ appointments.
 
 ## Tools this profile actually has
 
-Coaching profile (~32 tools): calendar CRUD (including bulk + duplicate),
-fitness summary/chart, sport settings **read**, power/HR/pace curves,
-wellness, activities + streams/histograms, workout library.
+Coaching profile (34 tools): calendar CRUD (including bulk + duplicate),
+`icu_get_athlete_state`, fitness summary/chart, ATP **read**, sport settings
+**read**, power/HR/pace curves, wellness, activities + streams/histograms,
+workout library.
 
 Not in coaching: gear, custom charts, ATP apply, sport-settings writes.
-Do not ask for `icu_get_annual_training_plan` on this profile — use the
-fitness chart + calendar instead.
+Read ATP with `icu_get_annual_training_plan`. For a season plan call
+`icu_get_athlete_state` with `horizon_days=365`; if there is no `RACE_A`,
+search goals MCP / Drive / GCal, then ask — do not invent a year plan.
 
 ## If something is missing in the phone chat
 

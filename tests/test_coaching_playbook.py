@@ -17,5 +17,8 @@ class TestCoachingPlaybook:
             "icu_bulk_create_events",
             "event_type Other",
             "icu_duplicate_events",
+            "icu_get_athlete_state",
+            "horizon_days=365",
+            "intervals-icu://methodology",
         ):
             assert needle in COACHING_PLAYBOOK

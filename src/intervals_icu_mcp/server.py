@@ -65,6 +65,7 @@ from .tools.athlete import (
     get_fitness_summary,
     list_athletes,
 )
+from .tools.athlete_state import get_athlete_state
 from .tools.curves import get_hr_curves, get_pace_curves
 from .tools.custom_items import (
     create_custom_item,
@@ -335,6 +336,15 @@ mcp.tool(
         "openWorldHint": True,
     },
 )(get_fitness_chart)
+mcp.tool(
+    name="icu_get_athlete_state",
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)(get_athlete_state)
 
 # Register wellness tools
 mcp.tool(
@@ -783,6 +793,18 @@ async def coaching_playbook_resource() -> str:
     calendar changes. Same text as the `coach_with_goals` prompt.
     """
     return COACHING_PLAYBOOK
+
+
+@mcp.resource("intervals-icu://methodology")
+async def methodology_resource() -> str:
+    """Versioned coaching methodology parameters (distribution, taper, ramp, derived phase, readiness).
+
+    Read after icu_get_athlete_state before drafting a season or week. Numbers
+    to reason over, not prose. Per-athlete overrides belong in a goals store.
+    """
+    from .methodology import METHODOLOGY_SPEC
+
+    return METHODOLOGY_SPEC
 
 
 @mcp.resource("intervals-icu://custom-item-schemas")

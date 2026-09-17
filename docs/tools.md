@@ -12,7 +12,7 @@ Destructive tools are gated by the optional `INTERVALS_ICU_DELETE_MODE` env var.
 | `full` | 63 | any date | ✓ | ✓ | ✓ | ✓ |
 | `none` | 57 | ✗ | ✗ | ✗ | ✗ | ✗ |
 
-Counts in this table assume `INTERVALS_ICU_TOOL_PROFILE=full`. The default `coaching` profile is a subset (32 tools in `safe` delete mode); see [Tool Profile](#tool-profile).
+Counts in this table assume `INTERVALS_ICU_TOOL_PROFILE=full`. The default `coaching` profile is a subset (34 tools in `safe` delete mode); see [Tool Profile](#tool-profile).
 
 In `safe` mode, `icu_delete_event` and `icu_bulk_delete_events` return a uniform envelope showing what was deleted and what was skipped:
 
@@ -55,10 +55,10 @@ A second registration gate, also outside the model's reach:
 
 | Profile | Default on this fork | What registers |
 |---|---|---|
-| `coaching` | yes | 32 tools (`DELETE_MODE=safe`): calendar CRUD, fitness, sport-settings **read**, curves, wellness, activity reads, streams, intervals, best efforts, histograms, workout library. `icu_delete_event` still follows delete mode. |
-| `full` | set `INTERVALS_ICU_TOOL_PROFILE=full` | Upstream catalog (60 / 63 / 57 with delete mode), including gear, custom items, activity messages, sport-settings writes, ATP, downloads. |
+| `coaching` | yes | 34 tools (`DELETE_MODE=safe`): calendar CRUD, fitness, `icu_get_athlete_state`, ATP **read**, sport-settings **read**, curves, wellness, activity reads, streams, intervals, best efforts, histograms, workout library. `icu_delete_event` still follows delete mode. |
+| `full` | set `INTERVALS_ICU_TOOL_PROFILE=full` | Upstream catalog (61 / 64 / 58 with delete mode), including gear, custom items, activity messages, sport-settings writes, downloads. |
 
-`coaching` includes: `icu_get_calendar_events`, `icu_get_upcoming_workouts`, `icu_get_event`, `icu_create_event`, `icu_update_event`, `icu_delete_event`, `icu_bulk_create_events`, `icu_duplicate_events`, `icu_preview_workout`, `icu_get_athlete_profile`, `icu_get_fitness_summary`, `icu_get_fitness_chart`, `icu_get_sport_settings`, `icu_get_power_curves`, `icu_get_hr_curves`, `icu_get_pace_curves`, `icu_get_wellness_data`, `icu_get_wellness_for_date`, `icu_update_wellness`, `icu_get_recent_activities`, `icu_get_activities_by_date`, `icu_get_activity_details`, `icu_search_activities`, `icu_get_activity_intervals`, `icu_get_best_efforts`, `icu_get_activity_streams`, `icu_get_power_histogram`, `icu_get_hr_histogram`, `icu_get_pace_histogram`, `icu_get_gap_histogram`, `icu_get_workout_library`, `icu_get_workouts_in_folder`.
+`coaching` includes: `icu_get_calendar_events`, `icu_get_upcoming_workouts`, `icu_get_event`, `icu_create_event`, `icu_update_event`, `icu_delete_event`, `icu_bulk_create_events`, `icu_duplicate_events`, `icu_preview_workout`, `icu_get_annual_training_plan`, `icu_get_athlete_profile`, `icu_get_fitness_summary`, `icu_get_fitness_chart`, `icu_get_athlete_state`, `icu_get_sport_settings`, `icu_get_power_curves`, `icu_get_hr_curves`, `icu_get_pace_curves`, `icu_get_wellness_data`, `icu_get_wellness_for_date`, `icu_update_wellness`, `icu_get_recent_activities`, `icu_get_activities_by_date`, `icu_get_activity_details`, `icu_search_activities`, `icu_get_activity_intervals`, `icu_get_best_efforts`, `icu_get_activity_streams`, `icu_get_power_histogram`, `icu_get_hr_histogram`, `icu_get_pace_histogram`, `icu_get_gap_histogram`, `icu_get_workout_library`, `icu_get_workouts_in_folder`.
 
 The allow-list is `COACHING_TOOLS` in [`tool_profile.py`](../src/intervals_icu_mcp/tool_profile.py). New tools stay out of coaching until added there.
 
@@ -135,7 +135,7 @@ The threaded notes/comments shown under an activity — the user's own training 
 | `icu_get_activity_messages`    | Read notes/comments/coach feedback on a specific activity  |
 | `icu_add_activity_message`     | Post a note or comment on a specific activity              |
 
-### Athlete (4 tools)
+### Athlete (5 tools)
 
 | Tool                  | Description                                                     |
 | --------------------- | --------------------------------------------------------------- |
@@ -143,6 +143,7 @@ The threaded notes/comments shown under an activity — the user's own training 
 | `icu_get_athlete_profile` | Get athlete profile, fitness metrics, and outdoor/indoor FTP   |
 | `icu_get_fitness_summary` | Get detailed CTL/ATL/TSB analysis with training recommendations |
 | `icu_get_fitness_chart` | Get PMC time-series (CTL/ATL/TSB) over a date window, including future projections from planned workouts |
+| `icu_get_athlete_state` | COMPOSITE grounding read — fitness trajectory, empirical TSB tolerance, power keys, races, observed load, phase, gaps. Call first before planning. Pass `horizon_days=365` for a season plan. |
 
 ### Wellness (3 tools)
 
@@ -162,7 +163,7 @@ The threaded notes/comments shown under an activity — the user's own training 
 | `icu_get_event`             | Get details for a specific event                           |
 | `icu_preview_workout`       | Dry-run parse of a workout description (steps, duration, warnings) — no calendar write |
 | `icu_create_event`          | Create new calendar events (workouts, races, notes, goals) |
-| `icu_update_event`          | Modify existing calendar events                            |
+| `icu_update_event`          | Modify existing calendar events (optional `category`) |
 | `icu_delete_event`          | Remove an event from the calendar *(safe mode: future events only; envelope returns `deleted` / `skipped`)* |
 | `icu_bulk_create_events`    | Create multiple events in a single operation               |
 | `icu_bulk_delete_events`    | Delete multiple events in a single operation *(safe mode partitions into `deleted` / `skipped`)* |
@@ -227,6 +228,7 @@ Resources provide ongoing context to the LLM without requiring explicit tool cal
 | `intervals-icu://workout-syntax`      | Structured workout syntax reference for generating valid Intervals.icu workouts (cycling, running, swimming) |
 | `intervals-icu://event-categories`    | Calendar event category enum (WORKOUT, RACE_A/B/C, HOLIDAY, …), training_availability values, legacy aliases, and use-case guidance for create_event / update_event / bulk_create_events |
 | `intervals-icu://coaching-playbook`   | Coaching skill: log a race, compare fitness, write weeks around immovable sessions, add off-season strength. Same text as FastMCP server instructions + `coach_with_goals` |
+| `intervals-icu://methodology`         | Versioned coaching parameters (distribution, taper, ramp, derived phase, readiness). Read after `icu_get_athlete_state`. |
 | `intervals-icu://custom-item-schemas` | Per-item_type `content` schema for create_custom_item / update_custom_item — INPUT_FIELD/ACTIVITY_FIELD/INTERVAL_FIELD constraints with worked examples; chart/panel/zones/stream guidance |
 
 ## MCP Prompts

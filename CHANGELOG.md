@@ -17,7 +17,11 @@ breaking; this narrower contract applies from the next release onward.)
 ## [Unreleased]
 
 ### Added
-- `INTERVALS_ICU_TOOL_PROFILE` (`coaching` / `full`). `coaching` is the daily training surface (calendar CRUD, fitness, curves, wellness, activities, streams/histograms, workout library — 32 tools with `DELETE_MODE=safe`). `full` is the upstream catalog. The allow-list lives in `tool_profile.py`; new upstream tools stay out of coaching until opted in.
+- `icu_get_athlete_state` — composite coaching read (fitness trajectory, empirical `tsb_tolerance`, power-curve keys, races, observed load, derived `phase_context`, ICU-only gaps). Optional `include=durability` for kJ-binned 5m/20m power. Coaching profile 32 → 34 with `DELETE_MODE=safe` (also adds ATP read). Full catalog 60 / 63 / 57 → 61 / 64 / 58.
+- `intervals-icu://methodology` resource — versioned distribution / taper / ramp / derived-phase / readiness parameters. Per-athlete overrides stay in a goals store.
+- `icu_get_annual_training_plan` on the `coaching` profile (read-only ATP).
+- Optional `category` on `icu_update_event` (no more delete-and-recreate to change race tier).
+- `INTERVALS_ICU_TOOL_PROFILE` (`coaching` / `full`). `coaching` is the daily training surface (calendar CRUD, fitness, curves, wellness, activities, streams/histograms, workout library — 32 tools with `DELETE_MODE=safe` before this change). `full` is the upstream catalog. The allow-list lives in `tool_profile.py`; new upstream tools stay out of coaching until opted in.
 - MCP prompt `coach_with_goals` — coaching skill (race → fitness → calendar). Same body as resource `intervals-icu://coaching-playbook` and FastMCP server `instructions`. Overlay for a separate goals MCP: WHY there, dates here. Lives in `prompts/`.
 - Generic self-host files: `docs/self-host.md`, `deploy/intervals-icu.service.example`, `scripts/host-pull.sh`, gitignored `deploy/host.local/` overlay for User/paths/hostname.
 - Optional host deploy on push to `main` or `feat/coaching-profile-self-host`: `.github/workflows/deploy-host.yml` runs `scripts/host-pull.sh` on a self-hosted runner labeled `intervals-icu-host` after tests, only when repository variable `ENABLE_HOST_PULL=true`. Off by default so other forks are unchanged. `scripts/install-host-runner.sh` and `deploy/host-pull.sudoers.example` are the one-time host setup; non-interactive `host-pull.sh` uses `sudo -n`.
@@ -25,6 +29,8 @@ breaking; this narrower contract applies from the next release onward.)
 - `icu_preview_workout` plus a local workout-syntax linter on create/update/bulk: duration ranges error instead of a silent short total; blank line after an `Nx` header is collapsed with a `warnings` array. In this fork the preview tool is in the `coaching` profile (32 tools with `DELETE_MODE=safe`). Full catalog 60 / 63 / 57 with delete mode.
 
 ### Changed
+- Coaching playbook: year-out sufficiency (search calendar 365d, then goals MCP / Drive / GCal, then ask). Call `icu_get_athlete_state` before planning. Missing ATP is not a blocker — derive phase from nearest `RACE_A`.
+- `icu_get_fitness_summary` analysis now includes a `caveat` that TSB/ramp bands are generic; existing recommendation keys are unchanged.
 - **BREAKING:** default tool registration is `coaching` (32 tools), not the previous safe-mode catalog (59). Set `INTERVALS_ICU_TOOL_PROFILE=full` to restore the upstream set. Changing which tools register by default is a major under the contract above.
 
 ## [5.0.0] — 2026-08-31

@@ -102,6 +102,44 @@ class TestEventTools:
         assert response["data"]["name"] == "Updated Workout"
         assert response["metadata"]["message"] == "Successfully updated event 1001"
 
+    async def test_update_event_category(self, mock_config, respx_mock):
+        """Category can be changed on update (RACE alias normalized)."""
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+
+        route = respx_mock.put("/athlete/i123456/events/1001").mock(
+            return_value=Response(
+                200,
+                json={
+                    "id": 1001,
+                    "name": "Diablo",
+                    "start_date_local": "2026-10-04",
+                    "category": "RACE_A",
+                    "type": "Ride",
+                },
+            )
+        )
+
+        result = await update_event(
+            event_id=1001,
+            category="RACE",
+            event_type="Ride",
+            ctx=mock_ctx,
+        )
+        response = json.loads(result)
+        assert response["data"]["category"] == "RACE_A"
+        assert route.calls[0].request.content
+        sent = json.loads(route.calls[0].request.content.decode())
+        assert sent["category"] == "RACE_A"
+        assert sent["type"] == "Ride"
+
+    async def test_update_event_rejects_invalid_category(self, mock_config):
+        mock_ctx = MagicMock()
+        mock_ctx.get_state = AsyncMock(return_value=mock_config)
+        result = await update_event(event_id=1001, category="BANANA", ctx=mock_ctx)
+        response = json.loads(result)
+        assert response["error"]["type"] == "validation_error"
+
     async def test_delete_event_safe_allows_future(self, mock_config, respx_mock):
         """Safe mode (default): future event is fetched, then deleted."""
         mock_ctx = MagicMock()

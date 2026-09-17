@@ -188,6 +188,8 @@ class TestGetFitnessSummary:
         assert "analysis" in response
         assert "ramp_rate_status" in response["analysis"]
         assert response["analysis"]["ramp_rate_status"] == "high_risk"
+        assert "caveat" in response["analysis"]
+        assert "icu_get_athlete_state" in response["analysis"]["caveat"]
 
 
 class TestGetFitnessChart:

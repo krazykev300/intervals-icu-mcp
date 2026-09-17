@@ -414,6 +414,12 @@ async def get_fitness_summary(
             if recommendations:
                 analysis["recommendations"] = recommendations
 
+            analysis["caveat"] = (
+                "form_status, ramp_rate bands, and recommendations use generic TSB/ramp "
+                "thresholds, not this athlete's history. For empirical TSB depth, weekly "
+                "load, and trajectory use icu_get_athlete_state."
+            )
+
             data: dict[str, Any] = {
                 "athlete_id": resolved_athlete,
                 "date": today,

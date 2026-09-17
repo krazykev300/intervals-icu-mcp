@@ -55,8 +55,8 @@ def diff_methods(old: dict, new: dict) -> list[tuple[str, list[str], list[str]]]
 
 def diff_schema_fields(old: dict, new: dict):
     """Yield (schema_name, added_fields, removed_fields, enum_changes)."""
-    old_s = (old.get("components", {}).get("schemas") or {})
-    new_s = (new.get("components", {}).get("schemas") or {})
+    old_s = old.get("components", {}).get("schemas") or {}
+    new_s = new.get("components", {}).get("schemas") or {}
     for name in sorted(set(old_s) & set(new_s)):
         old_props = schema_props(old_s[name])
         new_props = schema_props(new_s[name])
@@ -109,10 +109,16 @@ def render(old_path: str, new_path: str, src_dir: str) -> str:
         "",
     ]
 
-    has_changes = any([
-        added_paths, removed_paths, added_schemas, removed_schemas,
-        method_changes, field_changes,
-    ])
+    has_changes = any(
+        [
+            added_paths,
+            removed_paths,
+            added_schemas,
+            removed_schemas,
+            method_changes,
+            field_changes,
+        ]
+    )
     if not has_changes:
         lines.append("## Spec changes")
         lines.append("")
@@ -206,9 +212,7 @@ def render(old_path: str, new_path: str, src_dir: str) -> str:
                 # Quote-anchored search to reduce noise on common words.
                 hits = grep(f'"{v}"', src) + grep(f"'{v}'", src)
                 if hits:
-                    impact_hits.append(
-                        f"**Dropped enum value `{name}.{prop} = {v!r}`**:"
-                    )
+                    impact_hits.append(f"**Dropped enum value `{name}.{prop} = {v!r}`**:")
                     impact_hits.extend(f"  - `{h}`" for h in hits[:5])
 
     if impact_hits:

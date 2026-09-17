@@ -25,6 +25,7 @@ GEAR_TYPES = [
 # previously taught.
 _GEAR_TYPE_LOOKUP = {v.upper(): v for v in GEAR_TYPES} | {"SHOE": "Shoes"}
 
+
 async def get_gear_list(
     athlete_id: Annotated[str | None, "Athlete ID (for coaches managing multiple athletes)"] = None,
     ctx: Context | None = None,

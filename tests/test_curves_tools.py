@@ -148,9 +148,7 @@ class TestGetHRCurves:
         mock_ctx = MagicMock()
         mock_ctx.get_state = AsyncMock(return_value=mock_config)
 
-        respx_mock.get("/athlete/i123456/hr-curves").mock(
-            return_value=Response(500, json={})
-        )
+        respx_mock.get("/athlete/i123456/hr-curves").mock(return_value=Response(500, json={}))
 
         result = await get_hr_curves(ctx=mock_ctx)
         response = json.loads(result)
@@ -181,9 +179,7 @@ class TestGetPaceCurves:
             )
         )
 
-        result = await get_pace_curves(
-            sport_type="Run", days_back=30, use_gap=True, ctx=mock_ctx
-        )
+        result = await get_pace_curves(sport_type="Run", days_back=30, use_gap=True, ctx=mock_ctx)
 
         # GAP flag forwarded
         assert route.calls[0].request.url.params["gap"] == "true"
@@ -219,9 +215,7 @@ class TestGetPaceCurves:
         mock_ctx = MagicMock()
         mock_ctx.get_state = AsyncMock(return_value=mock_config)
 
-        respx_mock.get("/athlete/i123456/pace-curves").mock(
-            return_value=Response(404, json={})
-        )
+        respx_mock.get("/athlete/i123456/pace-curves").mock(return_value=Response(404, json={}))
 
         result = await get_pace_curves(ctx=mock_ctx)
         response = json.loads(result)

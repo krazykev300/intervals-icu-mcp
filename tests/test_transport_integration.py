@@ -43,6 +43,8 @@ class TestInMemoryTransport:
             assert "icu_bulk_create_events" in names
             assert "icu_duplicate_events" in names
             assert "icu_preview_workout" in names
+            assert "icu_get_athlete_state" in names
+            assert "icu_get_annual_training_plan" in names
             assert "icu_get_activity_streams" in names
             assert "icu_get_custom_items" not in names
             assert "icu_update_sport_settings" not in names
@@ -94,6 +96,7 @@ class TestInMemoryTransport:
             assert "intervals-icu://event-categories" in uris
             assert "intervals-icu://custom-item-schemas" in uris
             assert "intervals-icu://coaching-playbook" in uris
+            assert "intervals-icu://methodology" in uris
 
     async def test_prompts_registered(self):
         async with Client(mcp) as client:

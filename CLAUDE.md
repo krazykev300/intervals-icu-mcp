@@ -5,9 +5,10 @@ This file provides guidance to Claude Code when working with this repository.
 ## Project Overview
 
 MCP (Model Context Protocol) server for Intervals.icu — this fork defaults to
-`INTERVALS_ICU_TOOL_PROFILE=coaching` (32 tools with `DELETE_MODE=safe`: calendar,
-fitness, curves, wellness, activities, streams/histograms, workout library).
-`full` restores the upstream catalog (60 / 63 / 57 with delete mode). 5 resources
+`INTERVALS_ICU_TOOL_PROFILE=coaching` (34 tools with `DELETE_MODE=safe`: calendar,
+fitness, athlete-state, ATP read, curves, wellness, activities, streams/histograms,
+workout library).
+`full` restores the upstream catalog (61 / 64 / 58 with delete mode). 6 resources
 and 10 prompts. Server `instructions` plus `intervals-icu://coaching-playbook`
 are the coaching skill (race → fitness → calendar); `coach_with_goals` returns
 the same playbook.
@@ -56,7 +57,7 @@ make docker/run       # Run Docker container
 | Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-list + `mcp.tool` filter |
 | Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
 | Prompts | `prompts/` | Overlay prompts + coaching playbook (`coaching_playbook.py`); kept out of `server.py` for rebases |
-| Tools | `tools/` | 13 tool modules (see below) |
+| Tools | `tools/` | 14 tool modules (see below) |
 
 **For detailed architecture**: see `docs/architecture.md`
 
@@ -66,15 +67,16 @@ make docker/run       # Run Docker container
 2. `activity_analysis.py` — Streams, intervals, best efforts
 3. `activity_messages.py` — Notes/comments on activities
 4. `athlete.py` — Profile, fitness metrics (CTL/ATL/TSB)
-5. `wellness.py` — HRV, sleep, recovery
-6. `events.py` — Calendar queries
-7. `event_management.py` — Create/update/delete events
-8. `performance.py` — Power/HR/pace curves
-9. `curves.py` — HR and pace curve analysis
-10. `workout_library.py` — Browse workout folders and plans
-11. `gear.py` — Manage gear and reminders
-12. `sport_settings.py` — FTP, FTHR, pace thresholds
-13. `custom_items.py` — Charts, custom fields, zones, etc.
+5. `athlete_state.py` — Composite grounding read (`icu_get_athlete_state`)
+6. `wellness.py` — HRV, sleep, recovery
+7. `events.py` — Calendar queries
+8. `event_management.py` — Create/update/delete events
+9. `performance.py` — Power/HR/pace curves
+10. `curves.py` — HR and pace curve analysis
+11. `workout_library.py` — Browse workout folders and plans
+12. `gear.py` — Manage gear and reminders
+13. `sport_settings.py` — FTP, FTHR, pace thresholds
+14. `custom_items.py` — Charts, custom fields, zones, etc.
 
 ## Code Style
 

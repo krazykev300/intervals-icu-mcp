@@ -559,6 +559,11 @@ async def update_event(
     description: Annotated[str | None, "Updated description. " + WORKOUT_SYNTAX_HINT] = None,
     start_date: Annotated[str | None, "Updated start date (YYYY-MM-DD)"] = None,
     event_type: Annotated[str | None, "Updated activity type"] = None,
+    category: Annotated[
+        str | None,
+        "Updated event category enum. Common: WORKOUT, NOTE, RACE_A/B/C, TARGET. "
+        "See intervals-icu://event-categories. Legacy RACE→RACE_A, GOAL→TARGET.",
+    ] = None,
     duration_seconds: Annotated[int | None, "Updated duration in seconds"] = None,
     distance_meters: Annotated[float | None, "Updated distance in meters"] = None,
     training_load: Annotated[int | None, "Updated training load"] = None,
@@ -611,6 +616,15 @@ async def update_event(
     else:
         normalized_availability = None
 
+    normalized_category: str | None = None
+    if category is not None:
+        normalized_category, category_error = _normalize_category(category)
+        if category_error or normalized_category is None:
+            return ResponseBuilder.build_error_response(
+                category_error or "Invalid category",
+                error_type="validation_error",
+            )
+
     lint = _lint_description(description)
     if lint is not None:
         lint_error = _lint_error_response(lint)
@@ -629,6 +643,8 @@ async def update_event(
             event_data["start_date_local"] = start_date
         if event_type is not None:
             event_data["type"] = event_type
+        if normalized_category is not None:
+            event_data["category"] = normalized_category
         if duration_seconds is not None:
             event_data["moving_time"] = duration_seconds
         if distance_meters is not None:
