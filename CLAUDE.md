@@ -105,6 +105,9 @@ Tests use pytest + pytest-asyncio with `respx` for HTTP mocking.
 - `docs/examples.md` — Usage examples
 - `docs/testing.md` — Testing conventions
 - `docs/chatgpt-connector.md` — ChatGPT custom-connector setup walkthrough
+- `docs/coaching-architecture-assessment.md` — Coaching engine assessment, recommendations R1–R12 and the phased roadmap
+- `docs/coaching-data-store.md` — Design of the per-athlete coach database (schema, sign-in, privacy, backups)
+- `docs/coaching-capability-backlog.md` — Further capabilities, each mapped to where it appears in Intervals.icu
 
 ### README discipline
 
