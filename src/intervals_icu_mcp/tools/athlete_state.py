@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Annotated, Any, TypeVar, cast
+from zoneinfo import ZoneInfo
 
 from fastmcp import Context
 
@@ -30,6 +31,7 @@ from ..athlete_state_compute import (
 )
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
+from ..coach_brief import build_coach_brief
 from ..models import ActivitySummary, CurveSet, Event, SportSettings, Wellness
 from ..response_builder import ResponseBuilder
 
@@ -52,6 +54,31 @@ ACTIVITY_LIMIT = 200
 DURABILITY_ACTIVITY_CAP = 6
 MIN_DURABILITY_MOVING_S = 3600
 _RIDE_TYPES = frozenset({"Ride", "VirtualRide"})
+
+SERIES_WEEKS = 12
+
+# athlete id → IANA timezone from the Intervals profile. The server clock is
+# often UTC (Docker), which makes "today" tomorrow every evening.
+_timezone_cache: dict[str, str] = {}
+
+
+async def _athlete_today(client: ICUClient, athlete_id: str) -> tuple[date, str | None]:
+    """Today in the athlete's own timezone; server date if the profile is unreachable."""
+    tz_name = _timezone_cache.get(athlete_id)
+    if tz_name is None:
+        try:
+            response = await client._request("GET", f"/athlete/{athlete_id}")  # pyright: ignore[reportPrivateUsage]
+            raw = response.json().get("timezone")
+            if isinstance(raw, str) and raw:
+                ZoneInfo(raw)
+                tz_name = raw
+                _timezone_cache[athlete_id] = raw
+        except Exception:
+            tz_name = None
+    if tz_name is None:
+        return date.today(), None
+    return datetime.now(ZoneInfo(tz_name)).date(), tz_name
+
 
 # identity + ISO week → durability payload. Never process-global without the identity key.
 _durability_cache: dict[tuple[str, str], dict[str, Any]] = {}
@@ -94,14 +121,18 @@ async def get_athlete_state(
     ] = None,
     ctx: Context | None = None,
 ) -> str:
-    """COMPOSITE grounding read (icu_get_athlete_state / athlete state) for coaching.
+    """START HERE for any training conversation (icu_get_athlete_state / athlete state).
 
-    Trajectory, empirical TSB tolerance, races, observed load, readiness, gaps.
-    Call this FIRST before drafting a plan. Not today's snapshot
-    (icu_get_fitness_summary) and not the raw PMC series (icu_get_fitness_chart).
-    Season / year-out: horizon_days=365; if no RACE_A, search goals MCP then
-    ask — do not invent a year plan. Durability kJ bins are opt-in via
-    include=durability.
+    One call returns who this athlete is right now: today's date and weekday in
+    their timezone, fitness trajectory, empirical TSB tolerance, races, observed
+    load, readiness, gaps, plus `analysis.coach_brief` — the server-computed
+    prescription (phase, intensity distribution, ramp tier, next week's load
+    target, today's go / swap / rest call, ordered next actions). Call it first
+    for "what should I do today", "how am I doing", planning a week or season,
+    or before any calendar write; then icu_get_coaching_guide once. Use the
+    brief's numbers as given. Not today's snapshot (icu_get_fitness_summary) and
+    not the raw PMC series (icu_get_fitness_chart). Season / year-out:
+    horizon_days=365. Durability kJ bins are opt-in via include=durability.
     """
     assert ctx is not None
     config: ICUConfig = await ctx.get_state("config")
@@ -128,9 +159,6 @@ async def get_athlete_state(
     blocks = parsed
 
     resolved_athlete = athlete_id or config.intervals_icu_athlete_id
-    today = date.today()
-    oldest = (today - timedelta(days=lookback_days)).isoformat()
-    newest = (today + timedelta(days=horizon_days)).isoformat()
 
     need_wellness = bool(blocks & {"fitness_form", "readiness"})
     need_events = bool(blocks & {"calendar", "phase_context", "compliance"})
@@ -140,6 +168,9 @@ async def get_athlete_state(
 
     try:
         async with ICUClient(config) as client:
+            today, tz_name = await _athlete_today(client, resolved_athlete)
+            oldest = (today - timedelta(days=lookback_days)).isoformat()
+            newest = (today + timedelta(days=horizon_days)).isoformat()
 
             async def _wellness() -> list[Wellness]:
                 if not need_wellness:
@@ -200,6 +231,8 @@ async def get_athlete_state(
             data: dict[str, Any] = {
                 "athlete_id": resolved_athlete,
                 "date": today.isoformat(),
+                "weekday": today.strftime("%A"),
+                "timezone": tz_name or "server_clock",
                 "lookback_days": lookback_days,
                 "horizon_days": horizon_days,
             }
@@ -214,7 +247,7 @@ async def get_athlete_state(
                 if current:
                     form["current"] = current
                 if weekly:
-                    form["series"] = weekly
+                    form["series"] = weekly[-SERIES_WEEKS:]
                 ramps = trailing_weekly_ramps(weekly)
                 if current.get("ramp_rate") is not None or ramps:
                     ramp_block: dict[str, Any] = {}
@@ -278,6 +311,18 @@ async def get_athlete_state(
                         data["power_profile"] = {}
                     data["power_profile"]["durability"] = durability
 
+            if blocks & {"fitness_form", "calendar", "phase_context", "readiness"}:
+                analysis["coach_brief"] = build_coach_brief(
+                    today=today,
+                    events=events,
+                    activities=activities,
+                    phase_context=phase or (derive_phase_context(events, today) if events else {}),
+                    current_fitness=current_fitness(daily, today) if daily else {},
+                    tolerance=tsb_tolerance(daily) if daily else {},
+                    constraints=constraints,
+                    readiness_state=readiness.get("readiness_state") if readiness else None,
+                )
+
             flags = derived_flags(
                 ftp=ftp_info.get("estimated_ftp"),
                 power=power,
@@ -302,8 +347,9 @@ async def get_athlete_state(
             metadata: dict[str, Any] = {
                 "include": sorted(blocks),
                 "usage": (
-                    "Ground planning here. Textbook TSB bands on icu_get_fitness_summary "
-                    "ignore this athlete's tsb_tolerance. Propose calendar writes; wait for yes."
+                    "Lead with analysis.coach_brief: use its numbers as given. Call "
+                    "icu_get_coaching_guide once per conversation before advising or "
+                    "writing events. Propose calendar writes; wait for yes."
                 ),
             }
             if fetch_errors:

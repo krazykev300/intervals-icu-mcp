@@ -34,6 +34,7 @@ COACHING_TOOLS: frozenset[str] = frozenset(
         "icu_get_fitness_summary",
         "icu_get_fitness_chart",
         "icu_get_athlete_state",
+        "icu_get_coaching_guide",
         "icu_get_sport_settings",
         "icu_get_power_curves",
         "icu_get_hr_curves",

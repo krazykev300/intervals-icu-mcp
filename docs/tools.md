@@ -12,7 +12,7 @@ Destructive tools are gated by the optional `INTERVALS_ICU_DELETE_MODE` env var.
 | `full` | 63 | any date | ✓ | ✓ | ✓ | ✓ |
 | `none` | 57 | ✗ | ✗ | ✗ | ✗ | ✗ |
 
-Counts in this table assume `INTERVALS_ICU_TOOL_PROFILE=full`. The default `coaching` profile is a subset (34 tools in `safe` delete mode); see [Tool Profile](#tool-profile).
+Counts in this table assume `INTERVALS_ICU_TOOL_PROFILE=full`. The default `coaching` profile is a subset (35 tools in `safe` delete mode); see [Tool Profile](#tool-profile).
 
 In `safe` mode, `icu_delete_event` and `icu_bulk_delete_events` return a uniform envelope showing what was deleted and what was skipped:
 
@@ -55,10 +55,10 @@ A second registration gate, also outside the model's reach:
 
 | Profile | Default on this fork | What registers |
 |---|---|---|
-| `coaching` | yes | 34 tools (`DELETE_MODE=safe`): calendar CRUD, fitness, `icu_get_athlete_state`, ATP **read**, sport-settings **read**, curves, wellness, activity reads, streams, intervals, best efforts, histograms, workout library. `icu_delete_event` still follows delete mode. |
-| `full` | set `INTERVALS_ICU_TOOL_PROFILE=full` | Upstream catalog (61 / 64 / 58 with delete mode), including gear, custom items, activity messages, sport-settings writes, downloads. |
+| `coaching` | yes | 35 tools (`DELETE_MODE=safe`): calendar CRUD, fitness, `icu_get_athlete_state`, `icu_get_coaching_guide`, ATP **read**, sport-settings **read**, curves, wellness, activity reads, streams, intervals, best efforts, histograms, workout library. `icu_delete_event` still follows delete mode. |
+| `full` | set `INTERVALS_ICU_TOOL_PROFILE=full` | Upstream catalog (62 / 65 / 59 with delete mode), including gear, custom items, activity messages, sport-settings writes, downloads. |
 
-`coaching` includes: `icu_get_calendar_events`, `icu_get_upcoming_workouts`, `icu_get_event`, `icu_create_event`, `icu_update_event`, `icu_delete_event`, `icu_bulk_create_events`, `icu_duplicate_events`, `icu_preview_workout`, `icu_get_annual_training_plan`, `icu_get_athlete_profile`, `icu_get_fitness_summary`, `icu_get_fitness_chart`, `icu_get_athlete_state`, `icu_get_sport_settings`, `icu_get_power_curves`, `icu_get_hr_curves`, `icu_get_pace_curves`, `icu_get_wellness_data`, `icu_get_wellness_for_date`, `icu_update_wellness`, `icu_get_recent_activities`, `icu_get_activities_by_date`, `icu_get_activity_details`, `icu_search_activities`, `icu_get_activity_intervals`, `icu_get_best_efforts`, `icu_get_activity_streams`, `icu_get_power_histogram`, `icu_get_hr_histogram`, `icu_get_pace_histogram`, `icu_get_gap_histogram`, `icu_get_workout_library`, `icu_get_workouts_in_folder`.
+`coaching` includes: `icu_get_calendar_events`, `icu_get_upcoming_workouts`, `icu_get_event`, `icu_create_event`, `icu_update_event`, `icu_delete_event`, `icu_bulk_create_events`, `icu_duplicate_events`, `icu_preview_workout`, `icu_get_annual_training_plan`, `icu_get_athlete_profile`, `icu_get_fitness_summary`, `icu_get_fitness_chart`, `icu_get_athlete_state`, `icu_get_coaching_guide`, `icu_get_sport_settings`, `icu_get_power_curves`, `icu_get_hr_curves`, `icu_get_pace_curves`, `icu_get_wellness_data`, `icu_get_wellness_for_date`, `icu_update_wellness`, `icu_get_recent_activities`, `icu_get_activities_by_date`, `icu_get_activity_details`, `icu_search_activities`, `icu_get_activity_intervals`, `icu_get_best_efforts`, `icu_get_activity_streams`, `icu_get_power_histogram`, `icu_get_hr_histogram`, `icu_get_pace_histogram`, `icu_get_gap_histogram`, `icu_get_workout_library`, `icu_get_workouts_in_folder`.
 
 The allow-list is `COACHING_TOOLS` in [`tool_profile.py`](../src/intervals_icu_mcp/tool_profile.py). New tools stay out of coaching until added there.
 
@@ -143,7 +143,8 @@ The threaded notes/comments shown under an activity — the user's own training 
 | `icu_get_athlete_profile` | Get athlete profile, fitness metrics, and outdoor/indoor FTP   |
 | `icu_get_fitness_summary` | Get detailed CTL/ATL/TSB analysis with training recommendations |
 | `icu_get_fitness_chart` | Get PMC time-series (CTL/ATL/TSB) over a date window, including future projections from planned workouts |
-| `icu_get_athlete_state` | COMPOSITE grounding read — fitness trajectory, empirical TSB tolerance, power keys, races, observed load, phase, gaps. Call first before planning. Pass `horizon_days=365` for a season plan. |
+| `icu_get_athlete_state` | COMPOSITE grounding read — fitness trajectory, empirical TSB tolerance, power keys, races, observed load, phase, gaps. Call first in any training conversation. Returns the athlete-timezone date and weekday and `analysis.coach_brief` (phase, distribution, ramp tier, next-week load target, today's call, next actions). Pass `horizon_days=365` for a season plan. |
+| `icu_get_coaching_guide` | Playbook, methodology, workout syntax and event categories as a tool result, for chat clients where the model cannot open MCP resources. Call once per conversation after `icu_get_athlete_state`. |
 
 ### Wellness (3 tools)
 
