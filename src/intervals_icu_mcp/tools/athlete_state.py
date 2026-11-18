@@ -162,7 +162,8 @@ async def get_athlete_state(
 
     resolved_athlete = athlete_id or config.intervals_icu_athlete_id
 
-    need_wellness = bool(blocks & {"fitness_form", "readiness"})
+    # power_profile needs wellness too: Intervals' Ride eFTP (for ftp_check) is on sportInfo.
+    need_wellness = bool(blocks & {"fitness_form", "readiness", "power_profile"})
     need_events = bool(blocks & {"calendar", "phase_context", "compliance"})
     need_activities = bool(blocks & {"athlete_constraints", "compliance", "durability"})
     need_curves = "power_profile" in blocks

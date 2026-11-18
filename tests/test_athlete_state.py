@@ -397,6 +397,33 @@ class TestGetAthleteStateTool:
         assert durability["curves_by_bin"]["0"]["5m"] == 250
 
 
+    async def test_power_only_call_uses_eftp(self, mock_config, respx_mock):
+        """ftp_check must match the default call: eFTP lives on wellness sportInfo."""
+        today = date.today().isoformat()
+        respx_mock.get("/athlete/i123456/wellness").mock(
+            return_value=Response(
+                200, json=[{"id": today, "sportInfo": [{"type": "Ride", "eftp": 313.4}]}]
+            )
+        )
+        respx_mock.get("/athlete/i123456/power-curves").mock(
+            return_value=Response(
+                200,
+                json={"list": [{"days": 91, "secs": [1200, 3600], "values": [331, 274]}]},
+            )
+        )
+        respx_mock.get("/athlete/i123456/sport-settings").mock(
+            return_value=Response(200, json=[{"id": 1, "types": ["Ride"], "ftp": 300}])
+        )
+
+        payload = json.loads(
+            await get_athlete_state(include=["power_profile"], ctx=_ctx(mock_config))
+        )
+        check = payload["analysis"]["ftp_check"]
+        assert check["estimate"] == 313
+        assert check["estimate_source"] == "eftp"
+        assert check["verdict"] == "keep"
+
+
 class TestAthleteTimezone:
     async def test_today_follows_profile_timezone(self, mock_config, respx_mock):
         """Server clock may be UTC; the athlete's date comes from their Intervals timezone."""

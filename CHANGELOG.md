@@ -32,6 +32,8 @@ breaking; this narrower contract applies from the next release onward.)
 - `icu_get_athlete_state` used the server clock for "today". On a UTC host that is tomorrow every evening in the Americas, which made readiness `unknown` and shifted week boundaries. Today now comes from the athlete's Intervals timezone (cached per athlete; server clock on failure).
 - Intervals sends `icu_intensity` as a percent (81.0); the intensity bins and `calendar.events[].intensity_factor` assumed a fraction, so `compliance.by_session_type` never populated.
 - `60m_to_ftp_gap` never fired because Intervals labels the curve windows 43/91/366 days, not 42/90/365.
+- `analysis.ftp_check` ignored Intervals' eFTP when `icu_get_athlete_state` was called with `include` that had `power_profile` but not `fitness_form` / `readiness`, because wellness (which carries `sportInfo` eFTP) was not fetched. Its verdict now matches the default call.
+- Release workflow pushed the Docker image to a hardcoded `ghcr.io/hhopke/...`, so it failed on forks. The image name now comes from the repository running the workflow.
 - A long-past `RACE_A` no longer anchors `phase_context` (`source` is now `unspecified` with `last_a_race`); an A-race in the last 14 days wins over a far-future one so the phase is `recovery`.
 
 ### Changed
