@@ -19,8 +19,10 @@ from ..athlete_state_compute import (
     durability_from_streams,
     empty_subjective_days,
     fitness_points,
+    ftp_check,
     ftp_from_settings,
     gaps,
+    latest_ride_eftp,
     observed_constraints,
     power_keys,
     readiness_block,
@@ -31,7 +33,7 @@ from ..athlete_state_compute import (
 )
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
-from ..coach_brief import build_coach_brief
+from ..coach_brief import build_coach_brief, today_flags, training_focus
 from ..models import ActivitySummary, CurveSet, Event, SportSettings, Wellness
 from ..response_builder import ResponseBuilder
 
@@ -274,6 +276,13 @@ async def get_athlete_state(
                         profile["curves"] = power
                 profile.update(ftp_info)
                 data["power_profile"] = profile
+                check = ftp_check(
+                    ftp=ftp_info.get("estimated_ftp"),
+                    power=power,
+                    eftp=latest_ride_eftp(wellness) if wellness else None,
+                )
+                if check:
+                    analysis["ftp_check"] = check
 
             races: list[dict[str, Any]] = []
             if "calendar" in blocks:
@@ -342,14 +351,25 @@ async def get_athlete_state(
                 subjective_empty_days=subjective_empty,
                 has_power=bool(power) if "power_profile" in blocks else None,
                 readiness_state=readiness.get("readiness_state") if readiness else None,
+                has_focus=bool(events and training_focus(events, today)),
             )
+            if "coach_brief" in analysis:
+                analysis["coach_brief"].update(
+                    today_flags(
+                        brief=analysis["coach_brief"],
+                        ftp_check=analysis.get("ftp_check"),
+                        gaps=analysis["gaps"],
+                    )
+                )
 
             metadata: dict[str, Any] = {
                 "include": sorted(blocks),
                 "usage": (
                     "Lead with analysis.coach_brief: use its numbers as given. Call "
                     "icu_get_coaching_guide once per conversation before advising or "
-                    "writing events. Propose calendar writes; wait for yes."
+                    "writing events. Offer to add proposed sessions to the calendar; on yes, write "
+                    "in the same turn, then ask coach_brief.follow_ups. Quote analysis.ftp_check "
+                    "for FTP."
                 ),
             }
             if fetch_errors:

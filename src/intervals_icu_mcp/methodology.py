@@ -67,6 +67,16 @@ TAPER_WEEK_LOAD_PCT: dict[str, int] = {"days_out_8_to_14": 65, "days_out_0_to_7"
 POST_A_RECOVERY_LOAD_PCT = 50
 HARD_SESSION_INTENSITY_FACTOR = 0.85
 
+# FTP check: one server verdict on the configured Ride FTP.
+FTP_CHECK: dict[str, float] = {
+    # 20-minute best x this factor is the textbook FTP estimate.
+    "twenty_min_factor": 0.95,
+    # Above this 20m / 60m ratio the 20m rule overstates FTP for this athlete.
+    "short_bias_ratio": 1.15,
+    # Suggest a change only when the estimate is at least this far from the setting.
+    "change_pct": 5.0,
+}
+
 METHODOLOGY_SPEC = """\
 # Coaching methodology parameters (this server)
 
@@ -148,6 +158,15 @@ ride; a group ride counts as the hard session it actually is; strength not \
 the day before a key session; if `60m_to_ftp_gap` is flagged, bias toward \
 longer threshold intervals over more VO2. B race: 2-3 easy days before, no \
 full taper. C race: train through.
+
+## FTP check
+
+`analysis.ftp_check` is the only FTP verdict (keep / raise / lower). Do not \
+estimate FTP yourself (no 20m x 0.95 in chat). Estimate = Intervals eFTP, else \
+20m best x 0.95 — unless 20m / 60m best > 1.15: then the 20m rule overstates \
+this athlete and only eFTP counts. Change suggested only when the estimate is \
+5%+ from the setting. A 60m best below FTP is a durability limiter, not a \
+reason to change FTP.
 
 ## Readiness gating (daily swap, not rewrite-the-week)
 

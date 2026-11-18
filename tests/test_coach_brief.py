@@ -8,13 +8,18 @@ from intervals_icu_mcp.athlete_state_compute import (
     _intensity_bin,
     derive_phase_context,
     derived_flags,
+    ftp_check,
+    gaps,
 )
 from intervals_icu_mcp.coach_brief import (
+    away_days,
     build_coach_brief,
     completed_week_loads,
     intensity_factor,
     select_distribution,
     select_ramp_tier,
+    today_flags,
+    training_focus,
     weeks_since_recovery,
 )
 from intervals_icu_mcp.models import ActivitySummary, Event
@@ -146,7 +151,9 @@ class TestBrief:
         assert brief["phase"]["name"] == "general_fitness"
         assert brief["today"]["weekday"] == "Mon"
         assert brief["today"]["next_monday"] == "2026-11-23"
-        assert any("RACE_A" in a for a in brief["next_actions"])
+        # the race question waits until the calendar offer is answered
+        assert not any("RACE_A" in a for a in brief["next_actions"])
+        assert any("RACE_A" in f for f in brief["follow_ups"])
         # four loading weeks in a row → recovery week at 60% of the last three
         assert brief["load"]["recovery_week_due"] is True
         assert brief["load"]["next_week_target"]["load"] == round(540 * 0.6)
@@ -162,7 +169,14 @@ class TestBrief:
         assert brief["phase"]["a_race"]["days_out"] == 60
         assert brief["load"]["recovery_week_due"] is False
         assert brief["load"]["next_week_target"]["load"] == round(7 * (70 + 6.51 * 7))
-        assert not any("RACE_A" in a for a in brief["next_actions"])
+        assert "follow_ups" not in brief
+
+    def test_empty_day_offers_calendar_write_before_follow_ups(self):
+        brief = _brief(readiness_state="green")
+        offer = next(a for a in brief["next_actions"] if "Nothing planned today" in a)
+        assert "add it to the Intervals calendar" in offer
+        assert brief["next_actions"].index(offer) == 0
+        assert "same turn" in brief["next_actions"][-1]
 
     def test_target_above_capacity_warns(self):
         brief = _brief(
@@ -243,3 +257,125 @@ class TestCoachingGuide:
         text = await get_coaching_guide("workout_syntax, event_categories")
         assert "Workout Syntax Reference" in text and "Event Categories" in text
         assert (await get_coaching_guide(["nope"])).startswith("Unknown topic")
+
+
+class TestFtpCheck:
+    def test_short_biased_athlete_keeps_ftp(self):
+        # the 20m x 0.95 rule would say 314, but this athlete fades over an hour
+        check = ftp_check(
+            ftp=300, power={"d90": {"20m": 331, "60m": 274}, "d365": {"20m": 340}}, eftp=None
+        )
+        assert check["verdict"] == "keep"
+        assert check["evidence"]["window"] == "d90"
+        assert check["evidence"]["ratio_20m_to_60m"] == 1.21
+        assert "estimate" not in check
+        assert any("overstates" in n for n in check["notes"])
+        assert any("time at threshold" in n for n in check["notes"])
+
+    def test_eftp_wins_over_twenty_minute_rule(self):
+        check = ftp_check(ftp=300, power={"d90": {"20m": 331, "60m": 274}}, eftp=304.6)
+        assert check["estimate"] == 305
+        assert check["estimate_source"] == "eftp"
+        assert check["verdict"] == "keep"
+
+    def test_raise_when_twenty_minute_rule_applies(self):
+        check = ftp_check(ftp=280, power={"d42": {"20m": 330, "60m": 300}}, eftp=None)
+        assert check["estimate"] == 314
+        assert check["verdict"] == "raise"
+
+    def test_lower_from_eftp(self):
+        check = ftp_check(ftp=300, power={}, eftp=270.0)
+        assert check["verdict"] == "lower"
+        assert check["diff_pct"] == -10.0
+
+    def test_no_ftp_setting(self):
+        assert ftp_check(ftp=None, power={"d90": {"20m": 300}}, eftp=None) == {}
+
+
+class TestTrainingFocus:
+    def test_ranged_focus_note_is_active(self):
+        note = _event(
+            TODAY - timedelta(days=10),
+            "NOTE",
+            name="Focus: general fitness",
+            end_date_local=(TODAY + timedelta(days=60)).isoformat() + "T00:00:00",
+        )
+        focus = training_focus([note], TODAY)
+        assert focus is not None
+        assert focus["name"] == "Focus: general fitness"
+        assert focus["review_by"] == (TODAY + timedelta(days=59)).isoformat()
+
+    def test_open_ended_note_expires(self):
+        fresh = _event(TODAY - timedelta(days=30), "NOTE", name="focus: gravel fun")
+        stale = _event(TODAY - timedelta(days=200), "NOTE", name="Focus: old")
+        assert training_focus([fresh], TODAY) is not None
+        assert training_focus([stale], TODAY) is None
+
+    def test_other_notes_ignored(self):
+        assert training_focus([_event(TODAY, "NOTE", name="Bike fit")], TODAY) is None
+
+    def test_focus_stops_the_race_question(self):
+        note = _event(TODAY - timedelta(days=3), "NOTE", name="Focus: general fitness")
+        brief = _brief(events=[note])
+        assert brief["phase"]["focus"]["name"] == "Focus: general fitness"
+        assert "follow_ups" not in brief
+
+    def test_race_question_offers_focus_note(self):
+        assert "Focus: " in _brief()["follow_ups"][0]
+
+    def test_focus_quiets_daily_gap_but_not_season(self):
+        def race_gap(horizon: int) -> bool:
+            items = gaps(
+                horizon_days=horizon,
+                races=[],
+                phase_source="unspecified",
+                subjective_empty_days=None,
+                has_power=None,
+                has_focus=True,
+            )
+            return any(i["field"] == "calendar.goal_events" for i in items)
+
+        assert not race_gap(90)
+        assert race_gap(365)
+
+
+class TestAwayDays:
+    def test_holiday_in_window(self):
+        trip = _event(
+            TODAY + timedelta(days=9),
+            "HOLIDAY",
+            name="Thanksgiving",
+            end_date_local=(TODAY + timedelta(days=13)).isoformat() + "T00:00:00",
+            training_availability="LIMITED",
+        )
+        later = _event(TODAY + timedelta(days=30), "HOLIDAY")
+        workout = _event(TODAY + timedelta(days=2), "WORKOUT")
+        away = away_days([later, workout, trip], TODAY)
+        assert away == [
+            {
+                "category": "HOLIDAY",
+                "name": "Thanksgiving",
+                "start": (TODAY + timedelta(days=9)).isoformat(),
+                "end": (TODAY + timedelta(days=12)).isoformat(),
+                "training_availability": "LIMITED",
+            }
+        ]
+        assert _brief(events=[trip])["away"][0]["name"] == "Thanksgiving"
+
+
+class TestTodayFlags:
+    def test_caps_at_two_in_priority_order(self):
+        brief = _brief(events=[_event(TODAY + timedelta(days=5), "RACE_B", name="Crit")])
+        ftp = {"setting": 280, "verdict": "raise", "estimate": 300, "estimate_source": "eftp"}
+        subjective = [{"field": "readiness.subjective"}]
+        result = today_flags(brief=brief, ftp_check=ftp, gaps=subjective)
+        assert len(result["flags"]) == 2
+        assert result["flags"][0].startswith("RACE_B Crit")
+        assert result["flags"][1].startswith("Recovery week due")
+        assert result["flags_more"][0].startswith("FTP setting 280 W looks low")
+        assert "How-you-feel" in result["flags_more"][1]
+
+    def test_keep_verdict_is_not_a_flag(self):
+        brief = _brief(activities=_weeks([500, 520, 300, 520]))
+        result = today_flags(brief=brief, ftp_check={"verdict": "keep"}, gaps=[])
+        assert result == {"flags": []}
