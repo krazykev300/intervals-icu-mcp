@@ -77,6 +77,17 @@ FTP_CHECK: dict[str, float] = {
     "change_pct": 5.0,
 }
 
+# Return after a SICK / INJURED window or any unplanned break, by days missed.
+# Load is a share of the last full training week before the break. Coaching
+# defaults from the assessment's M6 rule; not a medical protocol.
+RETURN_FROM_BREAK: dict[str, Any] = {
+    "resume_plan_days_missed_max": 2,
+    "short": {"days_missed_max": 7, "first_week_load_pct": 67, "easy_days_first": 2},
+    "long": {"days_missed_min": 8, "first_week_load_pct": 50, "easy_days_first": 3},
+    "rebuild_weeks": "weeks_missed_rounded_up",
+    "limited_illness_max_training_seconds": 2700,
+}
+
 METHODOLOGY_SPEC = """\
 # Coaching methodology parameters (this server)
 
@@ -189,6 +200,27 @@ red:   hrv_z < -1.5 OR consecutive_days_below_baseline >= 3 OR rhr_z > 2.0
 Subjective fields (mood, motivation, fatigue, soreness, stress) on Intervals \
 wellness. Empty → lower-confidence state; prompt `icu_update_wellness`. \
 There is no `wellbeing` field.
+
+## Return from a break (illness, injury, unplanned time off)
+
+Days missed = the SICK / INJURED window, start to end inclusive. Pre-break \
+load = the last full week before it in `coach_brief.load.last_completed_weeks`. \
+This overrides `load.next_week_target` until the rebuild is done; say so.
+
+```
+1-2 days:  resume the plan as written. Missed sessions are gone, not moved.
+3-7 days:  first week back at 67% of pre-break load, first 2 days easy (Z1-Z2)
+8+ days:   first week back at 50% of pre-break load, first 3 days easy
+rebuild:   back to pre-break load in even steps over as many weeks as were
+           missed (rounded up, at least 1), then the normal ramp resumes
+```
+
+No intensity until the easy days felt normal. One hard session in the first \
+week back at most, shortened. Never make up missed key sessions. Illness: the \
+first session back comes after a full symptom-free day; fever or chest \
+symptoms mean rest, not easy riding. Above-the-neck symptoms only: easy \
+movement at most (Z1, up to 45 minutes). Injury: pain-free sports first, the \
+injured sport last and easy; pain that changes how they move stops the session.
 
 ## Mixed-sport load
 

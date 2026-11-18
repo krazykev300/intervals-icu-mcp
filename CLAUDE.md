@@ -9,9 +9,11 @@ MCP (Model Context Protocol) server for Intervals.icu — this fork defaults to
 fitness, athlete-state, ATP read, curves, wellness, activities, streams/histograms,
 workout library).
 `full` restores the upstream catalog (63 / 66 / 60 with delete mode). 6 resources
-and 10 prompts. Server `instructions` plus `intervals-icu://coaching-playbook`
-are the coaching skill (race → fitness → calendar); `coach_with_goals` returns
-the same playbook.
+and 9 prompts (the named routines, `coach_with_goals`, `verify_setup`; `full`
+adds upstream's analysis set). Server `instructions` plus
+`intervals-icu://coaching-playbook` carry the coaching playbook (race → fitness
+→ calendar); `coach_with_goals` returns the same text, and
+`skills/intervals-coach/` packages it as a Claude Skill for athletes.
 
 This repository is the source of truth for calendar, wellness, and fitness
 numbers. Goals, racing identity, and constraints belong in a separate knowledge
@@ -35,6 +37,7 @@ make run              # Run the MCP server
 make test             # Run tests
 make test/athlete     # Run tests matching "athlete"
 make test/verbose     # Verbose test output
+make skill            # Rebuild skills/intervals-coach/ and zip it to build/
 make smoke            # In-process MCP smoke of the coaching write tools (stubbed HTTP, free)
 make lint             # Lint (ruff + pyright)
 make format           # Auto-format code
@@ -55,9 +58,9 @@ make docker/run       # Run Docker container
 | Models | `models.py` | Pydantic models for API responses |
 | Workout syntax | `workout_syntax.py` | Intervals.icu workout DSL reference for LLMs |
 | Workout parser | `workout_parser.py` | Local linter/preview for workout descriptions |
-| Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-list + `mcp.tool` filter |
+| Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-lists + `mcp.tool` / `mcp.prompt` filters |
 | Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
-| Prompts | `prompts/` | Overlay prompts + coaching playbook (`coaching_playbook.py`); kept out of `server.py` for rebases |
+| Prompts | `prompts/` | Coaching playbook (`coaching_playbook.py`), named routines (`routines.py`), Claude Skill renderer (`skill.py`); kept out of `server.py` for rebases |
 | Tools | `tools/` | 16 tool modules plus the `_strava.py` helper (see below) |
 
 **For detailed architecture**: see `docs/architecture.md`
@@ -111,6 +114,10 @@ Tests use pytest + pytest-asyncio with `respx` for HTTP mocking.
 - **Playbook wording is tested.** `tests/test_coaching_playbook.py` asserts
   exact phrases in `prompts/coaching_playbook.py`. Rewording the playbook means
   updating those needles in the same change.
+- **The athlete skill is generated.** `skills/intervals-coach/` is rendered
+  from the playbook, the methodology and `prompts/routines.py`. After changing
+  any of them run `make skill`; `tests/test_routines_and_skill.py` fails while
+  the committed copy is stale. Do not edit the files under `skills/` by hand.
 - **Smoke before merge.** For changes to a write tool, run `make smoke` and
   extend `scripts/smoke_mcp.py` with the new path. It drives the real server
   through a FastMCP client with the Intervals API stubbed, so it needs no
@@ -156,7 +163,8 @@ Both tools work in this repo, often in parallel on separate branches.
 
 ## Skills
 
-The following skills are available in `.claude/skills/`:
+The following developer skills are available in `.claude/skills/` (the
+athlete-facing coach skill is separate, in `skills/intervals-coach/`):
 
 | Skill | Description |
 |---|---|

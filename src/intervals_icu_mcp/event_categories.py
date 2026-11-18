@@ -46,6 +46,10 @@ rejects unknown values with 422 "Invalid type". The full list is under
 - `SICK` — illness (German UI: Krank)
 - `INJURED` — injury (German UI: Verletzt)
 
+A `SICK` or `INJURED` event starts the illness and injury protocol in the
+coaching playbook (section 7): rest inside the window, return ramp from
+`end_date`.
+
 For these ranged categories, set `training_availability` so the planner
 knows how to handle scheduled workouts in the window:
 - `NORMAL` — train as planned (German UI: Verfügbar)

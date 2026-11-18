@@ -98,6 +98,65 @@ def install_tool_profile_filter(mcp: FastMCP, profile: ToolProfile) -> None:
     mcp.tool = profiled_tool  # type: ignore[method-assign]
 
 
+# Prompts a coached athlete uses: the named routines, the playbook itself, and
+# the setup check friends are told to run. Upstream's analysis prompts stay in
+# `full`; they point at tools and habits the coaching playbook replaces.
+COACHING_PROMPTS: frozenset[str] = frozenset(
+    {
+        "morning_check",
+        "review_my_week",
+        "plan_next_week",
+        "race_week",
+        "after_the_race",
+        "im_sick",
+        "i_have_45_minutes",
+        "coach_with_goals",
+        "verify_setup",
+    }
+)
+
+
+def should_register_prompt(name: str, profile: ToolProfile) -> bool:
+    """Return True if the prompt `name` should be offered under this profile."""
+    if profile == "full":
+        return True
+    return name in COACHING_PROMPTS
+
+
+def install_prompt_profile_filter(mcp: FastMCP, profile: ToolProfile) -> None:
+    """Wrap `mcp.prompt` so prompts not in the profile become no-ops.
+
+    Same idea as the tool filter: the `@mcp.prompt()` call sites in server.py
+    stay as upstream wrote them, and a prompt upstream adds later stays out of
+    coaching until it is listed in COACHING_PROMPTS.
+    """
+    bound_prompt = mcp.prompt
+
+    def profiled_prompt(
+        name_or_fn: Any = None,
+        *args: Any,
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        if callable(name_or_fn):
+            resolved = name or getattr(name_or_fn, "__name__", "")
+            if not should_register_prompt(resolved, profile):
+                return name_or_fn
+            return bound_prompt(name_or_fn, *args, name=name, **kwargs)
+
+        explicit = name if name is not None else name_or_fn
+
+        def decorate(fn: Any) -> Any:
+            resolved = explicit or getattr(fn, "__name__", "")
+            if not should_register_prompt(resolved, profile):
+                return fn
+            return bound_prompt(name_or_fn, *args, name=name, **kwargs)(fn)
+
+        return decorate
+
+    mcp.prompt = profiled_prompt  # type: ignore[method-assign]
+
+
 def coaching_tools_for_delete_mode(delete_mode: str) -> frozenset[str]:
     """Coaching names that survive the delete-mode gate."""
     if delete_mode == "none":

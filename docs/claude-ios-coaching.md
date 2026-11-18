@@ -5,6 +5,11 @@ The **coaching skill lives on the MCP**, not in a kickoff you paste:
 - FastMCP **server instructions** (every session that has this connector on)
 - Resource `intervals-icu://coaching-playbook`
 - Prompt `coach_with_goals` (same text; invoke if the client lists prompts)
+- Named routine prompts: `morning_check`, `review_my_week`, `plan_next_week`,
+  `race_week`, `after_the_race`, `im_sick`, `i_have_45_minutes`
+- Optional Claude Skill in `skills/intervals-coach/`, which triggers on any
+  training talk and has Claude read your state first
+  ([install](user-setup.md#install-the-coach-skill-optional))
 
 On iOS: new chat → enable this connector (and Drive/GCal/Strava/goals if you
 use them) → say what you need (“help me coach toward my next race”). You do
@@ -163,8 +168,12 @@ appointments.
 - **Wellness** before a load jump (sleep, HRV, rest days).
 - **Travel / family**: `HOLIDAY` + `training_availability` (`UNAVAILABLE`
   or `LIMITED`), not silent skipped workouts.
-- **Illness**: `SICK` / `INJURED`, not deleted history. Safe-mode delete
-  only removes **future** events.
+- **Illness or injury**: say so ("I'm sick", "I hurt my knee"). The coach
+  proposes a `SICK` / `INJURED` event for the days, replaces the sessions
+  inside it with rest, and plans the return week from its end date. The
+  event is the record; extend or shorten it and the return moves with it.
+  Safe-mode delete only removes **future** events, so today's session is
+  turned into a rest note instead. It is not medical advice.
 - **Indoor vs outdoor**: `VirtualRide` when it matters for the file.
 - **After the race**: pull the activity here (and Strava if useful), then
   plan the next block. Do not leave the A-race sitting with a peak week

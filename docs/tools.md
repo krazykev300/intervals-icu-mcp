@@ -1,6 +1,6 @@
 # Tool, Resource, and Prompt Reference
 
-Complete inventory of everything the Intervals.icu MCP server exposes: up to 66 tools across 11 categories, 6 MCP Resources, and 10 MCP Prompts.
+Complete inventory of everything the Intervals.icu MCP server exposes: up to 66 tools across 11 categories, 6 MCP Resources, and 9 MCP Prompts in the coaching profile (17 in `full`).
 
 ## Delete Safety Mode
 
@@ -235,15 +235,37 @@ Resources provide ongoing context to the LLM without requiring explicit tool cal
 
 ## MCP Prompts
 
-Prompt templates for common queries, accessible via prompt suggestions in Claude.
+Prompts are entry points a client can list (prompt suggestions in Claude). The
+`coaching` profile registers the nine an athlete uses; `full` adds upstream's
+analysis prompts. The gate is `COACHING_PROMPTS` in `tool_profile.py`.
 
-| Prompt                    | Description                                                              |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `icu_analyze_recent_training` | Comprehensive training analysis over a specified period                  |
-| `icu_performance_analysis`    | Detailed power/HR/pace curve analysis with zones                         |
-| `icu_activity_deep_dive`      | Deep dive into a specific activity with streams, intervals, best efforts |
-| `icu_recovery_check`          | Recovery assessment with wellness trends and training load               |
-| `icu_training_plan_review`    | Weekly training plan evaluation with workout library                     |
-| `icu_plan_training_week`      | AI-assisted weekly training plan creation based on current fitness       |
-| `generate_workout`            | Generate a structured workout with sport, type, and duration parameters  |
-| `coach_with_goals`            | Coaching skill (also server instructions + `intervals-icu://coaching-playbook`): race → fitness → calendar around group rides and off-season strength. Goals MCP is WHY; dates stay here |
+### Coaching profile (9)
+
+Each named routine tells the model to read `icu_get_athlete_state`, load the
+playbook with `icu_get_coaching_guide`, and run one routine from it. Saying
+the same thing in plain language runs the same routine.
+
+| Prompt | Arguments | What it does |
+| --- | --- | --- |
+| `morning_check` | — | Today's session, why, the rest of the week, at most two flags |
+| `review_my_week` | — | Planned against done, what the week achieved, one change for next week |
+| `plan_next_week` | — | Monday-to-Sunday table inside the load target; written on a yes |
+| `race_week` | — | The days into the race, openers, fuelling and pacing |
+| `after_the_race` | — | Short debrief, clear leftover peak sessions, plan recovery |
+| `im_sick` | `what` | Illness and injury protocol: block the days, replace sessions with rest, plan the return |
+| `i_have_45_minutes` | `minutes`, `location` | The best single session for the time available today |
+| `coach_with_goals` | — | The whole playbook (also server instructions + `intervals-icu://coaching-playbook`): race → fitness → calendar. Goals MCP is WHY; dates stay here |
+| `verify_setup` | — | Walks the core tools against your account and reports failures |
+
+### Added by the `full` profile (8)
+
+| Prompt | Description |
+| --- | --- |
+| `analyze_recent_training` | Training analysis over a specified period |
+| `performance_analysis` | Power/HR/pace curve analysis with zones |
+| `activity_deep_dive` | One activity with streams, intervals, best efforts |
+| `recovery_check` | Recovery assessment with wellness trends and training load |
+| `training_plan_review` | Upcoming plan evaluation with workout library |
+| `plan_training_week` | Weekly plan creation based on current fitness |
+| `generate_workout` | Structured workout with sport, type, and duration parameters |
+| `verify_multi_athlete` | Checks that `athlete_id` routes to another athlete |

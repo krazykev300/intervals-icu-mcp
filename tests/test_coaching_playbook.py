@@ -41,6 +41,20 @@ class TestCoachingPlaybook:
         ):
             assert needle in COACHING_PLAYBOOK
 
+    def test_playbook_named_routines(self):
+        for needle in (
+            "**Morning check**",
+            "**Review my week**",
+            "**Plan next week**",
+            "**Race week**",
+            "**After the race**",
+            "**I'm sick or injured**",
+            "**I have N minutes**",
+            "## 7. Illness and injury protocol",
+        ):
+            assert needle in COACHING_PLAYBOOK
+        assert "illness or injury" in SERVER_INSTRUCTIONS
+
     def test_playbook_session_layout_availability_and_logging(self):
         for needle in (
             "Session layout",

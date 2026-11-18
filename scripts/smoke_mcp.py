@@ -25,7 +25,7 @@ from httpx import Response
 from mcp.types import TextContent
 
 from intervals_icu_mcp.server import mcp
-from intervals_icu_mcp.tool_profile import coaching_tools_for_delete_mode
+from intervals_icu_mcp.tool_profile import COACHING_PROMPTS, coaching_tools_for_delete_mode
 
 B = "https://intervals.icu/api/v1"
 sent = {}
@@ -273,10 +273,62 @@ async def main():
             r = await c.call_tool("icu_log_session", {"rpe": 7})
             check("log needs date+duration", "start_date and duration_seconds" in _text(r))
 
+            # Illness protocol (playbook section 7): the two writes it prescribes.
+            r = await c.call_tool(
+                "icu_create_event",
+                {
+                    "start_date": "2026-12-01",
+                    "end_date": "2026-12-03",
+                    "name": "Head cold",
+                    "category": "SICK",
+                    "training_availability": "LIMITED",
+                    "max_training_seconds": 2700,
+                    "description": "Above the neck only. Removed: Threshold 3x10.",
+                },
+            )
+            s = sent["create"]
+            check(
+                "protocol: SICK window with limits",
+                "error" not in json.loads(_text(r))
+                and s["category"] == "SICK"
+                and s["training_availability"] == "LIMITED"
+                and s["max_training_time"] == 2700
+                and s["end_date_local"].startswith("2026-12-03"),
+            )
+            r = await c.call_tool(
+                "icu_update_event", {"event_id": 5, "category": "NOTE", "name": "Rest"}
+            )
+            check(
+                "protocol: today's session becomes a rest note",
+                sent["update"] == {"name": "Rest", "category": "NOTE"},
+            )
+
+        prompts = {p.name for p in await c.list_prompts()}
+        check(f"coaching lists {len(COACHING_PROMPTS)} prompts", prompts == set(COACHING_PROMPTS))
+        sick = await c.get_prompt("im_sick", {"what": "head cold"})
+        body = sick.messages[0].content
+        assert isinstance(body, TextContent)
+        check(
+            "im_sick prompt: state, guide, protocol",
+            "icu_get_athlete_state" in body.text
+            and "icu_get_coaching_guide" in body.text
+            and "7. Illness and injury protocol" in body.text
+            and "head cold" in body.text,
+        )
+        short = await c.get_prompt("i_have_45_minutes", {"minutes": "30"})
+        body = short.messages[0].content
+        assert isinstance(body, TextContent)
+        check("i_have_45_minutes prompt takes minutes", "30 minutes" in body.text)
+
         res = await c.call_tool("icu_get_coaching_guide", {})
         check(
             "guide carries session layout + log_session",
             "Session layout" in _text(res) and "icu_log_session" in _text(res),
+        )
+        check(
+            "guide carries illness protocol + return rule",
+            "## 7. Illness and injury protocol" in _text(res)
+            and "## Return from a break" in _text(res),
         )
     print(f"\n{sum(ok)}/{len(ok)} passed")
     return all(ok)

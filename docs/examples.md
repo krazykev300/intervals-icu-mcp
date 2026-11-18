@@ -6,16 +6,23 @@ strength), see [claude-ios-coaching.md](claude-ios-coaching.md).
 
 ## MCP Prompts
 
-Built-in prompt templates for common queries, available via prompt suggestions in Claude:
+Named routines, available via prompt suggestions in Claude (coaching profile).
+Typing the phrase works just as well:
 
-- `analyze-recent-training` — comprehensive training analysis over a specified period
-- `performance-analysis` — analyze power/HR/pace curves and zones
-- `activity-deep-dive` — deep dive into a specific activity with streams, intervals, and best efforts
-- `recovery-check` — recovery assessment with wellness trends and training load
-- `training-plan-review` — weekly training plan evaluation with workout library
-- `plan-training-week` — AI-assisted weekly training plan creation based on current fitness
-- `generate-workout` — generate a structured workout for any sport (cycling, running, swimming) with proper Intervals.icu syntax
-- `coach_with_goals` — coaching skill (race → fitness → calendar). Same text as `intervals-icu://coaching-playbook`; also injected as MCP server instructions so Claude iOS can follow it without picking a prompt
+- `morning_check` — "What should I do today?"
+- `review_my_week` — "How did my week go?"
+- `plan_next_week` — "Plan my next week"
+- `race_week` — "It's race week"
+- `after_the_race` — "I raced yesterday"
+- `im_sick` — "I'm sick" / "I hurt my knee": blocks the days, replaces the sessions with rest, plans the return
+- `i_have_45_minutes` — "I have 45 minutes"
+- `coach_with_goals` — the whole coaching playbook (race → fitness → calendar). Same text as `intervals-icu://coaching-playbook`; also injected as MCP server instructions so Claude iOS can follow it without picking a prompt
+- `verify_setup` — checks the server against your account
+
+With `INTERVALS_ICU_TOOL_PROFILE=full` the upstream analysis prompts are also
+listed (`analyze_recent_training`, `performance_analysis`, `activity_deep_dive`,
+`recovery_check`, `training_plan_review`, `plan_training_week`,
+`generate_workout`, `verify_multi_athlete`). See [tools.md](tools.md#mcp-prompts).
 
 ## Activities
 
