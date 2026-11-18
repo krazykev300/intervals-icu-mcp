@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from .methodology import (
+    FTP_CHECK,
     PHASE_FROM_A_RACE,
     READINESS_THRESHOLDS,
     TSB_EXCURSION_THRESHOLD,
@@ -392,6 +393,97 @@ def ftp_from_settings(settings: list[SportSettings]) -> dict[str, Any]:
     if ride is None or ride.ftp is None:
         return {}
     return {"estimated_ftp": ride.ftp, "ftp_source": "sport_settings"}
+
+
+def latest_ride_eftp(records: list[Wellness]) -> float | None:
+    """Most recent Intervals-modelled Ride eFTP from wellness sportInfo."""
+    for record in sorted(records, key=lambda r: r.id, reverse=True):
+        for sport in record.sport_info:
+            if sport.type == "Ride" and sport.eftp:
+                return round(sport.eftp)
+    return None
+
+
+def _ftp_window(power: dict[str, dict[str, int]]) -> str | None:
+    """Curve window closest to 90 days that has a 20m value."""
+    labelled = [
+        (abs(int(label[1:]) - 90), label)
+        for label, keys in power.items()
+        if label[1:].isdigit() and "20m" in keys
+    ]
+    return min(labelled)[1] if labelled else None
+
+
+def ftp_check(
+    *, ftp: int | None, power: dict[str, dict[str, int]], eftp: float | None
+) -> dict[str, Any]:
+    """One FTP verdict from the setting, 20m/60m bests and Intervals eFTP.
+
+    The coach quotes this instead of applying the 20m x 0.95 rule itself, which
+    overstates FTP for athletes whose hour power falls off steeply.
+    """
+    if not ftp:
+        return {}
+    window = _ftp_window(power)
+    keys = power.get(window, {}) if window else {}
+    twenty, hour = keys.get("20m"), keys.get("60m")
+    result: dict[str, Any] = {"setting": ftp}
+    evidence: dict[str, Any] = {}
+    if window:
+        evidence["window"] = window
+    if twenty:
+        evidence["best_20m"] = twenty
+    if hour:
+        evidence["best_60m"] = hour
+    if eftp:
+        evidence["eftp"] = round(eftp)
+
+    short_biased = False
+    if twenty and hour:
+        ratio = round(twenty / hour, 2)
+        evidence["ratio_20m_to_60m"] = ratio
+        short_biased = ratio > FTP_CHECK["short_bias_ratio"]
+
+    if eftp:
+        estimate, source = round(eftp), "eftp"
+    elif twenty and not short_biased:
+        estimate, source = round(twenty * FTP_CHECK["twenty_min_factor"]), "20m_x_0.95"
+    else:
+        estimate, source = None, None
+    if estimate is not None:
+        result["estimate"] = estimate
+        result["estimate_source"] = source
+    result["evidence"] = evidence
+
+    notes: list[str] = []
+    if short_biased:
+        notes.append(
+            f"20m/60m ratio {evidence['ratio_20m_to_60m']:g} is above "
+            f"{FTP_CHECK['short_bias_ratio']:g}: 20m x 0.95 overstates FTP for this athlete"
+        )
+    if hour and hour < ftp:
+        notes.append(
+            f"best 60m {hour}w is below FTP: limiter is time at threshold "
+            "(longer threshold intervals), not a reason to change FTP"
+        )
+
+    if estimate is None:
+        verdict = "keep"
+        notes.append("no eFTP and no usable 20m estimate: keep the setting")
+    else:
+        diff_pct = round((estimate - ftp) / ftp * 100, 1)
+        result["diff_pct"] = diff_pct
+        if diff_pct >= FTP_CHECK["change_pct"]:
+            verdict = "raise"
+        elif diff_pct <= -FTP_CHECK["change_pct"]:
+            verdict = "lower"
+        else:
+            verdict = "keep"
+    result["verdict"] = verdict
+    if notes:
+        result["notes"] = notes
+    result["usage"] = "Quote this verdict; do not estimate FTP from curves yourself."
+    return result
 
 
 def sport_constraints(settings: list[SportSettings]) -> dict[str, Any]:
@@ -831,7 +923,7 @@ def derived_flags(
         if gap_pct >= 10:
             flags.append(
                 f"60m_to_ftp_gap: {hour}w vs {ftp}w ({gap_pct}%) — limiter is "
-                "time-at-threshold, not aerobic volume"
+                "time-at-threshold, not aerobic volume; FTP verdict is analysis.ftp_check"
             )
     if constraints.get("mixed_sport"):
         flags.append("mixed_sport_weeks: Intervals combined TSS; do not reweight by sport")
@@ -848,11 +940,17 @@ def gaps(
     subjective_empty_days: int | None,
     has_power: bool | None,
     readiness_state: str | None = None,
+    has_focus: bool = False,
 ) -> list[dict[str, str]]:
-    """ICU-only gaps. Missing ATP / fuelling / demands are not gaps."""
+    """ICU-only gaps. Missing ATP / fuelling / demands are not gaps.
+
+    An active `Focus: ...` NOTE answers "no A-race" for day-to-day coaching;
+    a season ask (365d) still needs an A-date.
+    """
     items: list[dict[str, str]] = []
     year_out = horizon_days >= 365
-    if races is not None and not any(r.get("category") == "RACE_A" for r in races):
+    no_a_race = races is not None and not any(r.get("category") == "RACE_A" for r in races)
+    if no_a_race and (year_out or not has_focus):
         severity = "high" if year_out else "medium"
         items.append(
             {

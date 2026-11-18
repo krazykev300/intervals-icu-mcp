@@ -339,6 +339,10 @@ class TestGetAthleteStateTool:
         assert "compliance" in data
         flags = response["analysis"]["derived_flags"]
         assert any("60m_to_ftp_gap" in flag for flag in flags)
+        ftp = response["analysis"]["ftp_check"]
+        assert ftp["setting"] == 321
+        assert ftp["verdict"] in {"keep", "raise", "lower"}
+        assert len(response["analysis"]["coach_brief"]["flags"]) <= 2
         assert not any(
             item["field"] == "calendar.goal_events" for item in response["analysis"]["gaps"]
         )

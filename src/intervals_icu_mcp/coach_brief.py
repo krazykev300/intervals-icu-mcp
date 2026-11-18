@@ -27,6 +27,12 @@ from .methodology import (
 from .models import ActivitySummary, Event
 
 _TIERS = ("conservative", "standard", "aggressive")
+_AWAY_CATEGORIES = ("HOLIDAY", "SICK", "INJURED")
+_AWAY_WINDOW_DAYS = 14
+# A "Focus: ..." NOTE with no end date stops the A-race question for this long.
+FOCUS_NOTE_DAYS = 120
+FOCUS_PREFIX = "focus:"
+MAX_TODAY_FLAGS = 2
 _WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 
@@ -153,6 +159,103 @@ def _a_race(
     return nxt, last
 
 
+def _event_span(event: Event) -> tuple[date, date]:
+    start = parse_iso_date(event.start_date_local)
+    end = parse_iso_date(event.end_date_local) if event.end_date_local else start
+    # Intervals stores ranged events with an exclusive midnight end.
+    if end > start and event.end_date_local and "T00:00" in event.end_date_local:
+        end -= timedelta(days=1)
+    return start, max(start, end)
+
+
+def training_focus(events: list[Event], today: date) -> dict[str, Any] | None:
+    """Active `Focus: ...` NOTE: the athlete's stated goal when there is no A-race."""
+    best: dict[str, Any] | None = None
+    for event in events:
+        if event.category != "NOTE" or not event.name:
+            continue
+        if not event.name.strip().lower().startswith(FOCUS_PREFIX):
+            continue
+        start = parse_iso_date(event.start_date_local)
+        if event.end_date_local:
+            until = _event_span(event)[1]
+        else:
+            until = start + timedelta(days=FOCUS_NOTE_DAYS)
+        if not start <= today <= until:
+            continue
+        item = {"id": event.id, "name": event.name.strip(), "since": start.isoformat()}
+        item["review_by"] = until.isoformat()
+        if best is None or item["since"] > best["since"]:
+            best = item
+    return best
+
+
+def away_days(events: list[Event], today: date) -> list[dict[str, Any]]:
+    """HOLIDAY / SICK / INJURED events overlapping the next two weeks."""
+    horizon = today + timedelta(days=_AWAY_WINDOW_DAYS)
+    items: list[dict[str, Any]] = []
+    for event in events:
+        if event.category not in _AWAY_CATEGORIES:
+            continue
+        start, end = _event_span(event)
+        if end < today or start > horizon:
+            continue
+        item: dict[str, Any] = {
+            "category": event.category,
+            "name": event.name,
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+        }
+        if event.training_availability:
+            item["training_availability"] = event.training_availability
+        items.append(item)
+    items.sort(key=lambda i: i["start"])
+    return items
+
+
+def today_flags(
+    *,
+    brief: dict[str, Any],
+    ftp_check: dict[str, Any] | None,
+    gaps: list[dict[str, str]] | None,
+) -> dict[str, list[str]]:
+    """Rank flags for a daily answer: the top two go in `flags`, the rest wait.
+
+    Order: things that change this week's plan first, then settings that skew
+    load numbers, then logging gaps.
+    """
+    ranked: list[str] = []
+    phase: dict[str, Any] = brief.get("phase", {})
+    races: list[dict[str, Any]] = phase.get("b_c_races_within_14d", [])
+    for race in races:
+        ranked.append(
+            f"{race['category']} {race['name']} in {race['days_out']} days ({race['date']})."
+        )
+    load: dict[str, Any] = brief.get("load", {})
+    target: dict[str, Any] = load.get("next_week_target") or {}
+    if load.get("recovery_week_due") and target:
+        low, high = target["range"]
+        ranked.append(f"Recovery week due next week: about {target['load']} load ({low}-{high}).")
+    if target.get("warning"):
+        ranked.append(f"Next week's target is {target['warning']}.")
+    if ftp_check and ftp_check.get("verdict") in ("raise", "lower"):
+        looks = "low" if ftp_check["verdict"] == "raise" else "high"
+        ranked.append(
+            f"FTP setting {ftp_check['setting']} W looks {looks}: "
+            f"estimate {ftp_check['estimate']} W ({ftp_check['estimate_source']}); zones and "
+            "load are computed from the setting."
+        )
+    for gap in gaps or []:
+        if gap.get("field") == "readiness.subjective":
+            ranked.append(
+                "How-you-feel wellness fields are empty: offer to log them after the session."
+            )
+    result = {"flags": ranked[:MAX_TODAY_FLAGS]}
+    if ranked[MAX_TODAY_FLAGS:]:
+        result["flags_more"] = ranked[MAX_TODAY_FLAGS:]
+    return result
+
+
 def _today_block(
     events: list[Event],
     activities: list[ActivitySummary],
@@ -246,6 +349,12 @@ def build_coach_brief(
         brief["phase"]["a_race"] = next_a
     elif last_a:
         brief["phase"]["last_a_race"] = last_a
+    focus = None if next_a else training_focus(events, today)
+    if focus:
+        brief["phase"]["focus"] = focus
+    away = away_days(events, today)
+    if away:
+        brief["away"] = away
 
     b_c_soon = [
         {
@@ -330,15 +439,16 @@ def build_coach_brief(
     brief["next_actions"] = _next_actions(
         brief=brief,
         phase=phase,
-        has_a_race=next_a is not None,
         recovery_due=bool(recovery_due),
     )
+    follow_ups = _follow_ups(has_a_race=next_a is not None, focus=focus)
+    if follow_ups:
+        brief["follow_ups"] = follow_ups
     return brief
 
 
-def _next_actions(
-    *, brief: dict[str, Any], phase: str, has_a_race: bool, recovery_due: bool
-) -> list[str]:
+def _next_actions(*, brief: dict[str, Any], phase: str, recovery_due: bool) -> list[str]:
+    """Do-now list. Calendar work comes before profile questions (see `_follow_ups`)."""
     actions: list[str] = []
     today = brief["today"]
     if today["action"] == "ask_before_intensity":
@@ -348,10 +458,10 @@ def _next_actions(
         )
     elif today["action"] in ("recovery_or_rest", "swap_hard_for_endurance"):
         actions.append(f"Tell them today's call first: {today['why']}.")
-    if not has_a_race:
+    if not today["planned"] and not today.get("already_done"):
         actions.append(
-            "No future RACE_A on the calendar: ask what they are training for. Until then "
-            "coach general fitness; do not invent a season plan."
+            "Nothing planned today: propose one session that fits load.next_week_target "
+            "and offer to add it to the Intervals calendar. That offer is this turn's question."
         )
     if phase == "recovery":
         actions.append(
@@ -362,11 +472,25 @@ def _next_actions(
             "Taper: check the remaining days hold intensity and cut volume; no new stress."
         )
     if recovery_due:
-        actions.append("Propose a recovery week next (see load.next_week_target).")
-    if not today["planned"] and not today.get("already_done"):
-        actions.append("Nothing planned today: offer a session that fits load.next_week_target.")
+        actions.append(
+            "Propose next week as a recovery week now (day-by-day table inside "
+            "load.next_week_target) and offer to add it to the calendar."
+        )
     actions.append(
-        "Before writing events call icu_get_coaching_guide; propose a day-by-day table and "
-        "wait for a yes."
+        "Before writing events call icu_get_coaching_guide. On a yes, write in the same "
+        "turn, confirm what is now on the calendar, then ask the first of follow_ups."
     )
     return actions
+
+
+def _follow_ups(*, has_a_race: bool, focus: dict[str, Any] | None) -> list[str]:
+    """Questions to ask after the calendar offer is answered, one per turn."""
+    items: list[str] = []
+    if not has_a_race and not focus:
+        items.append(
+            "No future RACE_A and no Focus note: ask what they are training for (a "
+            "placeholder date is fine). If there is no race, offer a NOTE named 'Focus: "
+            "<their answer>' from today to a review date 8-12 weeks out so this question "
+            "is not asked again. Until then coach general fitness; do not invent a season plan."
+        )
+    return items

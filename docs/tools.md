@@ -143,7 +143,7 @@ The threaded notes/comments shown under an activity — the user's own training 
 | `icu_get_athlete_profile` | Get athlete profile, fitness metrics, and outdoor/indoor FTP   |
 | `icu_get_fitness_summary` | Get detailed CTL/ATL/TSB analysis with training recommendations |
 | `icu_get_fitness_chart` | Get PMC time-series (CTL/ATL/TSB) over a date window, including future projections from planned workouts |
-| `icu_get_athlete_state` | COMPOSITE grounding read — fitness trajectory, empirical TSB tolerance, power keys, races, observed load, phase, gaps. Call first in any training conversation. Returns the athlete-timezone date and weekday and `analysis.coach_brief` (phase, distribution, ramp tier, next-week load target, today's call, next actions). Pass `horizon_days=365` for a season plan. |
+| `icu_get_athlete_state` | COMPOSITE grounding read — fitness trajectory, empirical TSB tolerance, power keys, races, observed load, phase, gaps. Call first in any training conversation. Returns the athlete-timezone date and weekday and `analysis.coach_brief` (phase, distribution, ramp tier, next-week load target, today's call, next actions, follow-up questions, up to two ranked flags, away days, and an active `Focus:` note) and `analysis.ftp_check` (one keep / raise / lower FTP verdict). Pass `horizon_days=365` for a season plan. |
 | `icu_get_coaching_guide` | Playbook, methodology, workout syntax and event categories as a tool result, for chat clients where the model cannot open MCP resources. Call once per conversation after `icu_get_athlete_state`. |
 
 ### Wellness (3 tools)
