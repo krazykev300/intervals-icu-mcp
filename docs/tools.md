@@ -1,6 +1,6 @@
 # Tool, Resource, and Prompt Reference
 
-Complete inventory of everything the Intervals.icu MCP server exposes: up to 63 tools across 11 categories, 5 MCP Resources, and 10 MCP Prompts.
+Complete inventory of everything the Intervals.icu MCP server exposes: up to 66 tools across 11 categories, 6 MCP Resources, and 10 MCP Prompts.
 
 ## Delete Safety Mode
 
@@ -135,7 +135,7 @@ The threaded notes/comments shown under an activity — the user's own training 
 | `icu_get_activity_messages`    | Read notes/comments/coach feedback on a specific activity  |
 | `icu_add_activity_message`     | Post a note or comment on a specific activity              |
 
-### Athlete (5 tools)
+### Athlete (6 tools)
 
 | Tool                  | Description                                                     |
 | --------------------- | --------------------------------------------------------------- |

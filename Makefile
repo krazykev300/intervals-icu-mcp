@@ -73,6 +73,11 @@ run: ## Run the MCP server locally
 shell: ## Open a Python shell with the project context
 	uv run python
 
+##@ Smoke
+
+smoke: ## In-process MCP smoke of the coaching write tools (stubbed HTTP, no credentials, free)
+	uv run python scripts/smoke_mcp.py
+
 ##@ LLM smoke eval (costs API money; NOT part of `make test`)
 
 smoke-eval: ## Run smoke eval against current branch (requires ANTHROPIC_API_KEY; costs ~$0.07/run)
