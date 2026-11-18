@@ -427,16 +427,29 @@ data is bad input. Check and report, in `gaps`:
 
 Exclude flagged activities from models and say that they were excluded.
 
+**Done:** `analysis.gaps` now reports all six checks in the existing gap
+shape. The newest 12 sensor-bearing activities get bounded stream checks;
+flagged activity ids are named, excluded from coach computations, and recorded
+in `coach_brief.provenance.data_quality`. Not yet checked against a live
+athlete response.
+
 ### 5.3 Provenance on every number [now, S]
 
 Each figure in the brief carries where it came from: an Intervals field, or a
 computed value with its rule id. Missing inputs are named, never filled in
 silently. Same inputs give the same output, and a test asserts it.
 
+**Done:** `coach_brief.provenance.values` maps each numeric subtree to its
+Intervals inputs and a versioned rule id. It names missing inputs, and a
+determinism test compares two briefs built from identical inputs.
+
 ### 5.4 Versioning of the coach [now, S]
 
 `engine_version` and `kb_version` in every state response and stored with
 every brief, plan and verdict. When advice changes, the reason is traceable.
+
+**Done:** the same provenance envelope carries `engine_version` and
+`kb_version`; both begin at `1.0.0` and are stored with the brief.
 
 ### 5.5 Coach quality report [next, S]
 
