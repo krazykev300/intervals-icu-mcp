@@ -44,12 +44,16 @@ def reset_http_config(token: Token[ICUConfig | None]) -> None:
     _http_config.reset(token)
 
 
-def extract_link_token(authorization: str, extra_header: str) -> str:
-    """Read Bearer from Authorization, or a raw token from X-Intervals-Link."""
+def extract_link_token(authorization: str, extra_header: str, query_token: str = "") -> str:
+    """Read Bearer from Authorization, a raw X-Intervals-Link, or the `?link=` query value.
+
+    Headers win over the query string. The query form exists for Claude custom
+    connectors that cannot send request headers.
+    """
     auth = authorization.strip()
     if auth.lower().startswith("bearer "):
         return auth[7:].strip()
-    return extra_header.strip()
+    return extra_header.strip() or query_token.strip()
 
 
 def http_auth_required(config: ICUConfig | None = None) -> bool:

@@ -103,8 +103,14 @@ Works on the website and the iOS app for the **same** Anthropic account.
 2. URL: `https://<magicdns-host>/mcp` (or `/intervals-icu/mcp` if you
    Funneled a path — **no `:8443`**)
 3. Authentication: **None**
-4. Request headers: `Authorization` = `Bearer <link_token>`  
-   (`Bearer`, a space, then the token — no quotes.)
+4. Send the link token one of two ways:
+   - **Request headers** (only if your dialog shows that section; it is a
+     beta not every account has): `authorization` = `Bearer <link_token>`
+     (`Bearer`, a space, then the token — no quotes).
+   - **In the URL** (works on every account): append `?link=<link_token>`,
+     e.g. `https://<magicdns-host>/intervals-icu/mcp?link=<link_token>`.
+     Treat that whole URL as a password. The server strips `link` from the
+     query before logging, so it never appears in `journalctl`.
 5. Add, then **enable the connector in that chat’s tools menu**. Adding it
    under Connectors is not enough; the chat must have it turned on.
 
@@ -125,6 +131,8 @@ already occupies a slot if you connected it the same way.
 | Cursor works, Claude.ai/iOS does not | Serve, or Funnel on a non-443 port | Serve is enough for the tailnet. Claude.ai needs Funnel **on 443** |
 | 401 on `POST /mcp` from `curl` without `Authorization` | Expected once a link token is configured | Add the Bearer header on the connector |
 | 401 on `POST /mcp` **with** the header | Wrong token or extra whitespace/quotes | `Bearer` + space + the same value as `INTERVALS_ICU_LINK_TOKEN` |
+| Logs show Anthropic's `POST /mcp` **401**; no Request headers section in the dialog | Your account cannot send static headers | Remove the connector and re-add it with `?link=<link_token>` on the URL |
+| “Couldn't reach” after **Reconnect** though `/mcp` returned 200 | Reconnect restarts Claude's OAuth sign-in, which this server does not offer | Remove and re-add the connector instead of Reconnect |
 | Tools missing in a chat | Connector added but not enabled for that conversation | Enable it in the chat tools menu (website **and** iOS) |
 
 ## Generate and write workouts

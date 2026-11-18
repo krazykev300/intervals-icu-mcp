@@ -21,6 +21,7 @@ breaking; this narrower contract applies from the next release onward.)
 - `analysis.coach_brief` on `icu_get_athlete_state` — server-computed prescription from the methodology tables: phase, intensity distribution, ramp tier from `tsb_tolerance`, next-week load target (`7 x (CTL + 6.51 x ramp)`, recovery-week / taper / post-A rules), today's go / swap / rest call, ordered `next_actions`.
 - Playbook routines with a fixed answer shape for "what should I do today", ride review, week review / plan, and "how am I doing"; methodology gains a session menu by phase and the explicit ramp-tier rule.
 - `icu_get_athlete_state` returns `weekday` and `timezone`.
+- HTTP link token can be passed as `?link=<token>` on the connector URL, for Claude custom connectors that cannot send request headers. The token is stripped from the query before logging.
 
 ### Fixed
 - `icu_get_athlete_state` used the server clock for "today". On a UTC host that is tomorrow every evening in the Americas, which made readiness `unknown` and shifted week boundaries. Today now comes from the athlete's Intervals timezone (cached per athlete; server clock on failure).

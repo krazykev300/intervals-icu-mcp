@@ -38,7 +38,10 @@ When HTTP auth is active, every request must send:
 Authorization: Bearer <link_token>
 ```
 
-or `X-Intervals-Link: <link_token>`.
+or `X-Intervals-Link: <link_token>`, or `?link=<link_token>` on the URL for
+clients that cannot set headers (Claude custom connectors without the Request
+headers beta). Headers win if both are present. The server removes `link`
+from the query string before anything logs it.
 
 The ASGI gate (`http_auth.py`) maps the token to credentials **before** MCP
 runs. Wrong or missing token → **401**. Tool handlers then use that identity’s

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from urllib.parse import parse_qsl, urlencode
 
 from starlette.middleware import Middleware
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -20,7 +21,10 @@ from .identity import (
 _UNAUTHORIZED = json.dumps(
     {
         "error": {
-            "message": "Send Authorization: Bearer <link_token> (or X-Intervals-Link).",
+            "message": (
+                "Send Authorization: Bearer <link_token>, X-Intervals-Link, "
+                "or ?link=<link_token> on the URL."
+            ),
             "type": "auth_error",
         }
     }
@@ -49,7 +53,13 @@ class LinkTokenMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or not http_auth_required():
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        # Always strip ?link= so the secret never reaches logs, even when auth is off.
+        query_token = _pop_query_token(scope)
+        if not http_auth_required():
             await self.app(scope, receive, send)
             return
 
@@ -62,7 +72,7 @@ class LinkTokenMiddleware:
             k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])
         }
         token = extract_link_token(
-            headers.get("authorization", ""), headers.get("x-intervals-link", "")
+            headers.get("authorization", ""), headers.get("x-intervals-link", ""), query_token
         )
         identity = lookup_identity(token)
         if identity is None:
@@ -74,6 +84,31 @@ class LinkTokenMiddleware:
             await self.app(scope, receive, send)
         finally:
             reset_http_config(reset_token)
+
+
+_QUERY_PARAM = "link"
+
+
+def _pop_query_token(scope: Scope) -> str:
+    """Take `link` out of the query string and return its value.
+
+    The scope is mutated in place so uvicorn's access log (which reads the same
+    dict) and everything downstream never see the secret.
+    """
+    raw = scope.get("query_string") or b""
+    if not raw:
+        return ""
+    pairs = parse_qsl(raw.decode("latin-1"), keep_blank_values=True)
+    token = ""
+    kept: list[tuple[str, str]] = []
+    for key, value in pairs:
+        if key == _QUERY_PARAM:
+            token = token or value
+        else:
+            kept.append((key, value))
+    if len(kept) != len(pairs):
+        scope["query_string"] = urlencode(kept).encode("latin-1")
+    return token
 
 
 def starlette_middleware() -> list[Any]:
