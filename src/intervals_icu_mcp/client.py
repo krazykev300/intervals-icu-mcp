@@ -310,6 +310,30 @@ class ICUClient:
         response = await self._request("PUT", f"/activity/{activity_id}", json=activity_data)
         return Activity(**response.json())
 
+    async def create_manual_activity(
+        self,
+        activity_data: dict[str, Any],
+        athlete_id: str | None = None,
+    ) -> Activity:
+        """Create one manual activity (no file), e.g. a gym session."""
+        athlete_id = athlete_id or self.config.intervals_icu_athlete_id
+        response = await self._request(
+            "POST", f"/athlete/{athlete_id}/activities/manual", json=activity_data
+        )
+        return Activity(**response.json())
+
+    async def mark_event_done(
+        self,
+        event_id: int,
+        athlete_id: str | None = None,
+    ) -> Activity:
+        """Create a manual activity matching a planned event, paired to it."""
+        athlete_id = athlete_id or self.config.intervals_icu_athlete_id
+        response = await self._request(
+            "POST", f"/athlete/{athlete_id}/events/{event_id}/mark-done"
+        )
+        return Activity(**response.json())
+
     async def bulk_create_manual_activities(
         self,
         activities: list[dict[str, Any]],

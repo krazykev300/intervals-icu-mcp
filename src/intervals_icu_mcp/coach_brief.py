@@ -208,6 +208,10 @@ def away_days(events: list[Event], today: date) -> list[dict[str, Any]]:
         }
         if event.training_availability:
             item["training_availability"] = event.training_availability
+        if event.max_training_time is not None:
+            item["max_training_seconds"] = event.max_training_time
+        if event.can_train_sports:
+            item["can_train_sports"] = event.can_train_sports
         items.append(item)
     items.sort(key=lambda i: i["start"])
     return items

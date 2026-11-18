@@ -52,6 +52,10 @@ knows how to handle scheduled workouts in the window:
 - `LIMITED` — partial training capacity (German UI: Begrenzt)
 - `UNAVAILABLE` — no training (German UI: Nicht verfügbar)
 
+With `LIMITED`, also set `max_training_seconds` (most training per day) and
+`can_train_sports` (disciplines possible, e.g. `["WeightTraining"]` for a
+hotel gym). Both are read back on the event and in `coach_brief.away`.
+
 ### Fitness chart adjustments
 - `SET_EFTP` — manually set eFTP (estimated FTP) on this date
 - `FITNESS_DAYS` — adjust fitness-days count (German UI: Fitnesstage)

@@ -1,6 +1,7 @@
 """Event/calendar management tools for Intervals.icu MCP server."""
 
 import asyncio
+import uuid
 from datetime import date, datetime
 from typing import Annotated, Any, cast
 
@@ -8,7 +9,7 @@ from fastmcp import Context
 
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
-from ..models import Event
+from ..models import ACTIVITY_DISCIPLINES, Event
 from ..response_builder import ResponseBuilder
 from ..workout_parser import WorkoutLint, lint_workout_description, looks_like_workout_syntax
 
@@ -110,6 +111,154 @@ COMMON_ACTIVITY_TYPES = (
 ACTIVITY_TYPES_HINT = ", ".join(COMMON_ACTIVITY_TYPES) + (
     " (full list: intervals-icu://event-categories)"
 )
+
+# ---- Session layout (backlog 1.1) -------------------------------------------
+# A coach-written session reads the same everywhere: purpose line, steps, a
+# fuelling line, a fallback. Role picks a calendar colour so key sessions stand
+# out, and becomes a `role:<name>` tag the coach can filter on later.
+SESSION_ROLE_COLORS = {
+    "key": "#d32f2f",
+    "support": "#1976d2",
+    "easy": "#388e3c",
+    "strength": "#7b1fa2",
+}
+SESSION_ROLES_HINT = ", ".join(SESSION_ROLE_COLORS)
+FUEL_PREFIX = "Fuel:"
+FALLBACK_PREFIX = "Fallback:"
+COACH_EXTERNAL_ID_PREFIX = "coach-"
+MAX_CARBS_PER_HOUR = 200
+_SPORTS_BY_LOWER = {s.lower(): s for s in ACTIVITY_DISCIPLINES}
+
+
+def _one_line(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _compose_session_description(
+    description: str | None,
+    purpose: str | None,
+    carbs_per_hour: int | None,
+    fallback: str | None,
+) -> str | None:
+    """Lay out purpose / steps / fuel / fallback in the fixed coach order.
+
+    Returns `description` unchanged when no layout field is given. Existing
+    `Fuel:` / `Fallback:` lines and a leading copy of the purpose are dropped
+    first, so passing back a previously composed description does not stack
+    duplicate lines.
+    """
+    if purpose is None and fallback is None and carbs_per_hour is None:
+        return description
+    lines = [
+        ln
+        for ln in (description or "").splitlines()
+        if not ln.strip().startswith((FUEL_PREFIX, FALLBACK_PREFIX))
+    ]
+    body = "\n".join(lines).strip()
+    parts: list[str] = []
+    if purpose and purpose.strip():
+        purpose_line = _one_line(purpose)
+        first, _, rest = body.partition("\n")
+        if first.strip() == purpose_line:
+            body = rest.strip()
+        parts.append(purpose_line)
+    if body:
+        parts.append(body)
+    tail: list[str] = []
+    if carbs_per_hour:
+        tail.append(f"{FUEL_PREFIX} {carbs_per_hour} g carbs per hour.")
+    if fallback and fallback.strip():
+        tail.append(f"{FALLBACK_PREFIX} {_one_line(fallback)}")
+    if tail:
+        parts.append("\n".join(tail))
+    return "\n\n".join(parts)
+
+
+def _session_fields(
+    *,
+    role: str | None,
+    tags: list[str] | None,
+    indoor: bool | None,
+    carbs_per_hour: int | None,
+    external_id: str | None,
+    color: str | None,
+    is_create: bool,
+) -> tuple[dict[str, Any], str | None]:
+    """API fields for the session layout. Returns (fields, error_message).
+
+    On create, a session with a `role` gets a `coach-…` external_id when none is
+    given, so the coach can find the events it wrote.
+    """
+    fields: dict[str, Any] = {}
+    normalized_role: str | None = None
+    if role is not None:
+        normalized_role = role.strip().lower()
+        if normalized_role not in SESSION_ROLE_COLORS:
+            return {}, f"Invalid role. Must be one of: {SESSION_ROLES_HINT}"
+    if carbs_per_hour is not None and not 0 <= carbs_per_hour <= MAX_CARBS_PER_HOUR:
+        return {}, f"carbs_per_hour must be between 0 and {MAX_CARBS_PER_HOUR}."
+
+    if tags is not None or normalized_role:
+        merged: list[str] = []
+        for tag in [*(tags or []), *([f"role:{normalized_role}"] if normalized_role else [])]:
+            clean = str(tag).strip()
+            if clean and clean not in merged:
+                merged.append(clean)
+        fields["tags"] = merged
+    if color is not None:
+        fields["color"] = color
+    elif normalized_role:
+        fields["color"] = SESSION_ROLE_COLORS[normalized_role]
+    if indoor is not None:
+        fields["indoor"] = indoor
+    if carbs_per_hour is not None:
+        fields["carbs_per_hour"] = carbs_per_hour
+    if external_id is not None:
+        fields["external_id"] = external_id
+    elif is_create and normalized_role:
+        fields["external_id"] = f"{COACH_EXTERNAL_ID_PREFIX}{uuid.uuid4().hex[:12]}"
+    return fields, None
+
+
+# ---- Availability (backlog 1.6) ---------------------------------------------
+
+
+def _availability_fields(
+    *,
+    training_availability: str | None,
+    max_training_seconds: int | None,
+    can_train_sports: list[str] | None,
+) -> tuple[dict[str, Any], str | None]:
+    """API fields for native availability on HOLIDAY/SICK/INJURED events."""
+    fields: dict[str, Any] = {}
+    if training_availability is not None:
+        normalized = str(training_availability).upper()
+        if normalized not in VALID_AVAILABILITY:
+            return {}, (
+                "Invalid training_availability. Must be one of: "
+                f"{', '.join(sorted(VALID_AVAILABILITY))}"
+            )
+        fields["training_availability"] = normalized
+    if max_training_seconds is not None:
+        if max_training_seconds < 0:
+            return {}, "max_training_seconds must be 0 or more."
+        fields["max_training_time"] = max_training_seconds
+    if can_train_sports is not None:
+        sports: list[str] = []
+        unknown: list[str] = []
+        for sport in can_train_sports:
+            canonical = _SPORTS_BY_LOWER.get(str(sport).strip().lower())
+            if canonical is None:
+                unknown.append(str(sport))
+            elif canonical not in sports:
+                sports.append(canonical)
+        if unknown:
+            return {}, (
+                f"Unknown sport(s) in can_train_sports: {', '.join(unknown)}. "
+                f"Use activity disciplines: {ACTIVITY_TYPES_HINT}."
+            )
+        fields["can_train_sports"] = sports
+    return fields, None
 
 # Compact, in-context workout-syntax cheat-sheet for the `description` field.
 # Inlined (not only pointed at via the intervals-icu://workout-syntax resource)
@@ -356,6 +505,18 @@ def _event_to_dict(event: Event) -> dict[str, Any]:
         result["training_load"] = event.icu_training_load
     if event.training_availability:
         result["training_availability"] = event.training_availability
+    if event.max_training_time is not None:
+        result["max_training_seconds"] = event.max_training_time
+    if event.can_train_sports:
+        result["can_train_sports"] = event.can_train_sports
+    if event.tags:
+        result["tags"] = event.tags
+    if event.indoor is not None:
+        result["indoor"] = event.indoor
+    if event.carbs_per_hour is not None:
+        result["carbs_per_hour"] = event.carbs_per_hour
+    if event.external_id:
+        result["external_id"] = event.external_id
     if event.color:
         result["color"] = event.color
     if event.show_as_note is not None:
@@ -450,6 +611,31 @@ async def create_event(
         "Training availability: NORMAL, LIMITED, or UNAVAILABLE. Typical for "
         "INJURED/SICK/HOLIDAY blocks.",
     ] = None,
+    max_training_seconds: Annotated[
+        int | None, "Availability: most training time per day in the block, seconds"
+    ] = None,
+    can_train_sports: Annotated[
+        list[str] | None,
+        "Availability: disciplines possible in the block, e.g. ['WeightTraining'] "
+        "for hotel gym only",
+    ] = None,
+    purpose: Annotated[
+        str | None, "Session layout: one line on what the session is for (first line)"
+    ] = None,
+    fallback: Annotated[
+        str | None, "Session layout: what to do instead if it is not going well (last line)"
+    ] = None,
+    carbs_per_hour: Annotated[
+        int | None, "Fuelling in g/h; also written as a 'Fuel:' line in the description"
+    ] = None,
+    role: Annotated[
+        str | None,
+        f"Session role ({SESSION_ROLES_HINT}): adds a role:<x> tag, sets the calendar "
+        "colour, and a coach- external_id",
+    ] = None,
+    tags: Annotated[list[str] | None, "Tags, e.g. stimulus ['threshold']"] = None,
+    indoor: Annotated[bool | None, "True when the session is meant for the trainer"] = None,
+    external_id: Annotated[str | None, "Your own id for finding this event later"] = None,
     color: Annotated[str | None, "Custom display color (hex string)"] = None,
     show_as_note: Annotated[bool | None, "Show event as a note marker on the fitness chart"] = None,
     not_on_fitness_chart: Annotated[
@@ -488,16 +674,28 @@ async def create_event(
             error_type="validation_error",
         )
 
-    if training_availability is not None:
-        normalized_availability = training_availability.upper()
-        if normalized_availability not in VALID_AVAILABILITY:
-            return ResponseBuilder.build_error_response(
-                f"Invalid training_availability. Must be one of: "
-                f"{', '.join(sorted(VALID_AVAILABILITY))}",
-                error_type="validation_error",
-            )
-    else:
-        normalized_availability = None
+    availability, availability_error = _availability_fields(
+        training_availability=training_availability,
+        max_training_seconds=max_training_seconds,
+        can_train_sports=can_train_sports,
+    )
+    if availability_error:
+        return ResponseBuilder.build_error_response(
+            availability_error, error_type="validation_error"
+        )
+
+    session, session_error = _session_fields(
+        role=role,
+        tags=tags,
+        indoor=indoor,
+        carbs_per_hour=carbs_per_hour,
+        external_id=external_id,
+        color=color,
+        is_create=True,
+    )
+    if session_error:
+        return ResponseBuilder.build_error_response(session_error, error_type="validation_error")
+    description = _compose_session_description(description, purpose, carbs_per_hour, fallback)
 
     try:
         start_date = _normalize_date(start_date)
@@ -542,10 +740,8 @@ async def create_event(
             event_data["icu_training_load"] = training_load
         if end_date is not None:
             event_data["end_date_local"] = end_date
-        if normalized_availability is not None:
-            event_data["training_availability"] = normalized_availability
-        if color is not None:
-            event_data["color"] = color
+        event_data.update(availability)
+        event_data.update(session)
         if show_as_note is not None:
             event_data["show_as_note"] = show_as_note
         if not_on_fitness_chart is not None:
@@ -588,6 +784,27 @@ async def update_event(
     training_availability: Annotated[
         str | None, "Updated training availability: NORMAL, LIMITED, or UNAVAILABLE"
     ] = None,
+    max_training_seconds: Annotated[
+        int | None, "Availability: most training time per day in the block, seconds"
+    ] = None,
+    can_train_sports: Annotated[
+        list[str] | None, "Availability: disciplines possible in the block"
+    ] = None,
+    purpose: Annotated[
+        str | None, "Session layout first line; needs `description` in the same call"
+    ] = None,
+    fallback: Annotated[
+        str | None, "Session layout last line; needs `description` in the same call"
+    ] = None,
+    carbs_per_hour: Annotated[
+        int | None, "Fuelling in g/h; rewrites the 'Fuel:' line when description is passed"
+    ] = None,
+    role: Annotated[
+        str | None, f"Session role ({SESSION_ROLES_HINT}): role:<x> tag and colour"
+    ] = None,
+    tags: Annotated[list[str] | None, "Replaces the event's tags"] = None,
+    indoor: Annotated[bool | None, "True when the session is meant for the trainer"] = None,
+    external_id: Annotated[str | None, "Your own id for finding this event later"] = None,
     color: Annotated[str | None, "Updated color (hex string)"] = None,
     show_as_note: Annotated[bool | None, "Show event as a note on the fitness chart"] = None,
     not_on_fitness_chart: Annotated[bool | None, "Hide event from the fitness chart"] = None,
@@ -622,16 +839,37 @@ async def update_event(
                 error_type="validation_error",
             )
 
-    if training_availability is not None:
-        normalized_availability = training_availability.upper()
-        if normalized_availability not in VALID_AVAILABILITY:
-            return ResponseBuilder.build_error_response(
-                f"Invalid training_availability. Must be one of: "
-                f"{', '.join(sorted(VALID_AVAILABILITY))}",
-                error_type="validation_error",
-            )
-    else:
-        normalized_availability = None
+    availability, availability_error = _availability_fields(
+        training_availability=training_availability,
+        max_training_seconds=max_training_seconds,
+        can_train_sports=can_train_sports,
+    )
+    if availability_error:
+        return ResponseBuilder.build_error_response(
+            availability_error, error_type="validation_error"
+        )
+
+    session, session_error = _session_fields(
+        role=role,
+        tags=tags,
+        indoor=indoor,
+        carbs_per_hour=carbs_per_hour,
+        external_id=external_id,
+        color=color,
+        is_create=False,
+    )
+    if session_error:
+        return ResponseBuilder.build_error_response(session_error, error_type="validation_error")
+    if description is None and (purpose is not None or fallback is not None):
+        return ResponseBuilder.build_error_response(
+            "purpose and fallback rewrite the description, so pass the full description "
+            "(the workout steps) in the same call. Read it with icu_get_event first.",
+            error_type="validation_error",
+        )
+    if description is not None:
+        description = _compose_session_description(
+            description, purpose, carbs_per_hour, fallback
+        )
 
     normalized_category: str | None = None
     if category is not None:
@@ -670,10 +908,8 @@ async def update_event(
             event_data["icu_training_load"] = training_load
         if end_date is not None:
             event_data["end_date_local"] = end_date
-        if normalized_availability is not None:
-            event_data["training_availability"] = normalized_availability
-        if color is not None:
-            event_data["color"] = color
+        event_data.update(availability)
+        event_data.update(session)
         if show_as_note is not None:
             event_data["show_as_note"] = show_as_note
         if not_on_fitness_chart is not None:
@@ -774,8 +1010,10 @@ async def bulk_create_events(
         "call. Required per event: start_date_local, name, category. Optional: "
         "description, event_type (activity discipline Ride/Run/Swim/…), "
         "duration_seconds, distance_meters, training_load, "
-        "end_date_local, training_availability, color, "
-        "show_as_note, not_on_fitness_chart, show_on_ctl_line. See "
+        "end_date_local, training_availability, max_training_seconds, "
+        "can_train_sports, purpose, fallback, carbs_per_hour, role, tags, indoor, "
+        "external_id, color, show_as_note, not_on_fitness_chart, show_on_ctl_line "
+        "(same meaning as icu_create_event). See "
         "intervals-icu://event-categories for the category enum. " + WORKOUT_SYNTAX_HINT,
     ],
     athlete_id: Annotated[str | None, "Athlete ID (for coaches managing multiple athletes)"] = None,
@@ -876,21 +1114,40 @@ async def bulk_create_events(
                         error_type="validation_error",
                     )
 
-            if (
-                "training_availability" in event_data
-                and event_data["training_availability"] is not None
-            ):
-                availability = str(event_data["training_availability"]).upper()
-                if availability not in VALID_AVAILABILITY:
-                    return ResponseBuilder.build_error_response(
-                        f"Event {i}: Invalid training_availability. Must be one of: "
-                        f"{', '.join(sorted(VALID_AVAILABILITY))}",
-                        error_type="validation_error",
-                    )
-                event_data["training_availability"] = availability
+            availability, availability_error = _availability_fields(
+                training_availability=event_data.pop("training_availability", None),
+                max_training_seconds=event_data.pop("max_training_seconds", None),
+                can_train_sports=event_data.pop("can_train_sports", None),
+            )
+            if availability_error:
+                return ResponseBuilder.build_error_response(
+                    f"Event {i}: {availability_error}", error_type="validation_error"
+                )
+            event_data.update(availability)
+
+            carbs = event_data.pop("carbs_per_hour", None)
+            session, session_error = _session_fields(
+                role=event_data.pop("role", None),
+                tags=event_data.pop("tags", None),
+                indoor=event_data.pop("indoor", None),
+                carbs_per_hour=carbs,
+                external_id=event_data.pop("external_id", None),
+                color=event_data.pop("color", None),
+                is_create=True,
+            )
+            if session_error:
+                return ResponseBuilder.build_error_response(
+                    f"Event {i}: {session_error}", error_type="validation_error"
+                )
+            event_data.update(session)
 
             desc_raw = event_data.get("description")
             desc = desc_raw if isinstance(desc_raw, str) else None
+            desc = _compose_session_description(
+                desc, event_data.pop("purpose", None), carbs, event_data.pop("fallback", None)
+            )
+            if desc is not None:
+                event_data["description"] = desc
             lint = _lint_description(desc)
             if lint is not None:
                 if lint.errors:
@@ -1165,6 +1422,150 @@ async def apply_training_plan(
                 data=response,
                 query_type="apply_training_plan",
                 metadata={"message": f"Successfully applied training plan folder {folder_id}"},
+            )
+
+    except ICUAPIError as e:
+        return ResponseBuilder.build_error_response(e.message, error_type="api_error")
+    except Exception as e:
+        return ResponseBuilder.build_error_response(
+            f"Unexpected error: {str(e)}", error_type="internal_error"
+        )
+
+
+# ---- Logging what no device records (backlog 1.9) ---------------------------
+
+DEFAULT_LOGGED_TYPE = "WeightTraining"
+
+
+def _logged_session_to_dict(activity: Any) -> dict[str, Any]:
+    """Compact echo of a logged manual activity."""
+    result: dict[str, Any] = {
+        "activity_id": activity.id,
+        "start_date": activity.start_date_local.isoformat(),
+        "name": activity.name,
+        "type": activity.type,
+    }
+    if activity.moving_time:
+        result["duration_seconds"] = activity.moving_time
+    if activity.perceived_exertion is not None:
+        result["rpe"] = activity.perceived_exertion
+    if activity.kg_lifted:
+        result["kg_lifted"] = activity.kg_lifted
+    if activity.icu_training_load is not None:
+        result["training_load"] = activity.icu_training_load
+    if activity.paired_event_id:
+        result["paired_event_id"] = activity.paired_event_id
+    if not activity.icu_training_load:
+        result["training_load_hint"] = (
+            "Intervals did not compute a load for this session. Pass training_load "
+            "to set one, or add an RPE so the session counts in load."
+        )
+    return result
+
+
+async def log_session(
+    duration_seconds: Annotated[
+        int | None, "How long the session took, seconds. Required without event_id"
+    ] = None,
+    rpe: Annotated[int | None, "Session RPE 1-10 (drives the load when no HR/power)"] = None,
+    event_id: Annotated[
+        int | None,
+        "Planned event this session completes; pairs the activity to it so it counts "
+        "in compliance. Find it with icu_get_calendar_events.",
+    ] = None,
+    start_date: Annotated[
+        str | None,
+        "YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS. Required without event_id; with "
+        "event_id the planned date is used",
+    ] = None,
+    event_type: Annotated[
+        str, f"Activity discipline, default {DEFAULT_LOGGED_TYPE}. {ACTIVITY_TYPES_HINT}"
+    ] = DEFAULT_LOGGED_TYPE,
+    name: Annotated[str | None, "Activity name (default: the planned event's name)"] = None,
+    kg_lifted: Annotated[float | None, "Total kg lifted, when the athlete gives it"] = None,
+    notes: Annotated[str | None, "What was done (sets, moves), stored as description"] = None,
+    training_load: Annotated[int | None, "Override the computed training load"] = None,
+    athlete_id: Annotated[str | None, "Athlete ID (for coaches managing multiple athletes)"] = None,
+    ctx: Context | None = None,
+) -> str:
+    """LOG a session no device recorded (gym, yoga, a ride without a head unit).
+
+    "Did the gym session, 50 minutes, RPE 7" → a manual activity with that
+    duration and RPE. With `event_id` it is paired to the planned event
+    (mark-done), so compliance and load include it. Not for editing activities
+    that came from a device.
+    """
+    assert ctx is not None
+    config: ICUConfig = await ctx.get_state("config")
+
+    if rpe is not None and not 1 <= rpe <= 10:
+        return ResponseBuilder.build_error_response(
+            "rpe must be between 1 and 10.", error_type="validation_error"
+        )
+    if duration_seconds is not None and duration_seconds <= 0:
+        return ResponseBuilder.build_error_response(
+            "duration_seconds must be positive.", error_type="validation_error"
+        )
+    if kg_lifted is not None and kg_lifted < 0:
+        return ResponseBuilder.build_error_response(
+            "kg_lifted must be 0 or more.", error_type="validation_error"
+        )
+    if event_id is None and (start_date is None or duration_seconds is None):
+        return ResponseBuilder.build_error_response(
+            "Without event_id, pass start_date and duration_seconds. To complete a "
+            "planned session, pass its event_id instead.",
+            error_type="validation_error",
+        )
+    normalized_start: str | None = None
+    if start_date is not None:
+        try:
+            normalized_start = _normalize_date(start_date)
+        except ValueError:
+            return ResponseBuilder.build_error_response(
+                "Invalid date format. Please use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS format.",
+                error_type="validation_error",
+            )
+
+    fields: dict[str, Any] = {}
+    if duration_seconds is not None:
+        fields["moving_time"] = duration_seconds
+        fields["elapsed_time"] = duration_seconds
+    if rpe is not None:
+        fields["icu_rpe"] = rpe
+    if kg_lifted is not None:
+        fields["kg_lifted"] = kg_lifted
+    if notes:
+        fields["description"] = notes
+    if training_load is not None:
+        fields["icu_training_load"] = training_load
+    if name:
+        fields["name"] = name
+
+    try:
+        async with ICUClient(config) as client:
+            if event_id is not None:
+                activity = await client.mark_event_done(event_id, athlete_id=athlete_id)
+                if normalized_start is not None:
+                    fields["start_date_local"] = normalized_start
+                if fields:
+                    activity = await client.update_activity(activity.id, fields)
+                if activity.paired_event_id is None:
+                    activity.paired_event_id = event_id
+                message = f"Logged session and marked event {event_id} done"
+            else:
+                payload: dict[str, Any] = {
+                    "start_date_local": normalized_start,
+                    "type": event_type,
+                    "name": name or ("Strength" if event_type == DEFAULT_LOGGED_TYPE else event_type),
+                    **fields,
+                }
+                activity = await client.create_manual_activity(payload, athlete_id=athlete_id)
+                message = "Logged session as a manual activity"
+
+            return ResponseBuilder.build_response(
+                data=_logged_session_to_dict(activity),
+                query_type="log_session",
+                metadata={"message": message},
             )
 
     except ICUAPIError as e:

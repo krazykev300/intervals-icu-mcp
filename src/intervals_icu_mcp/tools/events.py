@@ -109,6 +109,12 @@ async def get_calendar_events(
                     event_item["end_date"] = event.end_date_local
                 if event.training_availability:
                     event_item["training_availability"] = event.training_availability
+                if event.max_training_time is not None:
+                    event_item["max_training_seconds"] = event.max_training_time
+                if event.can_train_sports:
+                    event_item["can_train_sports"] = event.can_train_sports
+                if event.tags:
+                    event_item["tags"] = event.tags
 
                 # Description
                 if event.description:
@@ -317,6 +323,16 @@ async def get_event(
                 event_data["end_date"] = event.end_date_local
             if event.training_availability:
                 event_data["training_availability"] = event.training_availability
+            if event.max_training_time is not None:
+                event_data["max_training_seconds"] = event.max_training_time
+            if event.can_train_sports:
+                event_data["can_train_sports"] = event.can_train_sports
+            if event.tags:
+                event_data["tags"] = event.tags
+            if event.indoor is not None:
+                event_data["indoor"] = event.indoor
+            if event.carbs_per_hour is not None:
+                event_data["carbs_per_hour"] = event.carbs_per_hour
 
             # Display flags
             if event.show_as_note is not None:

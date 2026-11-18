@@ -27,6 +27,9 @@ breaking; this narrower contract applies from the next release onward.)
 - `coach_brief.flags` (at most two, ranked: B/C race within 14 days, recovery week due, load-target warning, FTP raise/lower, empty subjective wellness) and `flags_more` for "how am I doing".
 - `coach_brief.away` — HOLIDAY / SICK / INJURED events in the next 14 days.
 - `coach_brief.phase.focus` — an active NOTE named `Focus: …` (to its end date, or 120 days without one) stands in for an A-race: no repeat race question and no 90-day `calendar.goal_events` gap. Season (365-day) asks still need an A-date.
+- Session layout on `icu_create_event`, `icu_update_event` and `icu_bulk_create_events`: `purpose`, `fallback` and `carbs_per_hour` are composed into the description as purpose line / steps / `Fuel:` / `Fallback:`; `role` (key, support, easy, strength) adds a `role:` tag and calendar colour and, on create, a `coach-…` `external_id`; `tags`, `indoor`, `external_id` pass through. Events echo them back.
+- Native availability on HOLIDAY / SICK / INJURED events: `max_training_seconds` (API `max_training_time`) and `can_train_sports` on the write tools, and in calendar reads, `icu_get_event` and `coach_brief.away`.
+- `icu_log_session` (coaching profile) — logs a session no device recorded as a manual activity with duration, RPE and `kg_lifted`; with `event_id` it marks the planned event done so it counts in compliance and load. Coaching profile goes 35 → 36 tools (full 62 → 63 in safe mode).
 
 ### Fixed
 - `icu_get_pace_curves` read the distance-based pace curve as durations, so peak efforts came back empty. Peaks are now standard distances (400 m through the marathon), and a curve whose arrays are null returns the empty result.
