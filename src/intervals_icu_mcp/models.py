@@ -298,6 +298,9 @@ class Activity(ActivitySummary):
         validation_alias=AliasChoices("icu_rpe", "perceived_exertion"),
     )
     compliance: float | None = None
+    kg_lifted: float | None = None
+    session_rpe: int | None = None
+    paired_event_id: int | None = None
     avg_lr_balance: float | None = None
     commute: bool | None = None
     trainer: bool | None = None
@@ -449,6 +452,10 @@ class Event(BaseModel):
     joules_above_ftp: int | None = Field(None, alias="joules_above_ftp")
     color: str | None = None
     training_availability: str | None = None
+    max_training_time: int | None = None
+    can_train_sports: list[str] | None = None
+    indoor: bool | None = None
+    carbs_per_hour: int | None = None
     show_as_note: bool | None = None
     not_on_fitness_chart: bool | None = None
     show_on_ctl_line: bool | None = None

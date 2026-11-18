@@ -82,6 +82,7 @@ from .tools.event_management import (
     create_event,
     delete_event,
     duplicate_events,
+    log_session,
     preview_workout,
     update_event,
 )
@@ -487,6 +488,15 @@ mcp.tool(
         "openWorldHint": True,
     },
 )(duplicate_events)
+mcp.tool(
+    name="icu_log_session",
+    annotations={
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": True,
+    },
+)(log_session)
 mcp.tool(
     name="icu_apply_training_plan",
     annotations={

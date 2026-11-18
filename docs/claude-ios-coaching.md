@@ -175,7 +175,7 @@ appointments.
 
 ## Tools this profile actually has
 
-Coaching profile (35 tools): calendar CRUD (including bulk + duplicate),
+Coaching profile (36 tools): calendar CRUD (including bulk + duplicate),
 `icu_get_athlete_state`, fitness summary/chart, ATP **read**, sport settings
 **read**, power/HR/pace curves, wellness, activities + streams/histograms,
 workout library.

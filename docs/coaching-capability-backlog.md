@@ -62,6 +62,8 @@ Every coach-written workout carries, in a fixed layout:
   the calendar, and `external_id` so the coach can find its own events.
 - `indoor` when the session is meant for the trainer.
 
+**Done:** `purpose`, `fallback`, `carbs_per_hour`, `role`, `tags`, `indoor`, `external_id` on the event write tools; the playbook asks for them on every coach-written WORKOUT.
+
 ### 1.2 The weekly note [now, S]
 
 A `NOTE` event on Monday, shown at the top of the week in the Intervals
@@ -112,6 +114,8 @@ and `can_train_sports`. The coach should read these and write them when the
 athlete says "I'm travelling Thursday to Sunday, hotel gym only". The standing
 weekly template stays in the profile.
 
+**Done:** `max_training_seconds` and `can_train_sports` on the write tools, read back on events and in `coach_brief.away`. The seconds unit follows the other duration fields and is not yet confirmed against a live event.
+
 ### 1.7 Illness and injury as events [now, S]
 
 `SICK` and `INJURED` events start the matching protocol: sessions inside the
@@ -133,6 +137,8 @@ which Intervals can share between athletes.
 the planned event (`mark-done` or the manual-activity endpoint), with session
 RPE load and `kg_lifted` when given. Strength then counts in compliance and
 load.
+
+**Done:** `icu_log_session` (mark-done with `event_id`, else the manual-activity endpoint).
 
 ### 1.10 Threshold and zone updates [next, S]
 

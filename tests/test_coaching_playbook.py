@@ -15,7 +15,7 @@ class TestCoachingPlaybook:
             "icu_create_event",
             "RACE_A",
             "icu_bulk_create_events",
-            "event_type Other",
+            "event_type WeightTraining",
             "icu_duplicate_events",
             "icu_get_athlete_state",
             "horizon_days=365",
@@ -38,5 +38,19 @@ class TestCoachingPlaybook:
             "HOLIDAY event in the same calendar offer",
             "coach_brief.phase.focus",
             "icu_update_event",
+        ):
+            assert needle in COACHING_PLAYBOOK
+
+    def test_playbook_session_layout_availability_and_logging(self):
+        for needle in (
+            "Session layout",
+            "`purpose`",
+            "`fallback`",
+            "`carbs_per_hour`",
+            "`role`",
+            "`indoor`",
+            "`max_training_seconds`",
+            "`can_train_sports`",
+            "icu_log_session",
         ):
             assert needle in COACHING_PLAYBOOK
