@@ -7,8 +7,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Owner/repo of whichever repository runs this (upstream or a fork), so each
-  # pushes to its own GHCR namespace. metadata-action lowercases it for GHCR.
+  # Owner/repo of the repository running this workflow, so each copy pushes to
+  # its own GHCR namespace. metadata-action lowercases it for GHCR.
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
