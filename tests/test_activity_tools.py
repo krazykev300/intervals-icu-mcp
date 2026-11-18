@@ -398,7 +398,9 @@ class TestActivityTools:
         assert nutrition["carbs_ingested_g"] == 0  # zero is meaningful, must be preserved
         assert "carbs_used_g" not in nutrition
 
-    async def test_get_activity_details_no_subjective_no_scale_metadata(self, mock_config, respx_mock):
+    async def test_get_activity_details_no_subjective_no_scale_metadata(
+        self, mock_config, respx_mock
+    ):
         """When feel/RPE are absent, subjective_scales metadata is also absent."""
         mock_ctx = MagicMock()
         mock_ctx.get_state = AsyncMock(return_value=mock_config)

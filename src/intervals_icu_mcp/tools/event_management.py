@@ -115,8 +115,9 @@ WORKOUT_SYNTAX_HINT = (
     "Add cadence to any step: '- 3m Z2 90rpm'. "
     "No target: '- 20m free'. Repeats: 'Nx' on the header, steps on the very next "
     "line — e.g. 'Main 5x' then immediately '- 3m 110%' / '- 3m 50%'. A blank line "
-    "BETWEEN header and steps makes Intervals.icu ignore the repeat (runs 1x); "
-    "blank lines go before the header and after the last step, never between. "
+    "BETWEEN the Nx header and its first step makes Intervals.icu ignore the repeat "
+    "(runs 1x). Blank lines BETWEEN sections are required: after the last step of "
+    "one block, then the next header. Never put a blank line inside the repeat."
     "Duration ranges ('3-4h', '15-20m') are rejected — pick one value. "
     "Dry-run with icu_preview_workout before writing. Ramps: '- 10m ramp "
     "50-70%'. Rest: append 'Ns rest' "
@@ -396,6 +397,8 @@ async def preview_workout(
     }
     if lint.warnings:
         data["warnings"] = lint.warnings
+        if any("ignores the repeat" in warning for warning in lint.warnings):
+            data["intervals_as_written"] = "blank_line_after_Nx_header_runs_1x"
     if lint.rewritten:
         data["normalized_description"] = lint.normalized_description
     return ResponseBuilder.build_response(data, query_type="preview_workout")
@@ -559,6 +562,11 @@ async def update_event(
     description: Annotated[str | None, "Updated description. " + WORKOUT_SYNTAX_HINT] = None,
     start_date: Annotated[str | None, "Updated start date (YYYY-MM-DD)"] = None,
     event_type: Annotated[str | None, "Updated activity type"] = None,
+    category: Annotated[
+        str | None,
+        "Updated event category enum. Common: WORKOUT, NOTE, RACE_A/B/C, TARGET. "
+        "See intervals-icu://event-categories. Legacy RACE→RACE_A, GOAL→TARGET.",
+    ] = None,
     duration_seconds: Annotated[int | None, "Updated duration in seconds"] = None,
     distance_meters: Annotated[float | None, "Updated distance in meters"] = None,
     training_load: Annotated[int | None, "Updated training load"] = None,
@@ -611,6 +619,15 @@ async def update_event(
     else:
         normalized_availability = None
 
+    normalized_category: str | None = None
+    if category is not None:
+        normalized_category, category_error = _normalize_category(category)
+        if category_error or normalized_category is None:
+            return ResponseBuilder.build_error_response(
+                category_error or "Invalid category",
+                error_type="validation_error",
+            )
+
     lint = _lint_description(description)
     if lint is not None:
         lint_error = _lint_error_response(lint)
@@ -629,6 +646,8 @@ async def update_event(
             event_data["start_date_local"] = start_date
         if event_type is not None:
             event_data["type"] = event_type
+        if normalized_category is not None:
+            event_data["category"] = normalized_category
         if duration_seconds is not None:
             event_data["moving_time"] = duration_seconds
         if distance_meters is not None:

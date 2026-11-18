@@ -17,8 +17,40 @@ breaking; this narrower contract applies from the next release onward.)
 ## [Unreleased]
 
 ### Added
+- `icu_get_coaching_guide` (coaching profile) — playbook, methodology, workout syntax and event categories as a tool result. Chat clients (Claude.ai, iOS) do not let the model open MCP resources itself, so the guide was unreachable there; server `instructions` and the playbook now point at the tool.
+- `analysis.coach_brief` on `icu_get_athlete_state` — server-computed prescription from the methodology tables: phase, intensity distribution, ramp tier from `tsb_tolerance`, next-week load target (`7 x (CTL + 6.51 x ramp)`, recovery-week / taper / post-A rules), today's go / swap / rest call, ordered `next_actions`.
+- Playbook routines with a fixed answer shape for "what should I do today", ride review, week review / plan, and "how am I doing"; methodology gains a session menu by phase and the explicit ramp-tier rule.
+- `icu_get_athlete_state` returns `weekday` and `timezone`.
+- HTTP link token can be passed as `?link=<token>` on the connector URL, for Claude custom connectors that cannot send request headers. The token is stripped from the query before logging.
 
-- Friend-facing MCP user setup guide (`docs/user-setup.md`): own Intervals.icu credentials, the shared coaching prompts, where personal context lives (fetch-every-prompt / chat memory / a local notes file), and what must stay out of a public git repo.
+### Fixed
+- `icu_get_athlete_state` used the server clock for "today". On a UTC host that is tomorrow every evening in the Americas, which made readiness `unknown` and shifted week boundaries. Today now comes from the athlete's Intervals timezone (cached per athlete; server clock on failure).
+- Intervals sends `icu_intensity` as a percent (81.0); the intensity bins and `calendar.events[].intensity_factor` assumed a fraction, so `compliance.by_session_type` never populated.
+- `60m_to_ftp_gap` never fired because Intervals labels the curve windows 43/91/366 days, not 42/90/365.
+- A long-past `RACE_A` no longer anchors `phase_context` (`source` is now `unspecified` with `last_a_race`); an A-race in the last 14 days wins over a far-future one so the phase is `recovery`.
+
+### Changed
+- `icu_get_athlete_state` payload trimmed: `fitness_form.series` to the last 12 weeks and `compliance.weekly` to the last 8 weeks that had planned sessions.
+- `icu_get_athlete_state` — composite coaching read (fitness trajectory, empirical `tsb_tolerance`, power-curve keys, races, observed load, derived `phase_context`, ICU-only gaps). Optional `include=durability` for kJ-binned 5m/20m power. Coaching profile 32 → 34 with `DELETE_MODE=safe` (also adds ATP read). Full catalog 60 / 63 / 57 → 61 / 64 / 58.
+- `intervals-icu://methodology` resource — versioned distribution / taper / ramp / derived-phase / readiness parameters. Per-athlete overrides stay in a goals store.
+- `icu_get_annual_training_plan` on the `coaching` profile (read-only ATP).
+- Optional `category` on `icu_update_event` (no more delete-and-recreate to change race tier).
+- `INTERVALS_ICU_TOOL_PROFILE` (`coaching` / `full`). `coaching` is the daily training surface (calendar CRUD, fitness, curves, wellness, activities, streams/histograms, workout library — 32 tools with `DELETE_MODE=safe` before this change). `full` is the upstream catalog. The allow-list lives in `tool_profile.py`; new upstream tools stay out of coaching until opted in.
+- MCP prompt `coach_with_goals` — coaching skill (race → fitness → calendar). Same body as resource `intervals-icu://coaching-playbook` and FastMCP server `instructions`. Overlay for a separate goals MCP: WHY there, dates here. Lives in `prompts/`.
+- Generic self-host files: `docs/self-host.md`, `deploy/intervals-icu.service.example`, `scripts/host-pull.sh`, gitignored `deploy/host.local/` overlay for User/paths/hostname.
+- Optional host deploy on push to `main` or `feat/coaching-profile-self-host`: `.github/workflows/deploy-host.yml` runs `scripts/host-pull.sh` on a self-hosted runner labeled `intervals-icu-host` after tests, only when repository variable `ENABLE_HOST_PULL=true`. Off by default so other forks are unchanged. `scripts/install-host-runner.sh` and `deploy/host-pull.sudoers.example` are the one-time host setup; non-interactive `host-pull.sh` uses `sudo -n`.
+- HTTP **link tokens**: `Authorization: Bearer` (or `X-Intervals-Link`) selects an Intervals.icu identity before MCP runs. `INTERVALS_ICU_HTTP_AUTH=auto` (default) turns the gate on only when a token or identities file is configured. Identities JSON: `docs/identities.md`. Claude.ai/iOS Funnel walkthrough (Serve vs Funnel, Tailscale 1.52+ CLI, connector UI, troubleshooting): `docs/claude-connector.md`. OAuth discovery paths (`/.well-known/…`, `/register`) are exempt so Claude custom connectors can detect “no OAuth” instead of treating a 401 as a dead server.
+- `icu_preview_workout` plus a local workout-syntax linter on create/update/bulk: duration ranges error instead of a silent short total; blank line after an `Nx` header is collapsed with a `warnings` array. In this fork the preview tool is in the `coaching` profile (32 tools with `DELETE_MODE=safe`). Full catalog 60 / 63 / 57 with delete mode.
+
+### Changed
+- Coaching playbook: year-out sufficiency (search calendar 365d, then goals MCP / Drive / GCal, then ask). Call `icu_get_athlete_state` before planning. Missing ATP is not a blocker — derive phase from nearest `RACE_A`.
+- `icu_get_fitness_summary` analysis now includes a `caveat` that TSB/ramp bands are generic; existing recommendation keys are unchanged. The caveat names the registered tool `icu_get_athlete_state` (not a resource).
+- Workout-syntax resource and create/update cheat-sheet: blank lines *between sections* (after the last step) are required; a blank line *inside* a repeat (between the `Nx` header and its first step) still makes Intervals.icu run 1x. `icu_preview_workout` sets `intervals_as_written` when that trap is present.
+- **BREAKING:** default tool registration is `coaching` (32 tools), not the previous safe-mode catalog (59). Set `INTERVALS_ICU_TOOL_PROFILE=full` to restore the upstream set. Changing which tools register by default is a major under the contract above.
+
+### Fixed
+- `icu_get_athlete_state` readiness: a day with CTL/RHR but no HRV and no sleep is `unknown` (with `gating: do_not_treat_as_green`), not a missing `readiness_state` that models treat as green. Scores today's row only — yesterday's complete overnight is not reused. `days_missing_hrv_and_sleep` lists the hole.
+
 
 ## [5.0.0] — 2026-08-31
 

@@ -135,9 +135,7 @@ class TestGetPowerCurves:
         mock_ctx = MagicMock()
         mock_ctx.get_state = AsyncMock(return_value=mock_config)
 
-        respx_mock.get("/athlete/i123456/power-curves").mock(
-            return_value=Response(401, json={})
-        )
+        respx_mock.get("/athlete/i123456/power-curves").mock(return_value=Response(401, json={}))
 
         result = await get_power_curves(ctx=mock_ctx)
         response = json.loads(result)

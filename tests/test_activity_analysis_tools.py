@@ -243,18 +243,14 @@ class TestGetBestEfforts:
             )
         )
 
-        result = await get_best_efforts(
-            activity_id="a1", duration=1200, ctx=_make_ctx(mock_config)
-        )
+        result = await get_best_efforts(activity_id="a1", duration=1200, ctx=_make_ctx(mock_config))
         response = json.loads(result)
         assert response["data"]["count"] == 0
 
     async def test_api_error(self, mock_config, respx_mock):
         respx_mock.get("/activity/a1/best-efforts").mock(return_value=Response(401, json={}))
 
-        result = await get_best_efforts(
-            activity_id="a1", duration=1200, ctx=_make_ctx(mock_config)
-        )
+        result = await get_best_efforts(activity_id="a1", duration=1200, ctx=_make_ctx(mock_config))
         response = json.loads(result)
         assert response["error"]["type"] == "api_error"
 

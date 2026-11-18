@@ -20,7 +20,7 @@ and the README).
 Before starting:
 
 - Verify the Intervals.icu API endpoint exists in [`openapi-spec.json`](../../../openapi-spec.json) — check the request/response schema, enum values, and required fields.
-- Decide the **tier** the tool belongs to: `core` (daily-use, exposed by default) or `full` (specialty/coach, opt-in via `INTERVALS_ICU_TOOLSET=full`). When tier work lands per [issue #27](../../../docs/tools.md), tag accordingly.
+- Decide the **tier** the tool belongs to: `core` (daily-use, exposed by default) or `full` (specialty/coach, opt-in via `INTERVALS_ICU_TOOLSET=full`). When tier work lands per [issue #27](../../../docs/tools.md), tag accordingly. **This fork:** if the tool belongs on the daily coaching surface, also add its `icu_*` name to `COACHING_TOOLS` in [`tool_profile.py`](../../../src/intervals_icu_mcp/tool_profile.py); otherwise it only appears when `INTERVALS_ICU_TOOL_PROFILE=full`.
 - Check for **confusable names** in the existing tool surface. If your tool name shares a prefix or noun with another tool (e.g. `get_activity_*`, `*_event`, `create_*`), the opening sentence of the description MUST lead with the distinguishing access pattern, not the shared concept.
 - Decide whether a new API client method is needed in `client.py`.
 

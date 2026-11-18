@@ -80,7 +80,7 @@ Show me my activities from the last 7 days.
 ```
 
 You should get a list from *your* Intervals.icu account. If the client offers
-MCP prompts, run **`verify-setup`** — it walks the core tools (profile, fitness,
+MCP prompts, run **`verify_setup`** — it walks the core tools (profile, fitness,
 activities, calendar, wellness, a create/update/delete note) and prints a
 pass/fail table.
 
@@ -100,16 +100,27 @@ do not have to name them.
 "What's my 20-minute power and FTP?"
 ```
 
-Built-in prompts (if your client lists them): `analyze-recent-training`,
-`recovery-check`, `plan-training-week`, `generate-workout`,
-`training-plan-review`, `performance-analysis`, `activity-deep-dive`.
+For training questions the server steers the model to read your current state
+first (`icu_get_athlete_state`), then follow its coaching guide: race →
+fitness → calendar. It proposes changes in chat and writes them to your
+Intervals.icu calendar only when you say yes.
+
+Built-in prompts (if your client lists them): `coach_with_goals`,
+`analyze_recent_training`, `recovery_check`, `plan_training_week`,
+`generate_workout`, `training_plan_review`, `performance_analysis`,
+`activity_deep_dive`, `verify_setup`.
 
 More examples: [examples.md](examples.md). Full tool list: [tools.md](tools.md).
 
-Writes (create/update/delete events or activities) go **straight to
-Intervals.icu**. Glance at the Intervals calendar or activity list before you
-ride. Destructive tools default to `INTERVALS_ICU_DELETE_MODE=safe` (future
-events only) — see [tools.md](tools.md#delete-safety-mode).
+The default tool profile is `coaching` (calendar, fitness, wellness,
+activities, curves, workout library). Set `INTERVALS_ICU_TOOL_PROFILE=full` in
+the `env` block for the whole catalog (gear, custom items, activity edits) —
+see [tools.md](tools.md#tool-profile).
+
+Writes (calendar events, wellness) go **straight to Intervals.icu**. Glance at
+the Intervals calendar before you ride. Destructive tools default to
+`INTERVALS_ICU_DELETE_MODE=safe` (future events only) — see
+[tools.md](tools.md#delete-safety-mode).
 
 ## Where your personal context lives
 
@@ -133,9 +144,9 @@ and their own client memory.
 
 - `INTERVALS_ICU_API_KEY`, athlete IDs used as credentials, or a `.env` file
 - A screenshot of your Claude config that still has the real key in it
-- An HTTP / tunnel URL that reaches a server running *your* credentials —
-  anyone with that URL can read and write your Intervals.icu account (MCP has
-  no login of its own)
+- An HTTP / tunnel URL that reaches a server running *your* credentials, or the
+  link token that unlocks it — anyone with both can read and write your
+  Intervals.icu account (see [identities.md](identities.md))
 
 Sharing the git repo, this page, and example *prompts* is the intended way to
 pass the workflow along.
@@ -147,9 +158,12 @@ your laptop. Claude.ai, Claude iOS, and ChatGPT call a **public HTTPS URL**
 from their cloud, so you must run HTTP yourself and put a tunnel in front.
 
 That is a different, easier-to-get-wrong setup. Read
-[remote-deployment.md](remote-deployment.md) (and
-[chatgpt-connector.md](chatgpt-connector.md) for ChatGPT) before you bind
-anything except `127.0.0.1`. Do not publish an unauthenticated HTTP server.
+[remote-deployment.md](remote-deployment.md) before you bind anything except
+`127.0.0.1`, then [self-host.md](self-host.md) and
+[identities.md](identities.md) for link-token auth, and
+[claude-connector.md](claude-connector.md) or
+[chatgpt-connector.md](chatgpt-connector.md) for the client side. Do not
+publish an HTTP server without a link token.
 
 ## This repository vs your data (public-GitHub checklist)
 
@@ -163,9 +177,11 @@ when all of the following stay true:
   the tree
 - Deploy overlays (systemd units with real `User=` / paths, Tailscale
   MagicDNS names, identity files) stay on the machine that runs the server,
-  not in git
+  not in git — only the `deploy/*.example` templates are committed, and
+  `deploy/host.local/` is gitignored
 - A personal knowledge store, home-lab layout, or other MCP you use privately
-  is **not** a dependency of this project and is not documented here
+  is **not** a dependency of this project; the server only defers to a goals
+  MCP if you connect one yourself
 
 If you add a branch that describes a private home layout, treat that branch as
 sensitive even when `main` is clean — GitHub shows every pushed branch on a

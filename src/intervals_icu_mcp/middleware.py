@@ -24,8 +24,9 @@ class ConfigMiddleware(Middleware):
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Callable[..., Any]):
         """Load and validate config before every tool call."""
-        # Load configuration from environment
-        config = load_config()
+        from .identity import current_http_config
+
+        config = current_http_config() or load_config()
 
         # Validate credentials are properly configured
         if not validate_credentials(config):

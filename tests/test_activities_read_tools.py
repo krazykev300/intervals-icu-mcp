@@ -100,18 +100,14 @@ class TestGetRecentActivities:
             }
             for i in range(150)
         ]
-        respx_mock.get("/athlete/i123456/activities").mock(
-            return_value=Response(200, json=many)
-        )
+        respx_mock.get("/athlete/i123456/activities").mock(return_value=Response(200, json=many))
 
         result = await get_recent_activities(limit=500, ctx=_make_ctx(mock_config))
         response = json.loads(result)
         assert response["data"]["count"] == 100
 
     async def test_api_error(self, mock_config, respx_mock):
-        respx_mock.get("/athlete/i123456/activities").mock(
-            return_value=Response(500, json={})
-        )
+        respx_mock.get("/athlete/i123456/activities").mock(return_value=Response(500, json={}))
 
         result = await get_recent_activities(ctx=_make_ctx(mock_config))
         response = json.loads(result)

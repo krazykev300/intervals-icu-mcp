@@ -71,9 +71,7 @@ class TestActivityDetailsStravaSurface:
         mock_ctx = MagicMock()
         mock_ctx.get_state = AsyncMock(return_value=mock_config)
 
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
         result = await get_activity_details(activity_id="16358453283", ctx=mock_ctx)
         response = json.loads(result)
@@ -85,9 +83,7 @@ class TestActivityDetailsStravaSurface:
         mock_ctx = MagicMock()
         mock_ctx.get_state = AsyncMock(return_value=mock_config)
 
-        respx_mock.get("/activity/12345").mock(
-            return_value=Response(200, json=NON_STRAVA_EMPTY)
-        )
+        respx_mock.get("/activity/12345").mock(return_value=Response(200, json=NON_STRAVA_EMPTY))
 
         result = await get_activity_details(activity_id="12345", ctx=mock_ctx)
         response = json.loads(result)
@@ -105,9 +101,7 @@ class TestAnalysisToolsStravaSurface:
         respx_mock.get("/activity/16358453283/streams.json").mock(
             return_value=Response(200, json=[])
         )
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
         result = await get_activity_streams(activity_id="16358453283", ctx=mock_ctx)
         response = json.loads(result)
@@ -119,12 +113,8 @@ class TestAnalysisToolsStravaSurface:
         mock_ctx = MagicMock()
         mock_ctx.get_state = AsyncMock(return_value=mock_config)
 
-        respx_mock.get("/activity/12345/streams.json").mock(
-            return_value=Response(200, json=[])
-        )
-        respx_mock.get("/activity/12345").mock(
-            return_value=Response(200, json=NON_STRAVA_EMPTY)
-        )
+        respx_mock.get("/activity/12345/streams.json").mock(return_value=Response(200, json=[]))
+        respx_mock.get("/activity/12345").mock(return_value=Response(200, json=NON_STRAVA_EMPTY))
 
         result = await get_activity_streams(activity_id="12345", ctx=mock_ctx)
         response = json.loads(result)
@@ -138,9 +128,7 @@ class TestAnalysisToolsStravaSurface:
         respx_mock.get("/activity/16358453283/intervals").mock(
             return_value=Response(200, json={"id": "16358453283", "icu_intervals": []})
         )
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
         result = await get_activity_intervals(activity_id="16358453283", ctx=mock_ctx)
         response = json.loads(result)
@@ -154,13 +142,9 @@ class TestAnalysisToolsStravaSurface:
         respx_mock.get("/activity/16358453283/best-efforts").mock(
             return_value=Response(200, json={"efforts": []})
         )
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
-        result = await get_best_efforts(
-            activity_id="16358453283", duration=60, ctx=mock_ctx
-        )
+        result = await get_best_efforts(activity_id="16358453283", duration=60, ctx=mock_ctx)
         response = json.loads(result)
 
         assert response["analysis"]["data_availability"] == STRAVA_LIMITATION_NOTE
@@ -172,9 +156,7 @@ class TestAnalysisToolsStravaSurface:
         respx_mock.get("/activity/16358453283/power-histogram").mock(
             return_value=Response(200, json=[])
         )
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
         result = await get_power_histogram(activity_id="16358453283", ctx=mock_ctx)
         response = json.loads(result)
@@ -188,9 +170,7 @@ class TestAnalysisToolsStravaSurface:
         respx_mock.get("/activity/16358453283/hr-histogram").mock(
             return_value=Response(200, json=[])
         )
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
         result = await get_hr_histogram(activity_id="16358453283", ctx=mock_ctx)
         response = json.loads(result)
@@ -204,9 +184,7 @@ class TestAnalysisToolsStravaSurface:
         respx_mock.get("/activity/16358453283/pace-histogram").mock(
             return_value=Response(200, json=[])
         )
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
         result = await get_pace_histogram(activity_id="16358453283", ctx=mock_ctx)
         response = json.loads(result)
@@ -220,9 +198,7 @@ class TestAnalysisToolsStravaSurface:
         respx_mock.get("/activity/16358453283/gap-histogram").mock(
             return_value=Response(200, json=[])
         )
-        respx_mock.get("/activity/16358453283").mock(
-            return_value=Response(200, json=STRAVA_STUB)
-        )
+        respx_mock.get("/activity/16358453283").mock(return_value=Response(200, json=STRAVA_STUB))
 
         result = await get_gap_histogram(activity_id="16358453283", ctx=mock_ctx)
         response = json.loads(result)
