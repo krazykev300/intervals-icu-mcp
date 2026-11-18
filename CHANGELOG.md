@@ -22,14 +22,24 @@ breaking; this narrower contract applies from the next release onward.)
 - Playbook routines with a fixed answer shape for "what should I do today", ride review, week review / plan, and "how am I doing"; methodology gains a session menu by phase and the explicit ramp-tier rule.
 - `icu_get_athlete_state` returns `weekday` and `timezone`.
 - HTTP link token can be passed as `?link=<token>` on the connector URL, for Claude custom connectors that cannot send request headers. The token is stripped from the query before logging.
+- `analysis.ftp_check` on `icu_get_athlete_state` — one keep / raise / lower FTP verdict from the setting, best 20m / 60m (window closest to 90 days) and the Ride eFTP. The 20m x 0.95 rule is ignored when 20m / 60m > 1.15, and a change is suggested only at ±5%. Methodology and playbook tell the model to quote it instead of estimating FTP from curves.
+- `coach_brief.follow_ups` — questions (e.g. the A-race ask) held until after the calendar offer is answered.
+- `coach_brief.flags` (at most two, ranked: B/C race within 14 days, recovery week due, load-target warning, FTP raise/lower, empty subjective wellness) and `flags_more` for "how am I doing".
+- `coach_brief.away` — HOLIDAY / SICK / INJURED events in the next 14 days.
+- `coach_brief.phase.focus` — an active NOTE named `Focus: …` (to its end date, or 120 days without one) stands in for an A-race: no repeat race question and no 90-day `calendar.goal_events` gap. Season (365-day) asks still need an A-date.
 
 ### Fixed
 - `icu_get_athlete_state` used the server clock for "today". On a UTC host that is tomorrow every evening in the Americas, which made readiness `unknown` and shifted week boundaries. Today now comes from the athlete's Intervals timezone (cached per athlete; server clock on failure).
 - Intervals sends `icu_intensity` as a percent (81.0); the intensity bins and `calendar.events[].intensity_factor` assumed a fraction, so `compliance.by_session_type` never populated.
 - `60m_to_ftp_gap` never fired because Intervals labels the curve windows 43/91/366 days, not 42/90/365.
+- `analysis.ftp_check` ignored Intervals' eFTP when `icu_get_athlete_state` was called with `include` that had `power_profile` but not `fitness_form` / `readiness`, because wellness (which carries `sportInfo` eFTP) was not fetched. Its verdict now matches the default call.
+- Release workflow pushed the Docker image to a hardcoded owner/name, so it failed when another repository ran it. The image name now comes from the repository running the workflow.
 - A long-past `RACE_A` no longer anchors `phase_context` (`source` is now `unspecified` with `last_a_race`); an A-race in the last 14 days wins over a far-future one so the phase is `recovery`.
 
 ### Changed
+- Coaching is calendar-first: a proposed session or week ends with an offer to add it to the Intervals calendar, and on a yes the model writes it in the same turn (targets matching the chat), then asks the next follow-up. `coach_brief.next_actions` leads with that offer when today is empty or a recovery week is due.
+- Playbook: no promises of later action ("from now on…", "after your run I'll…"); travel mentioned in chat but missing from the calendar goes into the same offer as a HOLIDAY; moving a session checks its new neighbours (no back-to-back strength, hard days 48h apart) and is offered as an `icu_update_event`.
+- `60m_to_ftp_gap` flag text points at `analysis.ftp_check` for the FTP verdict.
 - `icu_get_athlete_state` payload trimmed: `fitness_form.series` to the last 12 weeks and `compliance.weekly` to the last 8 weeks that had planned sessions.
 - `icu_get_athlete_state` — composite coaching read (fitness trajectory, empirical `tsb_tolerance`, power-curve keys, races, observed load, derived `phase_context`, ICU-only gaps). Optional `include=durability` for kJ-binned 5m/20m power. Coaching profile 32 → 34 with `DELETE_MODE=safe` (also adds ATP read). Full catalog 60 / 63 / 57 → 61 / 64 / 58.
 - `intervals-icu://methodology` resource — versioned distribution / taper / ramp / derived-phase / readiness parameters. Per-athlete overrides stay in a goals store.
