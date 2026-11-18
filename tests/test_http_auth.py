@@ -9,7 +9,7 @@ from asgi_lifespan import LifespanManager
 from pydantic import ValidationError
 
 from intervals_icu_mcp.auth import ICUConfig
-from intervals_icu_mcp.http_auth import starlette_middleware
+from intervals_icu_mcp.http_auth import _pop_query_token, starlette_middleware
 from intervals_icu_mcp.identity import (
     config_for_identity,
     extract_link_token,
@@ -95,6 +95,9 @@ class TestIdentities:
         assert extract_link_token("bearer abc", "") == "abc"
         assert extract_link_token("", "xyz") == "xyz"
         assert extract_link_token("", "") == ""
+        assert extract_link_token("", "", "qtok") == "qtok"
+        assert extract_link_token("Bearer abc", "", "qtok") == "abc"
+        assert extract_link_token("", "xyz", "qtok") == "xyz"
 
 
 class TestHttpLinkTokenGate:
@@ -158,3 +161,49 @@ class TestHttpLinkTokenGate:
             async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.get("/.well-known/oauth-protected-resource")
         assert resp.status_code != 401
+
+    async def _initialize(self, monkeypatch, url: str) -> httpx.Response:
+        monkeypatch.setenv("INTERVALS_ICU_HTTP_AUTH", "link_token")
+        monkeypatch.setenv("INTERVALS_ICU_LINK_TOKEN", "gate-token")
+        monkeypatch.setenv("INTERVALS_ICU_API_KEY", "k")
+        monkeypatch.setenv("INTERVALS_ICU_ATHLETE_ID", "i1")
+
+        app = mcp.http_app(middleware=starlette_middleware())
+        async with LifespanManager(app) as manager:
+            transport = httpx.ASGITransport(app=manager.app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                return await client.post(
+                    url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {
+                            "protocolVersion": "2025-06-18",
+                            "capabilities": {},
+                            "clientInfo": {"name": "pytest", "version": "0"},
+                        },
+                    },
+                    headers={"Accept": "application/json, text/event-stream"},
+                )
+
+    async def test_200_with_query_token(self, monkeypatch):
+        resp = await self._initialize(monkeypatch, "/mcp?link=gate-token")
+        assert resp.status_code == 200
+        assert "intervals_icu_mcp" in resp.text
+
+    async def test_401_with_wrong_query_token(self, monkeypatch):
+        resp = await self._initialize(monkeypatch, "/mcp?link=nope")
+        assert resp.status_code == 401
+
+
+class TestQueryTokenRedaction:
+    def test_link_removed_from_scope(self):
+        scope = {"type": "http", "query_string": b"a=1&link=secret&b=2"}
+        assert _pop_query_token(scope) == "secret"
+        assert scope["query_string"] == b"a=1&b=2"
+
+    def test_no_link_leaves_scope_alone(self):
+        scope = {"type": "http", "query_string": b"a=1"}
+        assert _pop_query_token(scope) == ""
+        assert scope["query_string"] == b"a=1"
