@@ -167,10 +167,10 @@ class TestGetPaceCurves:
                 json={
                     "list": [
                         {
-                            "secs": [60, 300, 600, 1200, 1800, 3600],
-                            # Pace in s/km: lower=faster
-                            "values": [180, 200, 220, 240, 260, 280],
-                            "activity_id": ["a1", "a2", "a3", "a4", "a5", "a6"],
+                            # Distance-based: values are seconds to cover each distance.
+                            "distance": [400, 1000, 4600, 5000, 10000],
+                            "values": [80, 240, 1380, 1500, 3600],
+                            "activity_id": ["a1", "a2", "a3", "a4", "a5"],
                             "start_date_local": "2026-04-19",
                             "end_date_local": "2026-05-19",
                         }
@@ -187,14 +187,16 @@ class TestGetPaceCurves:
         response = json.loads(result)
         data = response["data"]
         assert data["period"] == "30_days"
-        # Best pace = lowest value
-        assert data["summary"]["best_pace_seconds_per_km"] == 180
-        assert data["summary"]["best_pace_formatted"] == "3:00 /km"
+        # Fastest pace is the 400 m effort, not a duration bucket.
+        assert data["summary"]["best_pace_seconds_per_km"] == 200.0
+        assert data["summary"]["best_pace_formatted"] == "3:20 /km"
+        assert data["summary"]["best_pace_distance_meters"] == 400
         assert data["summary"]["gap_enabled"] is True
-        # 5-minute pace formatted
-        assert data["peak_efforts"]["5_min"]["pace_formatted"] == "3:20 /km"
-        # 1-hour pace formatted, with seconds zero-padded
-        assert data["peak_efforts"]["1_hour"]["pace_formatted"] == "4:40 /km"
+        assert data["peak_efforts"]["400m"]["pace_formatted"] == "3:20 /km"
+        assert data["peak_efforts"]["5km"]["time_seconds"] == 1500
+        assert data["peak_efforts"]["5km"]["activity_id"] == "a4"
+        # 4,600 m is not close enough to count as 5 km.
+        assert data["peak_efforts"]["5km"]["distance_meters"] == 5000
 
     async def test_empty_curve_data(self, mock_config, respx_mock):
         mock_ctx = MagicMock()
@@ -202,7 +204,8 @@ class TestGetPaceCurves:
 
         respx_mock.get("/athlete/i123456/pace-curves").mock(
             return_value=Response(
-                200, json={"list": [{"secs": [], "values": [], "activity_id": []}]}
+                200,
+                json={"list": [{"distance": None, "values": None, "activity_id": None}]},
             )
         )
 

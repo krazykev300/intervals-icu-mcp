@@ -597,6 +597,44 @@ class TestSportSettingsModelMapping:
         assert payload["pace_units"] == "SECS_100M"
         assert payload["pace_load_type"] == "SWIM"
 
+    def test_build_sport_settings_api_payload_run_sends_mps(self):
+        from intervals_icu_mcp.sport_settings_format import build_sport_settings_api_payload
+
+        # 4:30/km (4.5 min) is stored as speed: 1000 m / 270 s.
+        payload = build_sport_settings_api_payload(pace_threshold=4.5)
+        assert payload["threshold_pace"] == pytest.approx(1000 / (4.5 * 60))
+        assert payload["pace_units"] == "MINS_KM"
+        assert payload["pace_load_type"] == "RUN"
+
+    def test_sport_settings_maps_run_threshold_from_mps(self):
+        from intervals_icu_mcp.models import SportSettings
+
+        settings = SportSettings.model_validate(
+            {
+                "id": 2,
+                "types": ["Run"],
+                "threshold_pace": 1000 / (4.5 * 60),
+                "pace_load_type": "RUN",
+            }
+        )
+        assert settings.pace_threshold == pytest.approx(4.5)
+        assert settings.swim_threshold is None
+
+    def test_athlete_maps_icu_weight_and_birth_date(self):
+        from intervals_icu_mcp.models import Athlete
+
+        athlete = Athlete.model_validate(
+            {
+                "id": "i1",
+                "name": "Test",
+                "weight": None,
+                "icu_weight": 72.5,
+                "icu_date_of_birth": "1990-04-02",
+            }
+        )
+        assert athlete.weight == 72.5
+        assert athlete.dob == "1990-04-02"
+
     def test_build_sport_settings_api_payload_rejects_both_pace_params(self):
         from intervals_icu_mcp.sport_settings_format import build_sport_settings_api_payload
 

@@ -14,6 +14,34 @@ Sizes: S under a day of agent work, M one to two days, L several.
 Tags: **[now]** worth doing in the first phases, **[next]** after the core is
 in, **[later]** speculative or niche.
 
+## 0. Correct the numbers [now, first]
+
+These reads disagreed with what Intervals sends. They sit above the
+capabilities below, because those capabilities use these numbers. Closed:
+the tools now match the API. Upstream commits are the reference for the
+field names, not a design to copy into the rest of this backlog.
+
+- **Pace curve.** `icu_get_pace_curves` indexed a distance curve as durations,
+  so the peaks were empty. Peaks are now 400 m, 1 km, mile, 5 km, 10 km, half
+  marathon, and marathon. A window with null arrays returns the empty result
+  instead of raising.
+- **Run threshold unit.** `threshold_pace` is speed in m/s for every sport.
+  Reads convert run to min/km and writes convert min/km back to m/s. Swim was
+  already converted.
+- **Interval fields.** Laps read `start_time`, `end_time`, `elapsed_time`, and
+  `weighted_average_watts`. The response still uses `start_seconds`,
+  `duration_seconds`, and `normalized_power`.
+- **Intensity ratio.** Activities, calendar events, and the workout library
+  use the same conversion as the coach brief: a value above 2 is a percent.
+- **Weight and date of birth.** The profile reads `icu_weight` and
+  `icu_date_of_birth`, and falls back to `weight` and `dob`.
+- **GPS longitude.** `latlng` streams pair latitude (`data`) with longitude
+  (`data2`).
+- **Discipline list.** The event-type hint includes `WeightTraining` and
+  `Workout`, and `intervals-icu://event-categories` lists every discipline
+  the API accepts. The tool still passes an unknown type through; the API
+  rejects it.
+
 ## 1. Intervals as the coach's canvas
 
 The Intervals API exposes far more display surface than the server uses. These
@@ -429,6 +457,7 @@ Folded into the phases of the assessment's roadmap:
 
 | Phase | Add from this backlog |
 |---|---|
+| 0 Corrections | Closed. Pace curve, run threshold unit, interval fields, intensity ratio, weight and date of birth, GPS longitude, discipline list. |
 | 1 Foundation | 1.1, 1.6, 1.7, 1.9, 2.2, 2.3, 5.2, 5.3, 5.4, 5.9 |
 | 2 Strength, cross-training, rule base | 1.2, 2.4, 3.16, section 6 |
 | 3 Session quality | 1.4, 1.8, 1.10, 3.3, 3.4, 3.5, 3.12, 3.14, 4.2 |

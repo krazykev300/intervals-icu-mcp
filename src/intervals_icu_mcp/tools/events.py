@@ -7,6 +7,7 @@ from fastmcp import Context
 
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
+from ..coach_brief import intensity_factor
 from ..response_builder import ResponseBuilder
 
 
@@ -99,8 +100,9 @@ async def get_calendar_events(
                     if event.icu_training_load:
                         event_item["training_load"] = event.icu_training_load
 
-                    if event.icu_intensity:
-                        event_item["intensity_factor"] = event.icu_intensity
+                    factor = intensity_factor(event.icu_intensity)
+                    if factor:
+                        event_item["intensity_factor"] = factor
 
                 # Ranged events (INJURED, SICK, HOLIDAY, SEASON_START, ...)
                 if event.end_date_local:
@@ -225,8 +227,9 @@ async def get_upcoming_workouts(
                 if workout.icu_training_load:
                     workout_item["training_load"] = workout.icu_training_load
 
-                if workout.icu_intensity:
-                    workout_item["intensity_factor"] = workout.icu_intensity
+                factor = intensity_factor(workout.icu_intensity)
+                if factor:
+                    workout_item["intensity_factor"] = factor
 
                 # Workout description
                 if workout.description:
@@ -289,8 +292,9 @@ async def get_event(
                 metrics["duration_seconds"] = event.moving_time
             if event.icu_training_load:
                 metrics["training_load"] = event.icu_training_load
-            if event.icu_intensity:
-                metrics["intensity_factor"] = event.icu_intensity
+            factor = intensity_factor(event.icu_intensity)
+            if factor:
+                metrics["intensity_factor"] = factor
             if event.joules:
                 metrics["joules"] = event.joules
             if event.joules_above_ftp:

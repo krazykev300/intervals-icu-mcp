@@ -54,7 +54,7 @@ RUN_SETTINGS = {
     "id": 2,
     "types": ["Run"],
     "lthr": 170,
-    "threshold_pace": 4.5,
+    "threshold_pace": 1000 / (4.5 * 60),  # m/s for 4:30/km
     "pace_units": "MINS_KM",
     "pace_load_type": "RUN",
     "power_zones": None,
@@ -301,7 +301,7 @@ class TestSportSettingsTools:
                     "id": 2,
                     "types": ["Run"],
                     "lthr": 172,
-                    "threshold_pace": 4.5,
+                    "threshold_pace": 1000 / (4.5 * 60),
                     "pace_units": "MINS_KM",
                     "pace_load_type": "RUN",
                 },
@@ -312,12 +312,12 @@ class TestSportSettingsTools:
 
         response = json.loads(result)
         assert response["data"]["fthr_bpm"] == 172
-        assert json.loads(route.calls.last.request.content) == {
-            "lthr": 172,
-            "threshold_pace": 4.5,
-            "pace_units": "MINS_KM",
-            "pace_load_type": "RUN",
-        }
+        assert response["data"]["pace_threshold"] == "4:30 /km"
+        sent = json.loads(route.calls.last.request.content)
+        assert sent["lthr"] == 172
+        assert sent["threshold_pace"] == pytest.approx(1000 / (4.5 * 60))
+        assert sent["pace_units"] == "MINS_KM"
+        assert sent["pace_load_type"] == "RUN"
 
     async def test_update_sport_settings_requires_a_field(self, patch_config):
         """Validation: update with no thresholds returns a validation error."""
@@ -387,7 +387,7 @@ class TestSportSettingsTools:
                     "id": 7,
                     "types": ["Run"],
                     "lthr": 170,
-                    "threshold_pace": 4.5,
+                    "threshold_pace": 1000 / (4.5 * 60),
                     "pace_units": "MINS_KM",
                     "pace_load_type": "RUN",
                 },
@@ -404,13 +404,12 @@ class TestSportSettingsTools:
         assert response["data"]["id"] == 7
         assert response["data"]["type"] == "Run"
         assert response["data"]["pace_threshold"] == "4:30 /km"
-        assert json.loads(route.calls.last.request.content) == {
-            "types": ["Run"],
-            "lthr": 170,
-            "threshold_pace": 4.5,
-            "pace_units": "MINS_KM",
-            "pace_load_type": "RUN",
-        }
+        sent = json.loads(route.calls.last.request.content)
+        assert sent["types"] == ["Run"]
+        assert sent["lthr"] == 170
+        assert sent["threshold_pace"] == pytest.approx(1000 / (4.5 * 60))
+        assert sent["pace_units"] == "MINS_KM"
+        assert sent["pace_load_type"] == "RUN"
         assert response["metadata"]["message"] == "Sport settings created successfully"
 
     async def test_create_sport_settings_rejects_both_pace_params(self, patch_config, respx_mock):

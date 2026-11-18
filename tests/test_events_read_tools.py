@@ -42,7 +42,7 @@ class TestGetCalendarEvents:
                         "type": "Ride",
                         "moving_time": 3600,
                         "icu_training_load": 80,
-                        "icu_intensity": 0.85,
+                        "icu_intensity": 85.0,
                     },
                     {
                         "id": 2,
@@ -133,7 +133,7 @@ class TestGetUpcomingWorkouts:
                         "moving_time": 3600,
                         "distance": 30000,
                         "icu_training_load": 100,
-                        "icu_intensity": 0.85,
+                        "icu_intensity": 85.0,
                         "description": "  5x5min @ FTP  ",
                     },
                     {

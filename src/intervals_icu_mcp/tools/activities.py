@@ -7,6 +7,7 @@ from fastmcp import Context
 
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
+from ..coach_brief import intensity_factor
 from ..response_builder import ResponseBuilder
 from ._strava import strava_limitation_note
 
@@ -46,8 +47,9 @@ def _summarize_activity(activity: Any) -> dict[str, Any]:
     # Training load
     if activity.icu_training_load:
         item["training_load"] = activity.icu_training_load
-    if activity.icu_intensity:
-        item["intensity_factor"] = activity.icu_intensity
+    factor = intensity_factor(activity.icu_intensity)
+    if factor:
+        item["intensity_factor"] = factor
 
     return item
 
@@ -234,8 +236,9 @@ async def get_activity_details(
             training_metrics: dict[str, Any] = {}
             if activity.icu_training_load:
                 training_metrics["training_load"] = activity.icu_training_load
-            if activity.icu_intensity:
-                training_metrics["intensity_factor"] = activity.icu_intensity
+            factor = intensity_factor(activity.icu_intensity)
+            if factor:
+                training_metrics["intensity_factor"] = factor
             if activity.tss:
                 training_metrics["tss"] = round(activity.tss, 0)
             if activity.hrss:
@@ -687,8 +690,9 @@ async def search_activities_full(
                 # Training load
                 if activity.icu_training_load:
                     activity_item["training_load"] = activity.icu_training_load
-                if activity.icu_intensity:
-                    activity_item["intensity_factor"] = activity.icu_intensity
+                factor = intensity_factor(activity.icu_intensity)
+                if factor:
+                    activity_item["intensity_factor"] = factor
 
                 activities_data.append(activity_item)
 

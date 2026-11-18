@@ -129,7 +129,7 @@ class TestGetWorkoutsInFolder:
                         "moving_time": 3600,
                         "distance": 30000.0,
                         "icu_training_load": 100,
-                        "icu_intensity": 0.9,
+                        "icu_intensity": 90,
                         "joules": 800000,
                         "joules_above_ftp": 150000,
                         "indoor": True,

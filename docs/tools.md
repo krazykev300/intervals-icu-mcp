@@ -177,7 +177,7 @@ The threaded notes/comments shown under an activity — the user's own training 
 | ------------------ | -------------------------------------------------------- |
 | `icu_get_power_curves` | Analyze power curves with FTP estimation and power zones |
 | `icu_get_hr_curves`    | Analyze heart rate curves with HR zones                  |
-| `icu_get_pace_curves`  | Analyze running/swimming pace curves with optional GAP   |
+| `icu_get_pace_curves`  | Best pace at standard distances, optional GAP            |
 
 ### Workout Library (2 tools)
 

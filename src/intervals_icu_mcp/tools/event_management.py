@@ -93,9 +93,23 @@ VALID_CATEGORIES = {
 CATEGORY_ALIASES = {"RACE": "RACE_A", "GOAL": "TARGET"}
 VALID_AVAILABILITY = {"NORMAL", "LIMITED", "UNAVAILABLE"}
 RACE_CATEGORIES = {"RACE_A", "RACE_B", "RACE_C"}
-# Canonical Intervals.icu activity disciplines accepted by the API for the
-# `type` field. Must match models.ActivityType.
-ACTIVITY_TYPES_HINT = "Ride, Run, Swim, Walk, Hike, VirtualRide, VirtualRun, Other"
+# Curated subset of models.ACTIVITY_DISCIPLINES for parameter hints and errors.
+# The full enum is in the intervals-icu://event-categories resource.
+COMMON_ACTIVITY_TYPES = (
+    "Ride",
+    "Run",
+    "Swim",
+    "Walk",
+    "Hike",
+    "WeightTraining",
+    "Workout",
+    "VirtualRide",
+    "VirtualRun",
+    "Other",
+)
+ACTIVITY_TYPES_HINT = ", ".join(COMMON_ACTIVITY_TYPES) + (
+    " (full list: intervals-icu://event-categories)"
+)
 
 # Compact, in-context workout-syntax cheat-sheet for the `description` field.
 # Inlined (not only pointed at via the intervals-icu://workout-syntax resource)
