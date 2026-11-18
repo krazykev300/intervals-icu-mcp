@@ -46,6 +46,27 @@ RAMP: dict[str, Any] = {
     "recovery_week_load_pct": 60,
 }
 
+# Daily load that moves a 42-day EWMA (CTL) by `r` points in 7 days is
+# CTL + r / (1 - e^(-7/42)); the divisor is ~0.1535, so the multiplier is ~6.51.
+CTL_WEEK_GAIN_FACTOR = 6.51
+
+# Ramp tier from empirical TSB tolerance (first matching rule wins).
+RAMP_SELECTION: dict[str, Any] = {
+    "aggressive": {"excursions_min": 2, "median_days_to_recover_max": 10},
+    "conservative_if_recover_days_over": 14,
+    "standard_if_min_tsb_at_or_below": -15.0,
+    "default": "conservative",
+}
+
+# A week is a recovery week when its load is at most this share of the mean
+# of the (up to) three weeks before it.
+RECOVERY_WEEK_RATIO = 0.75
+
+# Weekly load as a share of the pre-taper reference week (race day excluded).
+TAPER_WEEK_LOAD_PCT: dict[str, int] = {"days_out_8_to_14": 65, "days_out_0_to_7": 45}
+POST_A_RECOVERY_LOAD_PCT = 50
+HARD_SESSION_INTENSITY_FACTOR = 0.85
+
 METHODOLOGY_SPEC = """\
 # Coaching methodology parameters (this server)
 
@@ -95,6 +116,38 @@ Duration 8–14 days optimal (max 21). Cut volume exponentially 41–60% \
 CTL/week: conservative 3 / standard 5 / aggressive 7. Pick from \
 `fitness_form.tsb_tolerance`, not a fixed ceiling. Max 3 consecutive build \
 weeks; recovery week ~60% load.
+
+Tier rule (first match): aggressive = 2+ excursions below -25 TSB with median \
+recovery <= 10 days; conservative = median recovery > 14 days; standard = min \
+observed TSB <= -15; else conservative. Red readiness drops one tier.
+
+Weekly load for a CTL gain of r: 7 x (CTL + 6.51 x r). Peak holds CTL (r = 0). \
+Taper week load vs the pre-taper reference: 65% at 8-14 days out, 45% in race \
+week. Post-A recovery: <= 50%, no intensity. A recovery week is one at or \
+under 75% of the mean of the three weeks before it.
+
+`icu_get_athlete_state` already applies these rules in `analysis.coach_brief`. \
+Use those numbers; do not re-derive different ones.
+
+## Session menu (pick by phase; durations scale with available hours)
+
+```
+base:    long Z2 ride (the week's anchor), tempo / sweet spot 2-3 x 15-20m
+         at 84-92% FTP, one neuromuscular set (6-8 x 10s sprints), strength x2
+build:   threshold 2 x 20m or 3 x 15m at 95-100% FTP; VO2 5 x 5m or 4 x 8m
+         at 105-115% FTP (or 3 sets of 13 x 30s/15s); long ride with tempo late
+peak:    race-specific: efforts at race power and duration, shorter recoveries,
+         volume flat or slightly down
+taper:   same intensities, half the reps, short openers 1-2 days out
+recovery / general_fitness: Z1-Z2 only for recovery; for general fitness one
+         threshold-type and one VO2-type session a week on a Z2 base
+```
+
+Rules: hard sessions at least 48h apart; never two hard days before the long \
+ride; a group ride counts as the hard session it actually is; strength not \
+the day before a key session; if `60m_to_ftp_gap` is flagged, bias toward \
+longer threshold intervals over more VO2. B race: 2-3 easy days before, no \
+full taper. C race: train through.
 
 ## Readiness gating (daily swap, not rewrite-the-week)
 

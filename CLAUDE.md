@@ -5,10 +5,10 @@ This file provides guidance to Claude Code when working with this repository.
 ## Project Overview
 
 MCP (Model Context Protocol) server for Intervals.icu — this fork defaults to
-`INTERVALS_ICU_TOOL_PROFILE=coaching` (34 tools with `DELETE_MODE=safe`: calendar,
+`INTERVALS_ICU_TOOL_PROFILE=coaching` (35 tools with `DELETE_MODE=safe`: calendar,
 fitness, athlete-state, ATP read, curves, wellness, activities, streams/histograms,
 workout library).
-`full` restores the upstream catalog (61 / 64 / 58 with delete mode). 6 resources
+`full` restores the upstream catalog (62 / 65 / 59 with delete mode). 6 resources
 and 10 prompts. Server `instructions` plus `intervals-icu://coaching-playbook`
 are the coaching skill (race → fitness → calendar); `coach_with_goals` returns
 the same playbook.
@@ -105,6 +105,9 @@ Tests use pytest + pytest-asyncio with `respx` for HTTP mocking.
 - `docs/examples.md` — Usage examples
 - `docs/testing.md` — Testing conventions
 - `docs/chatgpt-connector.md` — ChatGPT custom-connector setup walkthrough
+- `docs/coaching-architecture-assessment.md` — Coaching engine assessment, recommendations R1–R12 and the phased roadmap
+- `docs/coaching-data-store.md` — Design of the per-athlete coach database (schema, sign-in, privacy, backups)
+- `docs/coaching-capability-backlog.md` — Further capabilities, each mapped to where it appears in Intervals.icu
 
 ### README discipline
 

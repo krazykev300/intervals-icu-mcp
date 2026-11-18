@@ -66,6 +66,7 @@ from .tools.athlete import (
     list_athletes,
 )
 from .tools.athlete_state import get_athlete_state
+from .tools.coaching_guide import get_coaching_guide
 from .tools.curves import get_hr_curves, get_pace_curves
 from .tools.custom_items import (
     create_custom_item,
@@ -345,6 +346,15 @@ mcp.tool(
         "openWorldHint": True,
     },
 )(get_athlete_state)
+mcp.tool(
+    name="icu_get_coaching_guide",
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)(get_coaching_guide)
 
 # Register wellness tools
 mcp.tool(

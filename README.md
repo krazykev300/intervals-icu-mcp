@@ -15,7 +15,7 @@ A Model Context Protocol (MCP) server for Intervals.icu integration. Access your
 
 ## Overview
 
-This fork defaults to `INTERVALS_ICU_TOOL_PROFILE=coaching` (34 tools: calendar, fitness, athlete-state, ATP read, curves, wellness, activities, streams/histograms, workout library) plus 6 MCP Resources and 10 MCP Prompts. Set `INTERVALS_ICU_TOOL_PROFILE=full` for the complete catalog (up to 64 tools). See [Available Tools](#available-tools) and [docs/tools.md](docs/tools.md).
+This fork defaults to `INTERVALS_ICU_TOOL_PROFILE=coaching` (35 tools: calendar, fitness, athlete-state, ATP read, curves, wellness, activities, streams/histograms, workout library) plus 6 MCP Resources and 10 MCP Prompts. Set `INTERVALS_ICU_TOOL_PROFILE=full` for the complete catalog (up to 65 tools). See [Available Tools](#available-tools) and [docs/tools.md](docs/tools.md).
 
 ## Quick Start
 
@@ -226,7 +226,7 @@ For the full catalogue of example prompts by category, see [docs/examples.md](ht
 
 ## Available Tools
 
-64 tools exist in the `full` profile; this fork's default `coaching` profile registers 34. One-line summary below — full reference in [docs/tools.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md).
+65 tools exist in the `full` profile; this fork's default `coaching` profile registers 35. One-line summary below — full reference in [docs/tools.md](https://github.com/hhopke/intervals-icu-mcp/blob/main/docs/tools.md).
 
 | Category | Tools | Summary |
 |---|---|---|

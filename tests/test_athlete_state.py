@@ -391,3 +391,32 @@ class TestGetAthleteStateTool:
         response = json.loads(result)
         durability = response["data"]["power_profile"]["durability"]
         assert durability["curves_by_bin"]["0"]["5m"] == 250
+
+
+class TestAthleteTimezone:
+    async def test_today_follows_profile_timezone(self, mock_config, respx_mock):
+        """Server clock may be UTC; the athlete's date comes from their Intervals timezone."""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        from intervals_icu_mcp.tools.athlete_state import _timezone_cache
+
+        _timezone_cache.clear()
+        respx_mock.get("/athlete/i123456").mock(
+            return_value=Response(200, json={"id": "i123456", "timezone": "Pacific/Kiritimati"})
+        )
+        respx_mock.get("/athlete/i123456/wellness").mock(return_value=Response(200, json=[]))
+        respx_mock.get("/athlete/i123456/events").mock(return_value=Response(200, json=[]))
+        respx_mock.get("/athlete/i123456/activities").mock(return_value=Response(200, json=[]))
+        respx_mock.get("/athlete/i123456/power-curves").mock(
+            return_value=Response(200, json={"list": []})
+        )
+        respx_mock.get("/athlete/i123456/sport-settings").mock(return_value=Response(200, json=[]))
+
+        payload = json.loads(await get_athlete_state(ctx=_ctx(mock_config)))
+        _timezone_cache.clear()
+        expected = datetime.now(ZoneInfo("Pacific/Kiritimati")).date()
+        assert payload["data"]["timezone"] == "Pacific/Kiritimati"
+        assert payload["data"]["date"] == expected.isoformat()
+        assert payload["data"]["weekday"] == expected.strftime("%A")
+        assert payload["analysis"]["coach_brief"]["today"]["date"] == expected.isoformat()

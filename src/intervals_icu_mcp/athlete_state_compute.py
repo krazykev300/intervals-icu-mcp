@@ -31,6 +31,7 @@ INTENSITY_BINS = (
     ("threshold", 0.85, 0.95),
     ("vo2", 0.95, 10.0),
 )
+COMPLIANCE_WEEKS = 8
 SUBJECTIVE_FIELDS = ("mood", "motivation", "fatigue", "soreness", "stress")
 
 
@@ -218,12 +219,28 @@ def derive_phase_context(
     atp = _phase_from_atp(events, today)
     if atp is not None:
         return atp
-    race = _nearest_race_a(events, today)
+    recovery_days = PHASE_FROM_A_RACE["recovery_post_a"]["days_after_a_max"]
+    a_races = [e for e in events if e.category == "RACE_A"]
+    just_raced = [
+        e for e in a_races if 0 < (today - parse_iso_date(e.start_date_local)).days <= recovery_days
+    ]
+    race = (
+        max(just_raced, key=lambda e: parse_iso_date(e.start_date_local))
+        if just_raced
+        else _nearest_race_a(events, today)
+    )
     if race is None:
         return {"current_phase": None, "source": "unspecified"}
     race_date = parse_iso_date(race.start_date_local)
     days_out = (race_date - today).days
     phase = _phase_from_days_out(days_out)
+    if phase == "unspecified":
+        # The only A-race is long past: it anchors nothing.
+        return {
+            "current_phase": None,
+            "source": "unspecified",
+            "last_a_race": {"id": race.id, "date": race_date.isoformat(), "name": race.name},
+        }
     context: dict[str, Any] = {
         "current_phase": phase,
         "source": "derived_from_race",
@@ -324,7 +341,8 @@ def calendar_block(events: list[Event], today: date, horizon_days: int) -> dict[
             if event.icu_training_load:
                 workout["planned_load"] = event.icu_training_load
             if event.icu_intensity is not None:
-                workout["intensity_factor"] = round(event.icu_intensity, 2)
+                factor = event.icu_intensity
+                workout["intensity_factor"] = round(factor / 100 if factor > 2 else factor, 2)
             upcoming.append(workout)
 
     races.sort(key=lambda r: r["date"])
@@ -449,6 +467,8 @@ def _iso_week_start(day: date) -> date:
 def _intensity_bin(factor: float | None) -> str | None:
     if factor is None:
         return None
+    if factor > 2.0:  # Intervals sends percent (81.0), not a fraction
+        factor = factor / 100.0
     for name, low, high in INTENSITY_BINS:
         if low <= factor < high:
             return name
@@ -533,7 +553,8 @@ def compliance_block(
     if mean_ratio is not None and mean_ratio > 1.15:
         flags.append("actual_load_averages_above_planned")
 
-    result: dict[str, Any] = {"weekly": weeks}
+    planned_weeks = [w for w in weeks if w["sessions_planned"] > 0][-COMPLIANCE_WEEKS:]
+    result: dict[str, Any] = {"weekly": planned_weeks}
     if by_session_type:
         result["by_session_type"] = by_session_type
     if flags:
@@ -541,9 +562,7 @@ def compliance_block(
     return result
 
 
-def days_missing_hrv_and_sleep(
-    records: list[Wellness], today: date, window: int = 7
-) -> list[str]:
+def days_missing_hrv_and_sleep(records: list[Wellness], today: date, window: int = 7) -> list[str]:
     """ISO dates in the last `window` days with no HRV and no sleep."""
     by_date = {parse_iso_date(r.id): r for r in records}
     missing: list[str] = []
@@ -803,8 +822,8 @@ def derived_flags(
 ) -> list[str]:
     flags: list[str] = []
     hour = None
-    for window in ("d365", "d90", "d42"):
-        if window in power and "60m" in power[window]:
+    for window in sorted(power, key=lambda k: int(k[1:]) if k[1:].isdigit() else 0, reverse=True):
+        if "60m" in power[window]:
             hour = power[window]["60m"]
             break
     if ftp and hour and ftp > 0:

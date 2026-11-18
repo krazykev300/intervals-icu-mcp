@@ -17,6 +17,19 @@ breaking; this narrower contract applies from the next release onward.)
 ## [Unreleased]
 
 ### Added
+- `icu_get_coaching_guide` (coaching profile) — playbook, methodology, workout syntax and event categories as a tool result. Chat clients (Claude.ai, iOS) do not let the model open MCP resources itself, so the guide was unreachable there; server `instructions` and the playbook now point at the tool.
+- `analysis.coach_brief` on `icu_get_athlete_state` — server-computed prescription from the methodology tables: phase, intensity distribution, ramp tier from `tsb_tolerance`, next-week load target (`7 x (CTL + 6.51 x ramp)`, recovery-week / taper / post-A rules), today's go / swap / rest call, ordered `next_actions`.
+- Playbook routines with a fixed answer shape for "what should I do today", ride review, week review / plan, and "how am I doing"; methodology gains a session menu by phase and the explicit ramp-tier rule.
+- `icu_get_athlete_state` returns `weekday` and `timezone`.
+
+### Fixed
+- `icu_get_athlete_state` used the server clock for "today". On a UTC host that is tomorrow every evening in the Americas, which made readiness `unknown` and shifted week boundaries. Today now comes from the athlete's Intervals timezone (cached per athlete; server clock on failure).
+- Intervals sends `icu_intensity` as a percent (81.0); the intensity bins and `calendar.events[].intensity_factor` assumed a fraction, so `compliance.by_session_type` never populated.
+- `60m_to_ftp_gap` never fired because Intervals labels the curve windows 43/91/366 days, not 42/90/365.
+- A long-past `RACE_A` no longer anchors `phase_context` (`source` is now `unspecified` with `last_a_race`); an A-race in the last 14 days wins over a far-future one so the phase is `recovery`.
+
+### Changed
+- `icu_get_athlete_state` payload trimmed: `fitness_form.series` to the last 12 weeks and `compliance.weekly` to the last 8 weeks that had planned sessions.
 - `icu_get_athlete_state` — composite coaching read (fitness trajectory, empirical `tsb_tolerance`, power-curve keys, races, observed load, derived `phase_context`, ICU-only gaps). Optional `include=durability` for kJ-binned 5m/20m power. Coaching profile 32 → 34 with `DELETE_MODE=safe` (also adds ATP read). Full catalog 60 / 63 / 57 → 61 / 64 / 58.
 - `intervals-icu://methodology` resource — versioned distribution / taper / ramp / derived-phase / readiness parameters. Per-athlete overrides stay in a goals store.
 - `icu_get_annual_training_plan` on the `coaching` profile (read-only ATP).
