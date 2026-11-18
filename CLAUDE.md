@@ -35,6 +35,7 @@ make run              # Run the MCP server
 make test             # Run tests
 make test/athlete     # Run tests matching "athlete"
 make test/verbose     # Verbose test output
+make smoke            # In-process MCP smoke of the coaching write tools (stubbed HTTP, free)
 make lint             # Lint (ruff + pyright)
 make format           # Auto-format code
 make can-release      # Full pre-release check (same as CI)
@@ -57,26 +58,30 @@ make docker/run       # Run Docker container
 | Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-list + `mcp.tool` filter |
 | Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
 | Prompts | `prompts/` | Overlay prompts + coaching playbook (`coaching_playbook.py`); kept out of `server.py` for rebases |
-| Tools | `tools/` | 14 tool modules (see below) |
+| Tools | `tools/` | 16 tool modules plus the `_strava.py` helper (see below) |
 
 **For detailed architecture**: see `docs/architecture.md`
 
 ### Tool Categories
 
 1. `activities.py` — Query/manage activities
-2. `activity_analysis.py` — Streams, intervals, best efforts
+2. `activity_analysis.py` — Streams, intervals, best efforts, histograms
 3. `activity_messages.py` — Notes/comments on activities
 4. `athlete.py` — Profile, fitness metrics (CTL/ATL/TSB)
 5. `athlete_state.py` — Composite grounding read (`icu_get_athlete_state`)
-6. `wellness.py` — HRV, sleep, recovery
-7. `events.py` — Calendar queries
-8. `event_management.py` — Create/update/delete events
-9. `performance.py` — Power/HR/pace curves
-10. `curves.py` — HR and pace curve analysis
-11. `workout_library.py` — Browse workout folders and plans
-12. `gear.py` — Manage gear and reminders
-13. `sport_settings.py` — FTP, FTHR, pace thresholds
-14. `custom_items.py` — Charts, custom fields, zones, etc.
+6. `coaching_guide.py` — Playbook and references as a tool (`icu_get_coaching_guide`)
+7. `wellness.py` — HRV, sleep, recovery
+8. `events.py` — Calendar queries
+9. `event_management.py` — Create/update/delete events, session layout, availability, `icu_log_session`
+10. `periodization.py` — Annual Training Plan read (`icu_get_annual_training_plan`)
+11. `performance.py` — Power/HR/pace curves
+12. `curves.py` — HR and pace curve analysis
+13. `workout_library.py` — Browse workout folders and plans
+14. `gear.py` — Manage gear and reminders
+15. `sport_settings.py` — FTP, FTHR, pace thresholds
+16. `custom_items.py` — Charts, custom fields, zones, etc.
+
+`_strava.py` is a helper, not a tool module: it detects Strava-synced activity stubs.
 
 ## Code Style
 
@@ -98,6 +103,25 @@ Tests use pytest + pytest-asyncio with `respx` for HTTP mocking.
 
 **For testing conventions and examples**: see `docs/testing.md`
 
+- **Doc counts are tested.** Tool, resource and prompt counts are typed into
+  README.md, this file, `docs/tools.md` and `docs/claude-ios-coaching.md`.
+  `tests/test_doc_counts.py` compares them with what the server registers, so
+  adding or removing a tool fails CI until every count is updated; the failure
+  names the file and pattern.
+- **Playbook wording is tested.** `tests/test_coaching_playbook.py` asserts
+  exact phrases in `prompts/coaching_playbook.py`. Rewording the playbook means
+  updating those needles in the same change.
+- **Smoke before merge.** For changes to a write tool, run `make smoke` and
+  extend `scripts/smoke_mcp.py` with the new path. It drives the real server
+  through a FastMCP client with the Intervals API stubbed, so it needs no
+  credentials and costs nothing. `make smoke-eval` is different: it measures
+  tool routing with the Anthropic API and costs money.
+- **Live checks.** Worktrees have no `.env`. For a live check run `make auth`
+  in the worktree (or export `INTERVALS_ICU_API_KEY` / `INTERVALS_ICU_ATHLETE_ID`).
+  Prefer read tools. A live write goes on a future date and is deleted
+  afterwards, which safe delete mode allows. Never write to a past date. If no
+  live check was possible, say so in the PR test plan as an unchecked item.
+
 ## Further Documentation
 
 - `docs/architecture.md` — Detailed architecture and design decisions
@@ -113,6 +137,22 @@ Tests use pytest + pytest-asyncio with `respx` for HTTP mocking.
 ### README discipline
 
 **Keep README.md under 300 lines.** It is the front door for new users — onboarding, install, basic config, links out. Reference material (full tool inventory, deep architectural notes, exhaustive examples) belongs in `docs/`, not the README. If a new section grows past ~30 lines and isn't core onboarding, extract it to `docs/` and link from the README. The README has been trimmed before (PR #6) — don't let it bloat back.
+
+## Working across Claude and Cursor
+
+Both tools work in this repo, often in parallel on separate branches.
+
+- **The backlog is the work queue.** `docs/coaching-capability-backlog.md`
+  holds the items; lanes in a request name which items one agent owns, in
+  order. Do only the items named.
+- **Mark items done in the backlog** with a `**Done:**` line under the item:
+  what shipped and anything not yet checked live. Section 0 shows the closed
+  form.
+- **One writer per file set.** Lanes are split so two agents do not edit the
+  same files. `tools/event_management.py` and `prompts/coaching_playbook.py`
+  are the usual collision points; if a lane needs a file another lane owns,
+  stop and ask.
+- **Each lane ships as its own PR** from a branch off the latest `main`.
 
 ## Skills
 
@@ -135,7 +175,7 @@ PRs are **squash-merged only** (repo setting: commit title from `PR_TITLE`, body
 
 ## Releases
 
-CHANGELOG.md is **manual** — there is no automated changelog generation. Entries are the **maintainer's responsibility**: community PRs deliberately do not include them (CONTRIBUTING.md and the PR template say so, to avoid `[Unreleased]` merge conflicts and keep SemVer classification in one place). Add the `[Unreleased]` bullet at merge time, while the PR context is fresh; `/release-check` verifies every user-facing commit since the last tag has an entry before a release is cut. The only release-related automation:
+CHANGELOG.md is **manual** — there is no automated changelog generation. Entries are the **maintainer's responsibility**: community PRs deliberately do not include them (CONTRIBUTING.md and the PR template say so, to avoid `[Unreleased]` merge conflicts and keep SemVer classification in one place). Add the `[Unreleased]` bullet at merge time, while the PR context is fresh. When the maintainer has an agent (Claude or Cursor) build and merge a change, the agent writes that bullet in the same PR; `/release-check` verifies every user-facing commit since the last tag has an entry before a release is cut. The only release-related automation:
 - Package version comes from the git tag via `hatch-vcs` (no `pyproject.toml` bump needed)
 - `publish.yml` syncs `server.json` version from the tag and publishes to PyPI + MCP Registry
 - `release.yml` builds and pushes the Docker image
