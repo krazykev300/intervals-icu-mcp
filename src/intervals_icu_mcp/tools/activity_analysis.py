@@ -1,6 +1,7 @@
 """Activity analysis tools for Intervals.icu MCP server."""
 
-from typing import Annotated, Any
+from itertools import zip_longest
+from typing import Annotated, Any, cast
 
 from fastmcp import Context
 
@@ -62,11 +63,25 @@ async def get_activity_streams(
             for s in stream_list:
                 name = s.type or s.name or "unknown"
                 available_streams.append(name)
-                if s.data is not None:
-                    streams_dict[name] = s.data
-                    data = s.data
+                data: Any = s.data
+                data2: Any = s.data2
+                if data is None:
+                    continue
+                # latlng carries latitude in data and longitude in data2.
+                # Pair any stream that has a data2 array so none of it is dropped.
+                if isinstance(data, list) and isinstance(data2, list) and data2:
+                    lats = cast(list[Any], data)
+                    lngs = cast(list[Any], data2)
+                    paired: list[list[Any] | None] = [
+                        None if lat is None and lng is None else [lat, lng]
+                        for lat, lng in zip_longest(lats, lngs)
+                    ]
+                    streams_dict[name] = paired
+                    stream_lengths[name] = len(paired)
+                else:
+                    streams_dict[name] = data
                     if isinstance(data, list):
-                        stream_lengths[name] = len(data)  # type: ignore[arg-type]
+                        stream_lengths[name] = len(cast(list[Any], data))
 
             result_data = {
                 "activity_id": activity_id,
@@ -124,19 +139,21 @@ async def get_activity_intervals(
                     "type": interval.type,
                 }
 
-                if interval.start is not None:
-                    interval_item["start_seconds"] = interval.start
-                if interval.end is not None:
-                    interval_item["end_seconds"] = interval.end
-                if interval.duration is not None:
-                    interval_item["duration_seconds"] = interval.duration
+                if interval.start_time is not None:
+                    interval_item["start_seconds"] = interval.start_time
+                if interval.end_time is not None:
+                    interval_item["end_seconds"] = interval.end_time
+                if interval.elapsed_time is not None:
+                    interval_item["duration_seconds"] = interval.elapsed_time
+                if interval.moving_time is not None:
+                    interval_item["moving_time_seconds"] = interval.moving_time
 
                 # Performance metrics
                 performance: dict[str, Any] = {}
                 if interval.average_watts:
                     performance["average_watts"] = interval.average_watts
-                if interval.normalized_power:
-                    performance["normalized_power"] = interval.normalized_power
+                if interval.weighted_average_watts:
+                    performance["normalized_power"] = interval.weighted_average_watts
                 if interval.average_heartrate:
                     performance["average_heartrate"] = interval.average_heartrate
                 if interval.max_heartrate:
@@ -147,6 +164,8 @@ async def get_activity_intervals(
                     performance["average_speed_meters_per_sec"] = interval.average_speed
                 if interval.distance:
                     performance["distance_meters"] = interval.distance
+                if interval.total_elevation_gain:
+                    performance["elevation_gain_meters"] = interval.total_elevation_gain
 
                 if performance:
                     interval_item["performance"] = performance
@@ -174,7 +193,7 @@ async def get_activity_intervals(
 
             # Calculate total work time
             if work_intervals:
-                total_work_time = sum(i.duration for i in work_intervals if i.duration)
+                total_work_time = sum(i.elapsed_time for i in work_intervals if i.elapsed_time)
                 if total_work_time:
                     summary["total_work_time_seconds"] = total_work_time
 

@@ -6,6 +6,7 @@ from fastmcp import Context
 
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
+from ..coach_brief import intensity_factor
 from ..response_builder import ResponseBuilder
 
 
@@ -126,8 +127,9 @@ async def get_workouts_in_folder(
                     metrics["distance_meters"] = workout.distance
                 if workout.icu_training_load:
                     metrics["training_load"] = workout.icu_training_load
-                if workout.icu_intensity:
-                    metrics["intensity_factor"] = workout.icu_intensity
+                factor = intensity_factor(workout.icu_intensity)
+                if factor:
+                    metrics["intensity_factor"] = factor
                 if workout.joules:
                     metrics["joules"] = workout.joules
                 if workout.joules_above_ftp:

@@ -182,7 +182,7 @@ class TestSearchActivitiesFull:
                         "average_heartrate": 168,
                         "average_cadence": 92,
                         "icu_training_load": 60,
-                        "icu_intensity": 0.95,
+                        "icu_intensity": 95.0,
                     }
                 ],
             )

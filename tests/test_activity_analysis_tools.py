@@ -42,6 +42,24 @@ class TestGetActivityStreams:
         assert data["stream_lengths"]["watts"] == 3
         assert data["streams"]["heartrate"] == [120, 140, 160]
 
+    async def test_latlng_pairs_longitude_from_data2(self, mock_config, respx_mock):
+        respx_mock.get("/activity/a1/streams.json").mock(
+            return_value=Response(
+                200,
+                json=[
+                    {
+                        "type": "latlng",
+                        "data": [47.6, None],
+                        "data2": [-122.3, -122.4],
+                    }
+                ],
+            )
+        )
+
+        result = await get_activity_streams(activity_id="a1", ctx=_make_ctx(mock_config))
+        streams = json.loads(result)["data"]["streams"]
+        assert streams["latlng"] == [[47.6, -122.3], [None, -122.4]]
+
     async def test_with_stream_filter(self, mock_config, respx_mock):
         """Stream filter is forwarded as comma-separated `types` query param."""
         route = respx_mock.get("/activity/a1/streams.json").mock(
@@ -145,6 +163,38 @@ class TestGetActivityIntervals:
         assert work_with_target["target_description"] == "Threshold"
         assert work_with_target["target_range"] == {"min": 270, "max": 290}
         assert work_with_target["performance"]["normalized_power"] == 285
+
+    async def test_reads_api_field_names(self, mock_config, respx_mock):
+        """Intervals sends start_time and weighted_average_watts, not start and normalized_power."""
+        respx_mock.get("/activity/a1/intervals").mock(
+            return_value=Response(
+                200,
+                json={
+                    "id": "a1",
+                    "icu_intervals": [
+                        {
+                            "id": 2,
+                            "type": "WORK",
+                            "start_time": 600,
+                            "end_time": 1200,
+                            "elapsed_time": 600,
+                            "moving_time": 580,
+                            "weighted_average_watts": 285,
+                            "total_elevation_gain": 40,
+                        }
+                    ],
+                },
+            )
+        )
+
+        result = await get_activity_intervals(activity_id="a1", ctx=_make_ctx(mock_config))
+        interval = json.loads(result)["data"]["intervals"][0]
+        assert interval["start_seconds"] == 600
+        assert interval["end_seconds"] == 1200
+        assert interval["duration_seconds"] == 600
+        assert interval["moving_time_seconds"] == 580
+        assert interval["performance"]["normalized_power"] == 285
+        assert interval["performance"]["elevation_gain_meters"] == 40
 
     async def test_empty_intervals_no_strava_note(self, mock_config, respx_mock):
         respx_mock.get("/activity/a1/intervals").mock(

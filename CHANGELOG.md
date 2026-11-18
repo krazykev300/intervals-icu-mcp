@@ -29,6 +29,13 @@ breaking; this narrower contract applies from the next release onward.)
 - `coach_brief.phase.focus` — an active NOTE named `Focus: …` (to its end date, or 120 days without one) stands in for an A-race: no repeat race question and no 90-day `calendar.goal_events` gap. Season (365-day) asks still need an A-date.
 
 ### Fixed
+- `icu_get_pace_curves` read the distance-based pace curve as durations, so peak efforts came back empty. Peaks are now standard distances (400 m through the marathon), and a curve whose arrays are null returns the empty result.
+- Run `threshold_pace` was treated as min/km. Intervals stores it as speed in m/s for every sport, so a 4:40/km threshold displayed as about 3:34/km. Reads convert m/s to min/km and writes convert min/km back to m/s.
+- `icu_get_activity_intervals` looked for `start`, `end`, `duration`, and `normalized_power`. The API sends `start_time`, `end_time`, `elapsed_time`, and `weighted_average_watts`, so lap timing and normalized power were empty.
+- `intensity_factor` on activities, calendar events, and workout-library workouts was the API's percent. Those tools now use the same ratio as the coach brief (81.0 → 0.81). A value that is already a ratio (at most 2) is left as-is.
+- `icu_get_athlete_profile` missed weight and date of birth. The API sends `icu_weight` and `icu_date_of_birth` and leaves `weight` null.
+- `latlng` streams returned latitude only. Longitude from `data2` is now paired as `[lat, lng]`.
+- Event-type hints listed eight disciplines and stopped at `Other`, so a gym session had no strength type in view. `WeightTraining` and `Workout` are in the hint, and the event-categories resource lists the full API enum.
 - `icu_get_athlete_state` used the server clock for "today". On a UTC host that is tomorrow every evening in the Americas, which made readiness `unknown` and shifted week boundaries. Today now comes from the athlete's Intervals timezone (cached per athlete; server clock on failure).
 - Intervals sends `icu_intensity` as a percent (81.0); the intensity bins and `calendar.events[].intensity_factor` assumed a fraction, so `compliance.by_session_type` never populated.
 - `60m_to_ftp_gap` never fired because Intervals labels the curve windows 43/91/366 days, not 42/90/365.
