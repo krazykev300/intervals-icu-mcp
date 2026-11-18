@@ -7,6 +7,8 @@ stay consistent with the resource the coach is told to read.
 
 from typing import Any
 
+KB_VERSION = "1.0.0"
+
 # Days-out from the nearest RACE_A (or days after it for recovery).
 PHASE_FROM_A_RACE: dict[str, dict[str, int]] = {
     "recovery_post_a": {"days_after_a_max": 14},

@@ -34,7 +34,8 @@ from ..athlete_state_compute import (
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
 from ..coach_brief import build_coach_brief, today_flags, training_focus
-from ..models import ActivitySummary, CurveSet, Event, SportSettings, Wellness
+from ..data_quality import data_quality_report, is_strava_stub, stream_sensor_issues
+from ..models import ActivityStream, ActivitySummary, CurveSet, Event, SportSettings, Wellness
 from ..response_builder import ResponseBuilder
 
 VALID_INCLUDE = frozenset(
@@ -54,6 +55,7 @@ MAX_LOOKBACK_DAYS = 365
 MAX_HORIZON_DAYS = 365
 ACTIVITY_LIMIT = 200
 DURABILITY_ACTIVITY_CAP = 6
+QUALITY_STREAM_ACTIVITY_CAP = 12
 MIN_DURABILITY_MOVING_S = 3600
 _RIDE_TYPES = frozenset({"Ride", "VirtualRide"})
 
@@ -230,6 +232,17 @@ async def get_athlete_state(
             settings = _unwrap(
                 settings_res, "sport_settings", fetch_errors, default=list[SportSettings]()
             )
+            stream_issues = await _quality_stream_issues(client, activities, settings)
+            quality = data_quality_report(
+                activities=activities,
+                wellness=wellness,
+                settings=settings,
+                stream_issues=stream_issues,
+            )
+            excluded_activity_ids = set(quality["excluded_activity_ids"])
+            model_activities = [
+                activity for activity in activities if activity.id not in excluded_activity_ids
+            ]
 
             data: dict[str, Any] = {
                 "athlete_id": resolved_athlete,
@@ -300,13 +313,13 @@ async def get_athlete_state(
 
             constraints: dict[str, Any] = {}
             if "athlete_constraints" in blocks:
-                constraints = observed_constraints(activities, lookback_days)
+                constraints = observed_constraints(model_activities, lookback_days)
                 constraints.update(sport_constraints(settings))
                 data["athlete_constraints"] = constraints
 
             compliance: dict[str, Any] | None = None
             if "compliance" in blocks:
-                compliance = compliance_block(events, activities, today, lookback_days)
+                compliance = compliance_block(events, model_activities, today, lookback_days)
                 data["compliance"] = compliance
 
             readiness: dict[str, Any] = {}
@@ -315,7 +328,9 @@ async def get_athlete_state(
                 data["readiness"] = readiness
 
             if "durability" in blocks:
-                durability = await _durability_block(client, resolved_athlete, activities, today)
+                durability = await _durability_block(
+                    client, resolved_athlete, model_activities, today
+                )
                 if durability:
                     if "power_profile" not in data:
                         data["power_profile"] = {}
@@ -325,7 +340,7 @@ async def get_athlete_state(
                 analysis["coach_brief"] = build_coach_brief(
                     today=today,
                     events=events,
-                    activities=activities,
+                    activities=model_activities,
                     phase_context=phase or (derive_phase_context(events, today) if events else {}),
                     current_fitness=current_fitness(daily, today) if daily else {},
                     tolerance=tsb_tolerance(daily) if daily else {},
@@ -345,16 +360,29 @@ async def get_athlete_state(
             subjective_empty = (
                 empty_subjective_days(wellness, today) if "readiness" in blocks else None
             )
-            analysis["gaps"] = gaps(
-                horizon_days=horizon_days,
-                races=races if "calendar" in blocks else None,
-                phase_source=phase.get("source") if "phase_context" in blocks else None,
-                subjective_empty_days=subjective_empty,
-                has_power=bool(power) if "power_profile" in blocks else None,
-                readiness_state=readiness.get("readiness_state") if readiness else None,
-                has_focus=bool(events and training_focus(events, today)),
+            analysis["gaps"] = (
+                gaps(
+                    horizon_days=horizon_days,
+                    races=races if "calendar" in blocks else None,
+                    phase_source=phase.get("source") if "phase_context" in blocks else None,
+                    subjective_empty_days=subjective_empty,
+                    has_power=bool(power) if "power_profile" in blocks else None,
+                    readiness_state=readiness.get("readiness_state") if readiness else None,
+                    has_focus=bool(events and training_focus(events, today)),
+                )
+                + quality["gaps"]
             )
             if "coach_brief" in analysis:
+                provenance = analysis["coach_brief"]["provenance"]
+                provenance["data_quality"] = {
+                    "rule_id": "activity_data_quality.v1",
+                    "activities_checked": quality["activities_checked"],
+                    "stream_activities_checked": quality["stream_activities_checked"],
+                    "excluded_activity_ids": quality["excluded_activity_ids"],
+                    "exclusion_policy": (
+                        "Activities named by data-quality gaps are excluded from coach models."
+                    ),
+                }
                 analysis["coach_brief"].update(
                     today_flags(
                         brief=analysis["coach_brief"],
@@ -404,6 +432,51 @@ def _unwrap(
         errors.append(f"{label}: {value}")
         return default
     return value
+
+
+async def _quality_stream_issues(
+    client: ICUClient,
+    activities: list[ActivitySummary],
+    settings: list[SportSettings],
+) -> dict[str, list[str]]:
+    """Check recent sensor-bearing activities without making state unbounded."""
+    candidates = [
+        activity
+        for activity in activities
+        if not is_strava_stub(activity)
+        and (activity.moving_time or 0) >= 600
+        and (activity.average_watts is not None or activity.average_heartrate is not None)
+    ]
+    candidates.sort(key=lambda activity: activity.start_date_local, reverse=True)
+    chosen = candidates[:QUALITY_STREAM_ACTIVITY_CAP]
+    if not chosen:
+        return {}
+
+    async def _streams(activity: ActivitySummary) -> list[ActivityStream]:
+        names: list[str] = ["cadence"]
+        if activity.average_watts is not None:
+            names.append("watts")
+        if activity.average_heartrate is not None:
+            names.append("heartrate")
+        return await client.get_activity_streams(activity.id, names)
+
+    traces = await asyncio.gather(
+        *[_streams(activity) for activity in chosen], return_exceptions=True
+    )
+    settings_by_type = {setting.type: setting for setting in settings if setting.type}
+    issues: dict[str, list[str]] = {}
+    for activity, trace in zip(chosen, traces, strict=True):
+        if isinstance(trace, BaseException):
+            continue
+        setting_type = "Ride" if activity.type in _RIDE_TYPES else activity.type
+        setting = settings_by_type.get(setting_type) if setting_type else None
+        found = stream_sensor_issues(
+            trace,
+            ftp=setting.ftp if setting else None,
+            max_hr=setting.max_hr if setting else None,
+        )
+        issues[activity.id] = found
+    return issues
 
 
 async def _durability_block(

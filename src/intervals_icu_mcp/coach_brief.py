@@ -10,13 +10,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, cast
 
 from .athlete_state_compute import parse_iso_date
 from .methodology import (
     CTL_WEEK_GAIN_FACTOR,
     DISTRIBUTION_MODELS,
     HARD_SESSION_INTENSITY_FACTOR,
+    KB_VERSION,
     POST_A_RECOVERY_LOAD_PCT,
     RAMP,
     RAMP_SELECTION,
@@ -34,6 +35,7 @@ FOCUS_NOTE_DAYS = 120
 FOCUS_PREFIX = "focus:"
 MAX_TODAY_FLAGS = 2
 _WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+ENGINE_VERSION = "1.0.0"
 
 
 def intensity_factor(value: float | None) -> float | None:
@@ -448,7 +450,113 @@ def build_coach_brief(
     follow_ups = _follow_ups(has_a_race=next_a is not None, focus=focus)
     if follow_ups:
         brief["follow_ups"] = follow_ups
+    brief["provenance"] = _brief_provenance(
+        brief=brief,
+        phase_context=phase_context,
+        current_fitness=current_fitness,
+        tolerance=tolerance,
+        constraints=constraints,
+        readiness_state=readiness_state,
+    )
     return brief
+
+
+def _brief_provenance(
+    *,
+    brief: dict[str, Any],
+    phase_context: dict[str, Any],
+    current_fitness: dict[str, Any],
+    tolerance: dict[str, Any],
+    constraints: dict[str, Any],
+    readiness_state: str | None,
+) -> dict[str, Any]:
+    """Trace each numeric brief subtree to Intervals fields or a versioned rule.
+
+    A provenance path covers that value and all descendants. This keeps the
+    brief readable while making every number reproducible without wrapping
+    each scalar in a value/source envelope.
+    """
+    values: dict[str, dict[str, Any]] = {
+        "today": {
+            "kind": "computed",
+            "rule_id": "today_action.v1",
+            "inputs": [
+                "events.start_date_local",
+                "events.icu_intensity",
+                "activities.start_date_local",
+                "wellness.readiness_state",
+                "wellness.tsb",
+            ],
+        },
+        "phase": {
+            "kind": "computed",
+            "rule_id": "phase_context.v1",
+            "inputs": [
+                "events.category",
+                "events.start_date_local",
+                "events.end_date_local",
+                "methodology.phase_from_a_race",
+            ],
+            "source": phase_context.get("source", "unspecified"),
+        },
+        "load": {
+            "kind": "computed",
+            "rule_id": "weekly_load_target.v1",
+            "inputs": [
+                "activities.icu_training_load",
+                "activities.start_date_local",
+                "wellness.ctl",
+                "wellness.tsb_history",
+                "methodology.ramp",
+                "methodology.taper",
+            ],
+        },
+    }
+    if "away" in brief:
+        values["away"] = {
+            "kind": "intervals_field",
+            "inputs": [
+                "events.start_date_local",
+                "events.end_date_local",
+                "events.max_training_time",
+            ],
+        }
+    if "intensity_distribution" in brief:
+        values["intensity_distribution"] = {
+            "kind": "computed",
+            "rule_id": "distribution_by_observed_hours.v1",
+            "inputs": [
+                "activities.moving_time",
+                "methodology.distribution_models",
+            ],
+        }
+
+    missing: list[str] = []
+    if phase_context.get("source") in (None, "unspecified"):
+        missing.append("calendar.RACE_A_or_PLAN")
+    if current_fitness.get("ctl") is None:
+        missing.append("wellness.ctl")
+    if current_fitness.get("tsb") is None:
+        missing.append("wellness.tsb")
+    if not tolerance:
+        missing.append("wellness.tsb_history")
+    hours_block = constraints.get("typical_weekly_hours")
+    if not isinstance(hours_block, dict) or cast(dict[str, Any], hours_block).get("median") is None:
+        missing.append("activities.moving_time")
+    load_block = brief.get("load")
+    if not isinstance(load_block, dict) or not cast(dict[str, Any], load_block).get(
+        "last_completed_weeks"
+    ):
+        missing.append("activities.icu_training_load")
+    if readiness_state is None:
+        missing.append("wellness.hrv_or_sleep_today")
+
+    return {
+        "engine_version": ENGINE_VERSION,
+        "kb_version": KB_VERSION,
+        "values": values,
+        "missing_inputs": sorted(missing),
+    }
 
 
 def _next_actions(*, brief: dict[str, Any], phase: str, recovery_due: bool) -> list[str]:

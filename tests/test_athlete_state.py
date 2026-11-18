@@ -287,9 +287,17 @@ class TestGetAthleteStateTool:
                         "name": "Ride",
                         "type": "Ride",
                         "moving_time": 7200,
+                        "normalized_power": 210,
                         "icu_training_load": 90,
                         "icu_intensity": 0.72,
-                    }
+                    },
+                    {
+                        "id": "strava-stub",
+                        "start_date_local": "2026-09-11T08:00:00",
+                        "name": "Restricted Ride",
+                        "type": "Ride",
+                        "source": "STRAVA",
+                    },
                 ],
             )
         )
@@ -343,6 +351,11 @@ class TestGetAthleteStateTool:
         assert ftp["setting"] == 321
         assert ftp["verdict"] in {"keep", "raise", "lower"}
         assert len(response["analysis"]["coach_brief"]["flags"]) <= 2
+        provenance = response["analysis"]["coach_brief"]["provenance"]
+        assert provenance["engine_version"] == "1.0.0"
+        assert provenance["kb_version"] == "1.0.0"
+        assert provenance["data_quality"]["excluded_activity_ids"] == ["strava-stub"]
+        assert any(item["field"] == "activities.source" for item in response["analysis"]["gaps"])
         assert not any(
             item["field"] == "calendar.goal_events" for item in response["analysis"]["gaps"]
         )
@@ -395,7 +408,6 @@ class TestGetAthleteStateTool:
         response = json.loads(result)
         durability = response["data"]["power_profile"]["durability"]
         assert durability["curves_by_bin"]["0"]["5m"] == 250
-
 
     async def test_power_only_call_uses_eftp(self, mock_config, respx_mock):
         """ftp_check must match the default call: eFTP lives on wellness sportInfo."""

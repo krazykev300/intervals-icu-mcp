@@ -82,6 +82,39 @@ def _brief(**overrides):
     return build_coach_brief(**args)
 
 
+class TestProvenance:
+    def test_versions_and_sources_are_deterministic(self):
+        first = _brief()
+        second = _brief()
+
+        assert first == second
+        provenance = first["provenance"]
+        assert provenance["engine_version"] == "1.0.0"
+        assert provenance["kb_version"] == "1.0.0"
+        assert provenance["values"]["load"]["rule_id"] == "weekly_load_target.v1"
+        assert provenance["values"]["phase"]["source"] == "unspecified"
+
+    def test_missing_inputs_are_named(self):
+        brief = _brief(
+            activities=[],
+            phase_context={},
+            current_fitness={},
+            tolerance={},
+            constraints={},
+            readiness_state=None,
+        )
+
+        assert brief["provenance"]["missing_inputs"] == [
+            "activities.icu_training_load",
+            "activities.moving_time",
+            "calendar.RACE_A_or_PLAN",
+            "wellness.ctl",
+            "wellness.hrv_or_sleep_today",
+            "wellness.tsb",
+            "wellness.tsb_history",
+        ]
+
+
 class TestIntensityScale:
     def test_percent_is_normalized(self):
         assert intensity_factor(81.0) == 0.81
