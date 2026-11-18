@@ -497,6 +497,71 @@ Folded into the phases of the assessment's roadmap:
 | 5 Reach | 2.1, 2.5, 4.1, 4.3, 4.4, 5.1, 5.5, 5.6 |
 | Later | 1.12, 3.1, 3.2, 3.7, 3.9–3.11, 3.13, 3.15, 3.17, 4.5, 4.6, 5.7, 5.8 |
 
+## 8. Technical follow-ups
+
+Open checks and loose ends left by shipped items. Each names what to find out
+and what to change once it is known. Close them with a `**Done:**` line.
+
+### 8.1 Does a WORKOUT turned into a NOTE drop its planned load? [now, S]
+
+The illness protocol (1.7) turns today's session into a rest `NOTE` with
+`icu_update_event`, because safe-mode delete refuses today's event. This
+server stops counting it (compliance and the brief read `WORKOUT` only), but
+it is not confirmed that Intervals clears `icu_training_load` and the
+structured steps, so the planned load may still show on the fitness chart.
+Check on a future-dated event and delete it afterwards. If the load stays,
+send `training_load` 0 and an empty description in the same update, and say
+so in playbook section 7.
+
+### 8.2 Source the return-from-break numbers [now, S]
+
+`RETURN_FROM_BREAK` uses 67% of pre-break load after 3-7 days missed, 50%
+after 8 or more, and a 45-minute cap for above-the-neck illness. They are
+defaults chosen inside the assessment's M6 rule ("half to two thirds"), not
+sourced figures. Check them against the detraining literature the assessment
+lists as not checked (Mujika & Padilla 2000) and a return-to-sport-after-
+illness source, then adjust the table and record the sources.
+
+### 8.3 Surface an ended illness window in the brief [next, S]
+
+`coach_brief.away` lists `SICK` / `INJURED` windows that are open or start
+in the next 14 days. One that ended yesterday disappears, so the return week
+depends on the model reading the calendar back 14 days, as the playbook tells
+it to. Add the last window that ended within 14 days to the brief (dates,
+days missed, the return rule that applies) and let `next_week_target` follow
+the return rule while the rebuild lasts. Touches `coach_brief.py`.
+
+### 8.4 Move the illness record into the decision log [next, with R1]
+
+1.7 asks for the decision log to record the illness. The data store (R1) is
+not built, so the event's description is the record. When the store exists,
+write the entry there and keep the description as the athlete-facing copy.
+
+### 8.5 Run the routines and the skill with a live model [now, S]
+
+Not yet checked: an "I'm sick" conversation end to end (question, event,
+sessions replaced, return week written), the answer shape of each named
+routine, and whether the skill uploads to Claude and triggers on web and on
+a phone. Add an `icu_get_athlete_state`-first case per routine to
+`tests/smoke_eval.json`; `make smoke-eval` costs money, so run it on purpose.
+
+### 8.6 Classify the prompt trim for the next release [now, S]
+
+The coaching profile stopped listing upstream's eight analysis prompts
+(2.3). The versioned contract in the CHANGELOG header names tools,
+parameters, env vars and responses, and says nothing about prompts. Decide
+whether removing a prompt from the default profile is breaking, and write
+the answer into the contract before the release is cut.
+
+### 8.7 Formatting drift on main [now, S]
+
+`make format` rewrites four files that `make lint` accepts as they are:
+`client.py`, `tools/event_management.py`, `tests/test_athlete_state.py` and
+`tests/test_session_layout_and_logging.py`. Any agent that runs
+`make format` picks up unrelated diffs in another lane's files. Neither
+`make lint` nor CI runs `ruff format --check`. Format the four files in one
+commit when no lane has them open, and add the check to both.
+
 ## Sources
 
 - [Get started with MCP Apps, Claude docs](https://claude.com/docs/connectors/building/mcp-apps/getting-started)
