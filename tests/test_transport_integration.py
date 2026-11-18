@@ -104,10 +104,13 @@ class TestInMemoryTransport:
             names = {p.name for p in prompts}
             # Spot-check a representative sample. Note: prompts do NOT carry
             # the `icu_` prefix that the tools convention uses.
-            assert "analyze_recent_training" in names
-            assert "generate_workout" in names
-            assert "recovery_check" in names
+            # The default (coaching) profile lists the named routines; the
+            # upstream analysis prompts register only under `full`.
+            assert "morning_check" in names
+            assert "im_sick" in names
+            assert "verify_setup" in names
             assert "coach_with_goals" in names
+            assert "analyze_recent_training" not in names
 
 
 class TestHTTPTransport:

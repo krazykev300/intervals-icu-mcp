@@ -105,10 +105,29 @@ first (`icu_get_athlete_state`), then follow its coaching guide: race →
 fitness → calendar. It proposes changes in chat and writes them to your
 Intervals.icu calendar only when you say yes.
 
-Built-in prompts (if your client lists them): `coach_with_goals`,
-`analyze_recent_training`, `recovery_check`, `plan_training_week`,
-`generate_workout`, `training_plan_review`, `performance_analysis`,
-`activity_deep_dive`, `verify_setup`.
+Named routines (listed as prompts if your client shows them; the plain
+phrase works too): `morning_check`, `review_my_week`, `plan_next_week`,
+`race_week`, `after_the_race`, `im_sick`, `i_have_45_minutes`. Also
+`coach_with_goals` (the whole playbook) and `verify_setup`.
+
+### Install the coach skill (optional)
+
+A Claude Skill makes Claude start coaching the moment the conversation turns
+to training, and read your current state before it answers. It is a more
+reliable trigger than the server's own instructions. Install it once; the
+server still delivers the full, current coaching guide through a tool, so
+clients without skills lose nothing.
+
+- **Claude web or desktop app:** get `intervals-coach.zip` (from a checkout,
+  `make skill` writes it to `build/`; or zip the
+  [`skills/intervals-coach`](../skills/intervals-coach) folder so the folder
+  is at the top of the zip). In Claude's settings, find **Skills** (under
+  Capabilities or Customize, depending on the version), upload the zip, and
+  switch it on.
+- **Claude Code:** copy the folder to `~/.claude/skills/intervals-coach/`.
+
+The skill holds no credentials and nothing about you. It only works in a chat
+where the Intervals.icu connector is enabled.
 
 More examples: [examples.md](examples.md). Full tool list: [tools.md](tools.md).
 

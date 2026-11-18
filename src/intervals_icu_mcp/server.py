@@ -25,12 +25,13 @@ mcp.add_middleware(ConfigMiddleware())
 
 # Read delete mode and tool profile at startup. Both gates sit outside the
 # LLM's reach — a prompt cannot summon a tool that was never registered.
-from .tool_profile import install_tool_profile_filter
+from .tool_profile import install_prompt_profile_filter, install_tool_profile_filter
 
 _CONFIG = load_config()
 _DELETE_MODE = _CONFIG.intervals_icu_delete_mode
 _TOOL_PROFILE = _CONFIG.intervals_icu_tool_profile
 install_tool_profile_filter(mcp, _TOOL_PROFILE)
+install_prompt_profile_filter(mcp, _TOOL_PROFILE)
 
 # Import and register tools
 from .tools.activities import (
@@ -1172,6 +1173,12 @@ Flag 401/403 on reads as a missing follow/coach relationship. Flag 403 on writes
 from .prompts.coach_with_goals import coach_with_goals
 
 mcp.prompt()(coach_with_goals)
+
+# Named routines (morning check, plan next week, I'm sick, ...): one prompt each.
+from .prompts.routines import ROUTINE_PROMPTS
+
+for _routine_prompt in ROUTINE_PROMPTS:
+    mcp.prompt()(_routine_prompt)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

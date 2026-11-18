@@ -30,6 +30,10 @@ breaking; this narrower contract applies from the next release onward.)
 - Session layout on `icu_create_event`, `icu_update_event` and `icu_bulk_create_events`: `purpose`, `fallback` and `carbs_per_hour` are composed into the description as purpose line / steps / `Fuel:` / `Fallback:`; `role` (key, support, easy, strength) adds a `role:` tag and calendar colour and, on create, a `coach-…` `external_id`; `tags`, `indoor`, `external_id` pass through. Events echo them back.
 - Native availability on HOLIDAY / SICK / INJURED events: `max_training_seconds` (API `max_training_time`) and `can_train_sports` on the write tools, and in calendar reads, `icu_get_event` and `coach_brief.away`.
 - `icu_log_session` (coaching profile) — logs a session no device recorded as a manual activity with duration, RPE and `kg_lifted`; with `event_id` it marks the planned event done so it counts in compliance and load. Coaching profile goes 35 → 36 tools (full 62 → 63 in safe mode).
+- Illness and injury protocol (playbook section 7): saying "I'm sick" or "I hurt my knee", or a `SICK` / `INJURED` event in `coach_brief.away`, starts a fixed sequence — safety screen, one question, the event with native availability, sessions inside the window replaced with rest, a return week from the end date, and how to extend or shorten. No new tool.
+- Methodology: "Return from a break" (`RETURN_FROM_BREAK`) — 1-2 days missed resume the plan, 3-7 days restart at 67% of pre-break load, 8+ days at 50%, rebuilt over as many weeks as were missed.
+- Named routines as MCP prompts: `morning_check`, `review_my_week`, `plan_next_week`, `race_week`, `after_the_race`, `im_sick`, `i_have_45_minutes`. Each reads the athlete state, loads the guide, and runs one playbook routine. The playbook gains the race-week, after-the-race and limited-time routines.
+- Claude Skill for athletes in `skills/intervals-coach/` (`make skill` rebuilds it and writes `build/intervals-coach.zip`). It triggers on training talk, calls `icu_get_athlete_state` first, then loads the guide from the server; a snapshot of the playbook and methodology is bundled as a fallback.
 
 ### Fixed
 - `icu_get_pace_curves` read the distance-based pace curve as durations, so peak efforts came back empty. Peaks are now standard distances (400 m through the marathon), and a curve whose arrays are null returns the empty result.
@@ -47,6 +51,7 @@ breaking; this narrower contract applies from the next release onward.)
 - A long-past `RACE_A` no longer anchors `phase_context` (`source` is now `unspecified` with `last_a_race`); an A-race in the last 14 days wins over a far-future one so the phase is `recovery`.
 
 ### Changed
+- The `coaching` profile lists 9 prompts: the seven named routines, `coach_with_goals` and `verify_setup`. Upstream's analysis prompts (`analyze_recent_training`, `performance_analysis`, `activity_deep_dive`, `recovery_check`, `training_plan_review`, `plan_training_week`, `generate_workout`, `verify_multi_athlete`) register only with `INTERVALS_ICU_TOOL_PROFILE=full`, which now lists 17.
 - Coaching is calendar-first: a proposed session or week ends with an offer to add it to the Intervals calendar, and on a yes the model writes it in the same turn (targets matching the chat), then asks the next follow-up. `coach_brief.next_actions` leads with that offer when today is empty or a recovery week is due.
 - Playbook: no promises of later action ("from now on…", "after your run I'll…"); travel mentioned in chat but missing from the calendar goes into the same offer as a HOLIDAY; moving a session checks its new neighbours (no back-to-back strength, hard days 48h apart) and is offered as an `icu_update_event`.
 - `60m_to_ftp_gap` flag text points at `analysis.ftp_check` for the FTP verdict.

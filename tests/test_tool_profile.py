@@ -101,4 +101,6 @@ class TestCoachingRegistration:
 
         names = asyncio.run(_names())
         assert "coach_with_goals" in names
-        assert "plan_training_week" in names
+        assert "plan_next_week" in names
+        # Upstream's planning prompt is replaced by the routine in coaching.
+        assert "plan_training_week" not in names

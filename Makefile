@@ -78,6 +78,14 @@ shell: ## Open a Python shell with the project context
 smoke: ## In-process MCP smoke of the coaching write tools (stubbed HTTP, no credentials, free)
 	uv run python scripts/smoke_mcp.py
 
+##@ Claude Skill
+
+skill: ## Rebuild skills/intervals-coach/ from the playbook and zip it to build/ for upload
+	uv run python scripts/build_skill.py
+
+skill/check: ## Fail if the committed skill is stale
+	uv run python scripts/build_skill.py --check
+
 ##@ LLM smoke eval (costs API money; NOT part of `make test`)
 
 smoke-eval: ## Run smoke eval against current branch (requires ANTHROPIC_API_KEY; costs ~$0.07/run)

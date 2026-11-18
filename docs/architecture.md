@@ -8,7 +8,8 @@ Detailed component documentation for the Intervals.icu MCP server.
 - Registers all tools, resources, and prompts
 - Tools are imported from `tools/` modules but registered in server.py
 - `INTERVALS_ICU_TOOL_PROFILE` wraps `mcp.tool` via `tool_profile.install_tool_profile_filter` so coaching omits tools not in `COACHING_TOOLS` without editing every registration
-- Overlay prompts live in `prompts/` (including `coaching_playbook.py` server instructions + resource body) and are registered from server.py
+- Overlay prompts live in `prompts/` (including `coaching_playbook.py` server instructions + resource body, and the named routines in `routines.py`) and are registered from server.py. `tool_profile.py` filters prompts by profile the same way it filters tools
+- `prompts/skill.py` renders the athlete-facing Claude Skill in `skills/intervals-coach/` from the playbook, methodology and routine index (`make skill`)
 - Middleware is added before tools are registered
 
 ## Middleware (`middleware.py`)
@@ -80,7 +81,7 @@ Resources expose reference content the LLM can pull on demand. They are paid onl
 | `intervals-icu://athlete/profile` | inline in `server.py` | Live athlete profile + fitness metrics; loads via `ICUClient` |
 | `intervals-icu://workout-syntax` | `workout_syntax.py` | Intervals.icu structured workout DSL reference (cycling/running/swimming) |
 | `intervals-icu://event-categories` | `event_categories.py` | Calendar event category enum + use-case mapping + training_availability values, referenced from `create_event` / `update_event` / `bulk_create_events` |
-| `intervals-icu://coaching-playbook` | `prompts/coaching_playbook.py` | Coaching skill (also FastMCP `instructions` and `coach_with_goals`) |
+| `intervals-icu://coaching-playbook` | `prompts/coaching_playbook.py` | Coaching playbook (also FastMCP `instructions`, `coach_with_goals`, and the snapshot in `skills/intervals-coach/`) |
 | `intervals-icu://methodology` | `methodology.py` | Versioned coaching parameters (distribution, taper, ramp, derived phase, readiness) |
 | `intervals-icu://custom-item-schemas` | `custom_item_schemas.py` | Per-`item_type` `content` schema for `create_custom_item` / `update_custom_item` (INPUT_FIELD / ACTIVITY_FIELD / INTERVAL_FIELD constraints + worked examples) |
 
