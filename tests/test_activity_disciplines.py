@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import get_args
 
-from intervals_icu_mcp.event_categories import EVENT_CATEGORIES_SPEC
+from intervals_icu_mcp.coaching.event_categories import EVENT_CATEGORIES_SPEC
 from intervals_icu_mcp.models import ACTIVITY_DISCIPLINES, ActivityType
 from intervals_icu_mcp.tools.event_management import COMMON_ACTIVITY_TYPES
 

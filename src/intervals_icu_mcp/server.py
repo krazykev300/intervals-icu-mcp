@@ -801,7 +801,7 @@ async def event_categories_resource() -> str:
     SET_FITNESS), the legacy aliases (RACE→RACE_A, GOAL→TARGET), the
     training_availability enum for ranged categories, and use-case guidance.
     """
-    from .event_categories import EVENT_CATEGORIES_SPEC
+    from .coaching.event_categories import EVENT_CATEGORIES_SPEC
 
     return EVENT_CATEGORIES_SPEC
 
@@ -823,7 +823,7 @@ async def methodology_resource() -> str:
     Read after icu_get_athlete_state before drafting a season or week. Numbers
     to reason over, not prose. Per-athlete overrides belong in a goals store.
     """
-    from .methodology import METHODOLOGY_SPEC
+    from .coaching.methodology import METHODOLOGY_SPEC
 
     return METHODOLOGY_SPEC
 

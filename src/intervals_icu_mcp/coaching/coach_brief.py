@@ -12,6 +12,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from typing import Any, cast
 
+from ..models import ActivitySummary, Event
 from .athlete_state_compute import parse_iso_date
 from .methodology import (
     CTL_WEEK_GAIN_FACTOR,
@@ -25,7 +26,6 @@ from .methodology import (
     TAPER_WEEK_LOAD_PCT,
     TSB_EXCURSION_THRESHOLD,
 )
-from .models import ActivitySummary, Event
 
 _TIERS = ("conservative", "standard", "aggressive")
 _AWAY_CATEGORIES = ("HOLIDAY", "SICK", "INJURED")

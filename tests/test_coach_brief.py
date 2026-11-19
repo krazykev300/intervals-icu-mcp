@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 
-from intervals_icu_mcp.athlete_state_compute import (
+from intervals_icu_mcp.coaching.athlete_state_compute import (
     _intensity_bin,
     derive_phase_context,
     derived_flags,
     ftp_check,
     gaps,
 )
-from intervals_icu_mcp.coach_brief import (
+from intervals_icu_mcp.coaching.coach_brief import (
     away_days,
     build_coach_brief,
     completed_week_loads,

@@ -86,7 +86,7 @@ What is missing, measured against the products in section 3:
 | Feedback after a session | Post-workout survey or automatic scoring feeds the next session | Compliance matched by calendar date only |
 | Readiness | HRV, RHR, check-in, wearable scores | Single-day z-score; `unknown` whenever today's row is empty |
 | Strength and cross-training | Athletica plans multi-sport; most cycling apps ignore strength | Mentioned in prose only; load model ignores them |
-| Evidence trail | Mostly opaque | Numbers in `methodology.py` with no sources |
+| Evidence trail | Mostly opaque | Numbers in `coaching/methodology.py` with no sources |
 | Proactive contact | Daily readiness and plan changes pushed to the phone | Pull only |
 | Guardrails on writes | The engine cannot produce an invalid week | Rules are prompt text the model may ignore |
 | Measured behaviour | Internal | A routing eval with 36 cases, many for tools outside the coaching profile |
@@ -545,7 +545,7 @@ recovery and enjoyment.
 
 ## 7. Research knowledge base
 
-**Problem.** The numbers in `methodology.py` are reasonable but unsourced, and
+**Problem.** The numbers in `coaching/methodology.py` are reasonable but unsourced, and
 the same numbers apply to a six-hour and a twenty-hour athlete.
 
 ### Structure
@@ -685,7 +685,7 @@ refer to the build order in [coaching-data-store.md](coaching-data-store.md).
 
 **Phase 2 — the owner's stated priorities.**
 1. R7 knowledge-base schema, tiers, renderer, CI checks; migrate
-   `methodology.py` constants to rule ids; write the seed rules from the table
+   `coaching/methodology.py` constants to rule ids; write the seed rules from the table
    in section 7; safety rules (backlog section 6).
 2. R6 sport roles, strength track and programme (B3.16), running guardrails,
    `modalities` in the brief.

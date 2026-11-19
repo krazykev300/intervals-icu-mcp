@@ -8,7 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from httpx import Response
 
-from intervals_icu_mcp.athlete_state_compute import (
+from intervals_icu_mcp.coaching.athlete_state import _durability_cache, get_athlete_state
+from intervals_icu_mcp.coaching.athlete_state_compute import (
     current_fitness,
     derive_phase_context,
     durability_from_streams,
@@ -19,7 +20,7 @@ from intervals_icu_mcp.athlete_state_compute import (
     weekly_fitness_series,
 )
 from intervals_icu_mcp.models import Event, Wellness
-from intervals_icu_mcp.tools.athlete_state import _durability_cache, get_athlete_state
+from intervals_icu_mcp.tools.athlete_state import get_athlete_state as registered_athlete_state
 
 
 def _ctx(config):
@@ -232,7 +233,10 @@ class TestDurability:
 
 
 class TestGetAthleteStateTool:
-    @patch("intervals_icu_mcp.tools.athlete_state.date")
+    def test_tool_surface_delegates_to_coaching_package(self):
+        assert registered_athlete_state is get_athlete_state
+
+    @patch("intervals_icu_mcp.coaching.athlete_state.date")
     async def test_composite_success(self, mock_date, mock_config, respx_mock):
         today = date(2026, 9, 16)
         mock_date.today.return_value = today
@@ -442,7 +446,7 @@ class TestAthleteTimezone:
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
-        from intervals_icu_mcp.tools.athlete_state import _timezone_cache
+        from intervals_icu_mcp.coaching.athlete_state import _timezone_cache
 
         _timezone_cache.clear()
         respx_mock.get("/athlete/i123456").mock(

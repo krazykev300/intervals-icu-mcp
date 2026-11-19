@@ -480,6 +480,11 @@ Keep fork code in `coaching/`. Offer upstream the fixes that are not
 coach-specific: athlete-timezone dates and the percent-scale intensity
 handling, if upstream has the same assumptions.
 
+**Done:** fork-owned athlete-state assembly and computation, coach brief,
+data-quality checks, methodology, and event-category reference logic live in
+`src/intervals_icu_mcp/coaching/`; `tools/athlete_state.py` is a thin MCP
+surface. The move changes no tool inputs, outputs, or side effects.
+
 ## 6. Safety
 
 Rules the coach follows regardless of what is asked, stored as knowledge-base
@@ -542,7 +547,7 @@ in the next 14 days. One that ended yesterday disappears, so the return week
 depends on the model reading the calendar back 14 days, as the playbook tells
 it to. Add the last window that ended within 14 days to the brief (dates,
 days missed, the return rule that applies) and let `next_week_target` follow
-the return rule while the rebuild lasts. Touches `coach_brief.py`.
+the return rule while the rebuild lasts. Touches `coaching/coach_brief.py`.
 
 ### 8.4 Move the illness record into the decision log [next, with R1]
 

@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from ..models import ActivitySummary, CurveData, Event, SportSettings, Wellness
 from .methodology import (
     FTP_CHECK,
     PHASE_FROM_A_RACE,
@@ -14,7 +15,6 @@ from .methodology import (
     TSB_EXCURSION_THRESHOLD,
     TSB_RECOVERED_THRESHOLD,
 )
-from .models import ActivitySummary, CurveData, Event, SportSettings, Wellness
 
 RACE_CATEGORIES = frozenset({"RACE_A", "RACE_B", "RACE_C"})
 KEY_POWER_DURATIONS: tuple[tuple[int, str], ...] = (
