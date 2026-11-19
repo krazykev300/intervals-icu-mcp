@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from intervals_icu_mcp.methodology import METHODOLOGY_SPEC, RETURN_FROM_BREAK
+from intervals_icu_mcp.coaching.methodology import METHODOLOGY_SPEC, RETURN_FROM_BREAK
 from intervals_icu_mcp.prompts import routines
 from intervals_icu_mcp.prompts.coaching_playbook import COACHING_PLAYBOOK
 from intervals_icu_mcp.prompts.routines import ROUTINE_PROMPTS, ROUTINES

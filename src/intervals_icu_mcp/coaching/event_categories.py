@@ -6,7 +6,7 @@ bulk_create_events) points the LLM here instead of inlining the full enum +
 use-case mapping in every Annotated description.
 """
 
-from .models import ACTIVITY_DISCIPLINES
+from ..models import ACTIVITY_DISCIPLINES
 
 _DISCIPLINES_LIST = ", ".join(f"`{discipline}`" for discipline in ACTIVITY_DISCIPLINES)
 

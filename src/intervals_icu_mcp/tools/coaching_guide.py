@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from ..event_categories import EVENT_CATEGORIES_SPEC
-from ..methodology import METHODOLOGY_SPEC
+from ..coaching.event_categories import EVENT_CATEGORIES_SPEC
+from ..coaching.methodology import METHODOLOGY_SPEC
 from ..prompts.coaching_playbook import COACHING_PLAYBOOK
 from ..workout_syntax import WORKOUT_SYNTAX_SPEC
 

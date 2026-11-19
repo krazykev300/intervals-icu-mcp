@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, cast
 
-from .models import ActivityStream, ActivitySummary, SportSettings, Wellness
+from ..models import ActivityStream, ActivitySummary, SportSettings, Wellness
 
 _RIDE_TYPES = frozenset(
     {"Ride", "VirtualRide", "MountainBikeRide", "GravelRide", "EBikeRide", "EMountainBikeRide"}

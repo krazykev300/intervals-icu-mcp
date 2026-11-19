@@ -1,8 +1,8 @@
 """Versioned coaching methodology parameters for LLM consumption.
 
 Exposed as the `intervals-icu://methodology` MCP Resource. Helpers in
-`athlete_state_compute` import the same tables so derived phase and readiness
-stay consistent with the resource the coach is told to read.
+`coaching.athlete_state_compute` imports the same tables so derived phase and
+readiness stay consistent with the resource the coach is told to read.
 """
 
 from typing import Any

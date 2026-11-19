@@ -1,6 +1,6 @@
 """Data-quality sentinel findings and exclusion policy."""
 
-from intervals_icu_mcp.data_quality import data_quality_report, stream_sensor_issues
+from intervals_icu_mcp.coaching.data_quality import data_quality_report, stream_sensor_issues
 from intervals_icu_mcp.models import ActivityStream, ActivitySummary, SportSettings, Wellness
 
 

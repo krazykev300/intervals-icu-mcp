@@ -7,7 +7,7 @@ from fastmcp import Context
 
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
-from ..coach_brief import intensity_factor
+from ..coaching.coach_brief import intensity_factor
 from ..response_builder import ResponseBuilder
 from ._strava import strava_limitation_note
 

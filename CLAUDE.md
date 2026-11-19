@@ -60,8 +60,9 @@ make docker/run       # Run Docker container
 | Workout parser | `workout_parser.py` | Local linter/preview for workout descriptions |
 | Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-lists + `mcp.tool` / `mcp.prompt` filters |
 | Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
+| Coaching | `coaching/` | Fork-owned athlete-state assembly, brief computation, methodology, data quality, and event references |
 | Prompts | `prompts/` | Coaching playbook (`coaching_playbook.py`), named routines (`routines.py`), Claude Skill renderer (`skill.py`); kept out of `server.py` for rebases |
-| Tools | `tools/` | 16 tool modules plus the `_strava.py` helper (see below) |
+| Tools | `tools/` | Thin MCP surfaces for 16 tool modules plus the `_strava.py` helper (see below) |
 
 **For detailed architecture**: see `docs/architecture.md`
 
@@ -71,7 +72,7 @@ make docker/run       # Run Docker container
 2. `activity_analysis.py` — Streams, intervals, best efforts, histograms
 3. `activity_messages.py` — Notes/comments on activities
 4. `athlete.py` — Profile, fitness metrics (CTL/ATL/TSB)
-5. `athlete_state.py` — Composite grounding read (`icu_get_athlete_state`)
+5. `athlete_state.py` — Thin registration for the coaching package's composite grounding read (`icu_get_athlete_state`)
 6. `coaching_guide.py` — Playbook and references as a tool (`icu_get_coaching_guide`)
 7. `wellness.py` — HRV, sleep, recovery
 8. `events.py` — Calendar queries

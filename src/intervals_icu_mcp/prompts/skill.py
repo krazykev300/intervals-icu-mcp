@@ -10,7 +10,7 @@ server, which is always current. The bundled copies under `references/` are a
 snapshot for the case where the guide tool is missing.
 """
 
-from ..methodology import METHODOLOGY_SPEC
+from ..coaching.methodology import METHODOLOGY_SPEC
 from .coaching_playbook import COACHING_PLAYBOOK
 from .routines import ROUTINES
 
