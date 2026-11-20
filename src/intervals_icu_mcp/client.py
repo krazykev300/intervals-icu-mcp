@@ -329,9 +329,7 @@ class ICUClient:
     ) -> Activity:
         """Create a manual activity matching a planned event, paired to it."""
         athlete_id = athlete_id or self.config.intervals_icu_athlete_id
-        response = await self._request(
-            "POST", f"/athlete/{athlete_id}/events/{event_id}/mark-done"
-        )
+        response = await self._request("POST", f"/athlete/{athlete_id}/events/{event_id}/mark-done")
         return Activity(**response.json())
 
     async def bulk_create_manual_activities(
