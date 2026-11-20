@@ -607,6 +607,22 @@ commit when no lane has them open, and add the check to both.
 **Done:** the three files still drifting are formatted (`test_athlete_state.py`
 had already been fixed), and `ruff format --check` runs in `make lint` and in CI.
 
+### 8.8 Ramp cap with no reference week [now, S]
+
+The 1.3x weekly cap (#23) is a multiple of the reference week: the larger of
+the last completed week and the mean of the last three. When every recent week
+is zero (an unplanned break with no SICK / INJURED event, or a new athlete), the
+reference is 0 and the cap is skipped. The target then falls back to
+`7 x (CTL + 6.51 x r)`, the full jump the cap exists to prevent. The
+return-from-break rule (8.3) only covers logged SICK / INJURED windows.
+
+Find out how often this happens (weeks with zero load in the lookback while CTL
+is above, say, 10), then choose a fallback and give it a source entry. Options:
+treat N zero weeks as a break and apply `RETURN_FROM_BREAK` by weeks missed;
+use the last non-zero week as the reference; or cap from a CTL floor
+(`7 x CTL x 1.3`). Touches `coaching/coach_brief.py`, `coaching/methodology.py`
+and `coaching/sources.py`.
+
 ## Sources
 
 - [Get started with MCP Apps, Claude docs](https://claude.com/docs/connectors/building/mcp-apps/getting-started)
