@@ -363,12 +363,75 @@ ladders, pace-based workout syntax, and brick sessions for multisport.
 Beyond the phase table in the assessment: an exercise library with
 progressions and substitutions by equipment, loading by reps in reserve,
 home and bodyweight variants, and a short prehab set tied to injury notes.
+Starts after 3.18 settles where the rules live and how rigid they are.
 
 ### 3.17 Season review [later, M]
 
 Once a year: what was planned, what happened, which blocks produced gains,
 what to change. Written as a note in Intervals and into the decision log as
 the starting point for the next season.
+
+### 3.18 Strength rules: research and the architecture decision [now, M]
+
+Decide how strength is prescribed before building 3.16 on top of it. Today
+every strength number is prose, so `tests/test_methodology_sources.py` checks
+none of them:
+
+- Playbook section 5: two sessions a week, not the day after VO2, start after
+  A-race recovery, never in peak or taper.
+- Methodology session menu: "strength x2" in base, no strength the day before
+  a key session.
+- Assessment section 6: a phase table (technique 2–3 weeks; heavy 3–4 × 4–10
+  for 8–12 weeks; once a week in build; stop heavy lifting 7–10 days before an
+  A-race) and placement rules (lift on hard days at least 3 hours after the
+  ride; no heavy legs within 24 hours of a key session, 48 in the first weeks).
+
+Confirmed evidence covers only part of it: Rønnestad 2010 and 2011 (twice
+weekly, then once weekly in season, in well-trained cyclists) and Schumann
+2022 (no interference with maximal strength; explosive strength suffers in the
+same session, not three hours apart). Unsourced so far: the pre-race stop,
+the 24 / 48-hour gaps, the technique-phase sets and reps, "not the day after
+VO2", and the 2–3 weeks of heavy legs when starting.
+
+Research and decide three things, and write the decisions here before any code:
+
+1. **Architecture.** Where strength rules live, and who applies them.
+   - Constants in `coaching/methodology.py`, beside the endurance numbers;
+     a per-sport module (the assessment's `sports/` config); or rule records
+     (the assessment's section 7 `knowledge/` package).
+   - Whether the brief computes strength (sessions due this week by phase,
+     placement against key sessions, done vs prescribed) the way it computes
+     the load target, or the guide only describes it and the model applies it.
+   - How strength sessions count in load (session RPE × minutes, `kg_lifted`)
+     and whether they feed compliance, the ramp and readiness.
+2. **Sources: merge or separate.** One registry or two.
+   - Merge: strength entries go into `coaching/sources.py`
+     `PARAMETER_SOURCES` and `REFERENCES`, under the same test and the same
+     sourced / derived / default tally.
+   - Separate: a strength registry with fields the endurance one lacks
+     (population, training age, exercise, load scheme), rendered as its own
+     section.
+   - Either way, keep the assessment's section 7 evidence table in step.
+3. **How rigid.** For each rule, decide whether it is:
+   - a hard boundary the server enforces (refuses or warns on a calendar
+     write, e.g. heavy legs the day before a key session, lifting inside the
+     pre-race stop);
+   - a default the model may adapt with a stated reason (frequency, sets and
+     reps, exercise choice); or
+   - guidance only (exercise selection, equipment substitutions).
+
+   Also decide which values the athlete can override (equipment, days
+   available, training age) and which stay fixed.
+
+Research to do: read on PubMed (status `confirmed` only when read) for the
+unsourced values above, concurrent-training placement and order, and
+strength cessation before endurance events. Also note how current systems
+(TrainerRoad, TrainingPeaks plans, coaching literature) set rigidity, and
+the population limits of cyclist-only trials.
+
+**Done when** the three decisions are written here with their reasons, every
+strength number has a basis and references in the chosen registry, and 3.16
+is rescoped to build on them.
 
 ## 4. Proactive and event-driven
 
@@ -509,7 +572,7 @@ Folded into the phases of the assessment's roadmap:
 |---|---|
 | 0 Corrections | Closed. Pace curve, run threshold unit, interval fields, intensity ratio, weight and date of birth, GPS longitude, discipline list. |
 | 1 Foundation | 1.1, 1.6, 1.7, 1.9, 2.2, 2.3, 5.2, 5.3, 5.4, 5.9 |
-| 2 Strength, cross-training, rule base | 1.2, 2.4, 3.16, section 6 |
+| 2 Strength, cross-training, rule base | 1.2, 2.4, 3.18 then 3.16, section 6 |
 | 3 Session quality | 1.4, 1.8, 1.10, 3.3, 3.4, 3.5, 3.12, 3.14, 4.2 |
 | 4 Planning | 1.3, 1.5, 1.11, 2.7, 2.8, 3.6, 3.8 |
 | 5 Reach | 2.1, 2.5, 4.1, 4.3, 4.4, 5.1, 5.5, 5.6 |
