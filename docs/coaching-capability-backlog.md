@@ -549,6 +549,11 @@ it to. Add the last window that ended within 14 days to the brief (dates,
 days missed, the return rule that applies) and let `next_week_target` follow
 the return rule while the rebuild lasts. Touches `coaching/coach_brief.py`.
 
+**Done:** `coach_brief.returning` carries the latest SICK / INJURED window that
+ended in the last 14 days: days missed, rule, rebuild weeks, and this week's
+share of the last full pre-break week, which `load.next_week_target` follows
+while the rebuild lasts. Playbook section 7 points at it. Not checked live.
+
 ### 8.4 Move the illness record into the decision log [next, with R1]
 
 1.7 asks for the decision log to record the illness. The data store (R1) is

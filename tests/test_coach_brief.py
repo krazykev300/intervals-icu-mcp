@@ -412,3 +412,51 @@ class TestTodayFlags:
         brief = _brief(activities=_weeks([500, 520, 300, 520]))
         result = today_flags(brief=brief, ftp_check={"verdict": "keep"}, gaps=[])
         assert result == {"flags": []}
+
+
+class TestRecentBreak:
+    def _sick(self, start: date, end: date, category: str = "SICK") -> Event:
+        return _event(start, category, name="Flu", end_date_local=end.isoformat())
+
+    def test_short_illness_sets_first_week_target(self):
+        sick = self._sick(date(2026, 11, 10), date(2026, 11, 14))
+        brief = _brief(events=[sick])
+
+        returning = brief["returning"]
+        assert returning["rule"] == "short"
+        assert returning["days_missed"] == 5
+        assert returning["days_since_end"] == 2
+        assert returning["rebuild_weeks"] == 1
+        assert returning["pre_break_week_load"] == 540
+        assert returning["this_week_load_pct"] == 67
+        assert brief["load"]["next_week_target"]["load"] == round(540 * 0.67)
+        assert "return from sick" in brief["load"]["next_week_target"]["basis"]
+        assert any("return week" in a for a in brief["next_actions"])
+        assert brief["provenance"]["values"]["returning"]["rule_id"] == "return_from_break.v1"
+
+    def test_long_break_climbs_through_rebuild(self):
+        injured = self._sick(date(2026, 10, 30), date(2026, 11, 8), "INJURED")
+        brief = _brief(events=[injured])
+
+        returning = brief["returning"]
+        assert returning["rule"] == "long"
+        assert returning["rebuild_weeks"] == 2
+        assert returning["this_rebuild_week"] == 2
+        assert returning["this_week_load_pct"] == 75
+        assert returning["pre_break_week_load"] == 500
+        assert brief["load"]["next_week_target"]["load"] == 375
+
+    def test_two_days_resumes_plan(self):
+        brief = _brief(events=[self._sick(date(2026, 11, 13), date(2026, 11, 14))])
+
+        assert brief["returning"]["rule"] == "resume_plan"
+        assert "return from" not in brief["load"]["next_week_target"]["basis"]
+
+    def test_open_or_old_windows_are_not_returns(self):
+        ongoing = self._sick(date(2026, 11, 14), date(2026, 11, 17))
+        old = self._sick(date(2026, 10, 20), date(2026, 10, 25))
+        holiday = self._sick(date(2026, 11, 10), date(2026, 11, 14), "HOLIDAY")
+        brief = _brief(events=[ongoing, old, holiday])
+
+        assert "returning" not in brief
+        assert brief["away"][0]["category"] == "SICK"

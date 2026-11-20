@@ -23,6 +23,7 @@ from .methodology import (
     RAMP,
     RAMP_SELECTION,
     RECOVERY_WEEK_RATIO,
+    RETURN_FROM_BREAK,
     TAPER_WEEK_LOAD_PCT,
     TSB_EXCURSION_THRESHOLD,
 )
@@ -30,6 +31,8 @@ from .methodology import (
 _TIERS = ("conservative", "standard", "aggressive")
 _AWAY_CATEGORIES = ("HOLIDAY", "SICK", "INJURED")
 _AWAY_WINDOW_DAYS = 14
+_BREAK_CATEGORIES = ("SICK", "INJURED")
+_RETURN_LOOKBACK_DAYS = 14
 # A "Focus: ..." NOTE with no end date stops the A-race question for this long.
 FOCUS_NOTE_DAYS = 120
 FOCUS_PREFIX = "focus:"
@@ -219,6 +222,65 @@ def away_days(events: list[Event], today: date) -> list[dict[str, Any]]:
     return items
 
 
+def recent_break(
+    events: list[Event], weeks: list[dict[str, Any]], today: date
+) -> dict[str, Any] | None:
+    """Latest SICK / INJURED window that ended in the last two weeks, with its return rule.
+
+    Days missed pick the rule in RETURN_FROM_BREAK. The rebuild lasts one week
+    per week missed (rounded up) and climbs linearly from the first-week share
+    back to 100% of the last full week before the break.
+    """
+    latest: tuple[date, date, Event] | None = None
+    for event in events:
+        if event.category not in _BREAK_CATEGORIES:
+            continue
+        start, end = _event_span(event)
+        if not 1 <= (today - end).days <= _RETURN_LOOKBACK_DAYS:
+            continue
+        if latest is None or end > latest[1]:
+            latest = (start, end, event)
+    if latest is None:
+        return None
+    start, end, event = latest
+    days_missed = (end - start).days + 1
+    item: dict[str, Any] = {
+        "category": event.category,
+        "name": event.name,
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "days_missed": days_missed,
+        "days_since_end": (today - end).days,
+    }
+    if days_missed <= RETURN_FROM_BREAK["resume_plan_days_missed_max"]:
+        item["rule"] = "resume_plan"
+        item["in_rebuild"] = False
+        return item
+    tier = "short" if days_missed <= RETURN_FROM_BREAK["short"]["days_missed_max"] else "long"
+    rule = RETURN_FROM_BREAK[tier]
+    rebuild_weeks = -(-days_missed // 7)
+    week_index = (today - end - timedelta(days=1)).days // 7
+    first_pct = rule["first_week_load_pct"]
+    item.update(
+        {
+            "rule": tier,
+            "first_week_load_pct": first_pct,
+            "easy_days_first": rule["easy_days_first"],
+            "rebuild_weeks": rebuild_weeks,
+            "rebuild_until": (end + timedelta(days=7 * rebuild_weeks)).isoformat(),
+            "in_rebuild": week_index < rebuild_weeks,
+        }
+    )
+    before = [w for w in weeks if date.fromisoformat(w["week_start"]) + timedelta(days=7) <= start]
+    if before and item["in_rebuild"]:
+        item["pre_break_week_load"] = before[-1]["load"]
+        item["this_rebuild_week"] = week_index + 1
+        item["this_week_load_pct"] = round(
+            first_pct + (100 - first_pct) * week_index / rebuild_weeks
+        )
+    return item
+
+
 def today_flags(
     *,
     brief: dict[str, Any],
@@ -381,6 +443,9 @@ def build_coach_brief(
         brief["intensity_distribution"] = distribution
 
     weeks = completed_week_loads(activities, today)
+    returning = recent_break(events, weeks, today)
+    if returning:
+        brief["returning"] = returning
     loads = [float(w["load"]) for w in weeks]
     recent = loads[-3:]
     reference = round(sum(recent) / len(recent)) if recent else None
@@ -399,7 +464,16 @@ def build_coach_brief(
     target: int | None = None
     basis = ""
     days_out = next_a["days_out"] if next_a else None
-    if phase == "recovery" and reference is not None:
+    if returning and "this_week_load_pct" in returning:
+        pct = returning["this_week_load_pct"]
+        target = round(returning["pre_break_week_load"] * pct / 100)
+        basis = (
+            f"return from {returning['category'].lower()} ({returning['days_missed']} days "
+            f"missed): rebuild week {returning['this_rebuild_week']} of "
+            f"{returning['rebuild_weeks']}, {pct}% of the last full week before the break, "
+            f"{returning['easy_days_first']} easy days first"
+        )
+    elif phase == "recovery" and reference is not None:
         target = round(reference * POST_A_RECOVERY_LOAD_PCT / 100)
         basis = (
             f"post-A recovery: at most {POST_A_RECOVERY_LOAD_PCT}% of recent weeks, no intensity"
@@ -521,6 +595,17 @@ def _brief_provenance(
                 "events.max_training_time",
             ],
         }
+    if "returning" in brief:
+        values["returning"] = {
+            "kind": "computed",
+            "rule_id": "return_from_break.v1",
+            "inputs": [
+                "events.start_date_local",
+                "events.end_date_local",
+                "activities.icu_training_load",
+                "methodology.return_from_break",
+            ],
+        }
     if "intensity_distribution" in brief:
         values["intensity_distribution"] = {
             "kind": "computed",
@@ -582,6 +667,12 @@ def _next_actions(*, brief: dict[str, Any], phase: str, recovery_due: bool) -> l
     if phase == "taper":
         actions.append(
             "Taper: check the remaining days hold intensity and cut volume; no new stress."
+        )
+    returning = brief.get("returning")
+    if returning and returning.get("in_rebuild"):
+        actions.append(
+            f"Back from {returning['category'].lower()} ({returning['end']}): check the return "
+            "week is on the calendar before planning anything harder; offer to write it if not."
         )
     if recovery_due:
         actions.append(
