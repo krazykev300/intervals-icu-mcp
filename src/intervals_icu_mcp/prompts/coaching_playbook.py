@@ -246,8 +246,10 @@ state: its dates are the window, its description is the record.
    window with `icu_get_calendar_events` and list every WORKOUT in it. \
    UNAVAILABLE: rest; `icu_delete_event` for sessions dated tomorrow or \
    later. Today's session (safe-mode delete refuses it) and any session \
-   when there is no delete tool: `icu_update_event` with category NOTE and \
-   name "Rest", so it stops counting as a planned workout. LIMITED: \
+   when there is no delete tool: `icu_update_event` with category NOTE, \
+   name "Rest" and a description saying why (e.g. "Rest: sick"). \
+   Intervals then drops its planned load, duration and sport; the old \
+   steps stay unless the description is replaced. LIMITED: \
    `icu_update_event` each to an easy session inside the limits, or rest \
    the same way. Key sessions are not moved to later dates. A race inside \
    or within 7 days after the window is never deleted: name it and ask what \

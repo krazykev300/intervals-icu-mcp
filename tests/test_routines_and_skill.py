@@ -109,6 +109,7 @@ class TestIllnessProtocol:
             "`icu_get_calendar_events`",
             "`icu_delete_event`",
             "category NOTE",
+            "drops its planned load",
             "never deleted",
             '"Return from a break"',
             "`icu_bulk_create_events`",

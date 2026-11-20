@@ -531,6 +531,13 @@ Check on a future-dated event and delete it afterwards. If the load stays,
 send `training_load` 0 and an empty description in the same update, and say
 so in playbook section 7.
 
+**Done:** checked live on 2026-11-19 with a future-dated Ride WORKOUT (load
+59, 56 minutes, 8 steps) on 2027-01-31, deleted afterwards. After
+`icu_update_event` with category NOTE and name "Rest", Intervals returned no
+`icu_training_load`, no duration and no sport type, so the planned load is gone
+and nothing extra is needed. The workout text stayed in the description, so
+playbook section 7 now also replaces the description with the reason.
+
 ### 8.2 Source the return-from-break numbers [now, S]
 
 `RETURN_FROM_BREAK` uses 67% of pre-break load after 3-7 days missed, 50%
