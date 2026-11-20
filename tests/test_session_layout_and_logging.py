@@ -124,17 +124,13 @@ class TestSessionLayoutUpdate:
         assert "full description" in json.loads(result)["error"]["message"]
 
     async def test_carbs_alone_sets_field_only(self, ctx, respx_mock):
-        route = respx_mock.put("/athlete/i123456/events/5").mock(
-            side_effect=lambda r: _echo(r, 5)
-        )
+        route = respx_mock.put("/athlete/i123456/events/5").mock(side_effect=lambda r: _echo(r, 5))
         await update_event(event_id=5, carbs_per_hour=90, ctx=ctx)
         sent = json.loads(route.calls.last.request.content)
         assert sent == {"carbs_per_hour": 90}
 
     async def test_role_on_update_does_not_mint_external_id(self, ctx, respx_mock):
-        route = respx_mock.put("/athlete/i123456/events/5").mock(
-            side_effect=lambda r: _echo(r, 5)
-        )
+        route = respx_mock.put("/athlete/i123456/events/5").mock(side_effect=lambda r: _echo(r, 5))
         await update_event(event_id=5, role="support", ctx=ctx)
         sent = json.loads(route.calls.last.request.content)
         assert sent == {"tags": ["role:support"], "color": "#1976d2"}
@@ -172,9 +168,7 @@ class TestAvailability:
         assert "Unknown sport" in json.loads(result)["error"]["message"]
 
     async def test_update_availability(self, ctx, respx_mock):
-        route = respx_mock.put("/athlete/i123456/events/9").mock(
-            side_effect=lambda r: _echo(r, 9)
-        )
+        route = respx_mock.put("/athlete/i123456/events/9").mock(side_effect=lambda r: _echo(r, 9))
         await update_event(event_id=9, max_training_seconds=3600, ctx=ctx)
         assert json.loads(route.calls.last.request.content) == {"max_training_time": 3600}
 
@@ -219,7 +213,9 @@ class TestBulkLayoutAndAvailability:
         assert "error" not in json.loads(result)
 
     async def test_bulk_bad_role(self, ctx):
-        events = [{"start_date_local": "2026-12-01", "name": "X", "category": "WORKOUT", "role": "x"}]
+        events = [
+            {"start_date_local": "2026-12-01", "name": "X", "category": "WORKOUT", "role": "x"}
+        ]
         result = await bulk_create_events(events=json.dumps(events), ctx=ctx)
         assert "Event 0: Invalid role" in json.loads(result)["error"]["message"]
 

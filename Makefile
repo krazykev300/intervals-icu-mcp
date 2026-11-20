@@ -45,8 +45,9 @@ test/coverage: ## Run tests with coverage report
 
 lint: lint/ruff lint/pyright ## Run all linting tools
 
-lint/ruff: ## Run ruff linter
+lint/ruff: ## Run ruff linter and format check
 	uv run ruff check
+	uv run ruff format --check
 
 lint/pyright: ## Run pyright type checker
 	uv run pyright

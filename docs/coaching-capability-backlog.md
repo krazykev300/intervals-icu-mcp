@@ -580,6 +580,9 @@ the answer into the contract before the release is cut.
 `make lint` nor CI runs `ruff format --check`. Format the four files in one
 commit when no lane has them open, and add the check to both.
 
+**Done:** the three files still drifting are formatted (`test_athlete_state.py`
+had already been fixed), and `ruff format --check` runs in `make lint` and in CI.
+
 ## Sources
 
 - [Get started with MCP Apps, Claude docs](https://claude.com/docs/connectors/building/mcp-apps/getting-started)

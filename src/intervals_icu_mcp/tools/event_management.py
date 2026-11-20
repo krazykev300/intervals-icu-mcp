@@ -260,6 +260,7 @@ def _availability_fields(
         fields["can_train_sports"] = sports
     return fields, None
 
+
 # Compact, in-context workout-syntax cheat-sheet for the `description` field.
 # Inlined (not only pointed at via the intervals-icu://workout-syntax resource)
 # because many hosts — notably Claude Desktop — never surface MCP resources to the
@@ -867,9 +868,7 @@ async def update_event(
             error_type="validation_error",
         )
     if description is not None:
-        description = _compose_session_description(
-            description, purpose, carbs_per_hour, fallback
-        )
+        description = _compose_session_description(description, purpose, carbs_per_hour, fallback)
 
     normalized_category: str | None = None
     if category is not None:
@@ -1556,7 +1555,8 @@ async def log_session(
                 payload: dict[str, Any] = {
                     "start_date_local": normalized_start,
                     "type": event_type,
-                    "name": name or ("Strength" if event_type == DEFAULT_LOGGED_TYPE else event_type),
+                    "name": name
+                    or ("Strength" if event_type == DEFAULT_LOGGED_TYPE else event_type),
                     **fields,
                 }
                 activity = await client.create_manual_activity(payload, athlete_id=athlete_id)
