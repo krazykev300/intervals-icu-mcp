@@ -183,7 +183,17 @@ athlete-facing coach skill is separate, in `skills/intervals-coach/`):
 
 ## Merging PRs
 
-PRs are **squash-merged only** (repo setting: commit title from `PR_TITLE`, body `BLANK`). The PR title becomes the single `main` commit subject with ` (#N)` appended — write PR titles as single-line conventional commits (≤ ~70 chars), and edit non-conforming community PR titles before merging.
+PRs are **squash-merged only** (`gh pr merge <N> --squash`), the same as upstream, so `main` stays linear with one commit per PR. The fork enforces it: merge commits and rebase merges are off, the squash commit takes its title from `PR_TITLE` with a `BLANK` body, and head branches are deleted on merge. The PR title becomes that commit's subject with ` (#N)` appended — write PR titles as single-line conventional commits (≤ ~70 chars), and edit non-conforming community PR titles before merging.
+
+**Clean up after a merge.** GitHub deletes the remote branch on merge. A squash-merged branch never looks merged to `git branch --merged`, so delete the local one by name once its PR shows MERGED:
+
+```bash
+git fetch --prune
+git branch -vv | grep ': gone]'   # local branches whose remote was deleted
+git branch -D <branch>            # for each, after checking its PR merged
+```
+
+A branch checked out in a worktree can't be deleted: run `git worktree remove <path>` first, if that worktree is clean and no session is using it.
 
 ## Releases
 
