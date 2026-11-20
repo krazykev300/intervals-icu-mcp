@@ -68,6 +68,14 @@ async def test_tool_name(mock_client):
 - Place stub implementations in `tests/stubs/`
 - Use for complex objects that need simplified versions in tests
 
+## Methodology sources
+
+`tests/test_methodology_sources.py` checks that every constant in
+`coaching/methodology.py` has an entry in `coaching/sources.py`, that each
+entry names a basis and rationale, that a `sourced` entry cites something, and
+that every reference is cited and known. Adding a constant means adding its
+entry in the same change.
+
 ## Pre-Release Verification
 
 Always run `make can-release` before finishing any feature. This runs:

@@ -31,6 +31,7 @@ Detailed component documentation for the Intervals.icu MCP server.
 
 - Owns fork-specific athlete-state assembly and deterministic coaching computations
 - Contains the coach brief, methodology, data-quality sentinel, and event-category reference
+- `coaching/sources.py` records the basis (sourced, derived or default), rationale and references for every constant in `methodology.py`; the methodology text renders it as "Where these numbers come from", and `tests/test_methodology_sources.py` fails while a constant has no entry
 - Keeps `tools/athlete_state.py` as a thin MCP registration surface
 - Has no store, cache, or validator behavior beyond the existing athlete-state implementation
 
@@ -89,7 +90,7 @@ Resources expose reference content the LLM can pull on demand. They are paid onl
 | `intervals-icu://workout-syntax` | `workout_syntax.py` | Intervals.icu structured workout DSL reference (cycling/running/swimming) |
 | `intervals-icu://event-categories` | `coaching/event_categories.py` | Calendar event category enum + use-case mapping + training_availability values, referenced from `create_event` / `update_event` / `bulk_create_events` |
 | `intervals-icu://coaching-playbook` | `prompts/coaching_playbook.py` | Coaching playbook (also FastMCP `instructions`, `coach_with_goals`, and the snapshot in `skills/intervals-coach/`) |
-| `intervals-icu://methodology` | `coaching/methodology.py` | Versioned coaching parameters (distribution, taper, ramp, derived phase, readiness) |
+| `intervals-icu://methodology` | `coaching/methodology.py` | Versioned coaching parameters (distribution, taper, ramp, derived phase, readiness) and where each comes from (`coaching/sources.py`) |
 | `intervals-icu://custom-item-schemas` | `custom_item_schemas.py` | Per-`item_type` `content` schema for `create_custom_item` / `update_custom_item` (INPUT_FIELD / ACTIVITY_FIELD / INTERVAL_FIELD constraints + worked examples) |
 
 When adding a new tool whose description repeats >~200 chars of reference content (enums, schemas, DSL), prefer extracting that content into a new module and registering it as a resource. The pattern: a single `*_SPEC = """..."""` constant per module, imported lazily inside the resource function.

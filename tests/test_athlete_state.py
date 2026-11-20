@@ -357,7 +357,7 @@ class TestGetAthleteStateTool:
         assert len(response["analysis"]["coach_brief"]["flags"]) <= 2
         provenance = response["analysis"]["coach_brief"]["provenance"]
         assert provenance["engine_version"] == "1.0.0"
-        assert provenance["kb_version"] == "1.0.0"
+        assert provenance["kb_version"] == "1.1.0"
         assert provenance["data_quality"]["excluded_activity_ids"] == ["strava-stub"]
         assert any(item["field"] == "activities.source" for item in response["analysis"]["gaps"])
         assert not any(
