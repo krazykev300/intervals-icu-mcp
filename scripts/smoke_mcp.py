@@ -106,6 +106,33 @@ async def main():
                 )
             )
             m.post("/athlete/i1/events/77/mark-done").mock(return_value=Response(200, json=ACT))
+            m.get("/athlete/i1/events/77").mock(
+                return_value=Response(
+                    200,
+                    json={
+                        "id": 77,
+                        "start_date_local": "2026-11-17T00:00:00",
+                        "name": "Strength A3",
+                        "category": "WORKOUT",
+                        "type": "WeightTraining",
+                    },
+                )
+            )
+            day_acts: list[dict] = []
+            m.get("/athlete/i1/activities").mock(side_effect=lambda r: Response(200, json=day_acts))
+            strava = {
+                "id": "2104",
+                "start_date_local": "2026-11-17T16:15:28",
+                "name": "Untitled",
+                "type": None,
+                "source": "STRAVA",
+            }
+            m.put("/activity/2104").mock(
+                side_effect=lambda r: (
+                    sent.__setitem__("strava_put", json.loads(r.content)),
+                    Response(200, json={**strava, **json.loads(r.content)}),
+                )[1]
+            )
             m.put("/activity/i9").mock(
                 side_effect=lambda r: (
                     sent.__setitem__("act_put", json.loads(r.content)),
@@ -272,6 +299,17 @@ async def main():
             )
             r = await c.call_tool("icu_log_session", {"rpe": 7})
             check("log needs date+duration", "start_date and duration_seconds" in _text(r))
+            day_acts.append(strava)
+            r = await c.call_tool(
+                "icu_log_session", {"event_id": 77, "duration_seconds": 3000, "rpe": 6}
+            )
+            d = json.loads(_text(r))["data"]
+            check(
+                "log lands on the Strava recording, paired",
+                d["activity_id"] == "2104"
+                and sent["strava_put"]
+                == {"name": "Strength A3", "icu_rpe": 6, "paired_event_id": 77},
+            )
 
             # Illness protocol (playbook section 7): the two writes it prescribes.
             r = await c.call_tool(

@@ -1462,6 +1462,48 @@ def _logged_session_to_dict(activity: Any) -> dict[str, Any]:
     return result
 
 
+MANUAL_SOURCE = "MANUAL"
+# Fields a log carries over from a manual activity onto the recording it merges into.
+_LOG_FIELDS = ("name", "description", "icu_rpe", "kg_lifted", "icu_training_load")
+
+
+def _is_recording(activity: Any) -> bool:
+    """True for an activity a device or upload made (Strava, Garmin, a file)."""
+    return (activity.source or "").upper() != MANUAL_SOURCE
+
+
+def _recording_candidates(
+    activities: list[Any], sport: str | None, event_id: int | None
+) -> list[Any]:
+    """Recordings on the day that this log could belong to.
+
+    Strava stubs come back with `type` null, so a null type matches any sport.
+    A recording already paired to a different event is left alone.
+    """
+    out: list[Any] = []
+    for a in activities:
+        if not _is_recording(a):
+            continue
+        if sport and a.type is not None and a.type != sport:
+            continue
+        if a.paired_event_id is not None and a.paired_event_id != event_id:
+            continue
+        out.append(a)
+    return out
+
+
+def _manual_log_fields(manual: Any) -> dict[str, Any]:
+    """The log fields of an earlier manual activity, in PUT form."""
+    values = {
+        "name": manual.name,
+        "description": manual.description,
+        "icu_rpe": manual.perceived_exertion,
+        "kg_lifted": manual.kg_lifted,
+        "icu_training_load": manual.icu_training_load,
+    }
+    return {k: v for k, v in values.items() if k in _LOG_FIELDS and v is not None}
+
+
 async def log_session(
     duration_seconds: Annotated[
         int | None, "How long the session took, seconds. Required without event_id"
@@ -1484,15 +1526,22 @@ async def log_session(
     kg_lifted: Annotated[float | None, "Total kg lifted, when the athlete gives it"] = None,
     notes: Annotated[str | None, "What was done (sets, moves), stored as description"] = None,
     training_load: Annotated[int | None, "Override the computed training load"] = None,
+    activity_id: Annotated[
+        str | None,
+        "A recorded activity (Strava, watch, upload) to write this log onto. Normally "
+        "found automatically on the session's day; pass it when several match.",
+    ] = None,
     athlete_id: Annotated[str | None, "Athlete ID (for coaches managing multiple athletes)"] = None,
     ctx: Context | None = None,
 ) -> str:
-    """LOG a session no device recorded (gym, yoga, a ride without a head unit).
+    """LOG a session: RPE, notes and kg onto the day's recording, or a manual activity.
 
-    "Did the gym session, 50 minutes, RPE 7" → a manual activity with that
-    duration and RPE. With `event_id` it is paired to the planned event
-    (mark-done), so compliance and load include it. Not for editing activities
-    that came from a device.
+    "Did the gym session, 50 minutes, RPE 7". When a watch or Strava recording
+    of that sport is on the day, the log is written onto it (its own duration
+    kept) and it is paired to `event_id`, so the plan, notes and recording are
+    one activity. With no recording, a manual activity is created (paired via
+    mark-done with `event_id`). Run it again after a late upload to merge an
+    earlier manual log into the recording.
     """
     assert ctx is not None
     config: ICUConfig = await ctx.get_state("config")
@@ -1509,7 +1558,11 @@ async def log_session(
         return ResponseBuilder.build_error_response(
             "kg_lifted must be 0 or more.", error_type="validation_error"
         )
-    if event_id is None and (start_date is None or duration_seconds is None):
+    if (
+        event_id is None
+        and activity_id is None
+        and (start_date is None or duration_seconds is None)
+    ):
         return ResponseBuilder.build_error_response(
             "Without event_id, pass start_date and duration_seconds. To complete a "
             "planned session, pass its event_id instead.",
@@ -1525,32 +1578,127 @@ async def log_session(
                 error_type="validation_error",
             )
 
-    fields: dict[str, Any] = {}
-    if duration_seconds is not None:
-        fields["moving_time"] = duration_seconds
-        fields["elapsed_time"] = duration_seconds
+    # What the athlete said, as PUT fields. Times stay off a recording: the
+    # device's clock beats a remembered duration.
+    log: dict[str, Any] = {}
     if rpe is not None:
-        fields["icu_rpe"] = rpe
+        log["icu_rpe"] = rpe
     if kg_lifted is not None:
-        fields["kg_lifted"] = kg_lifted
+        log["kg_lifted"] = kg_lifted
     if notes:
-        fields["description"] = notes
+        log["description"] = notes
     if training_load is not None:
-        fields["icu_training_load"] = training_load
+        log["icu_training_load"] = training_load
     if name:
-        fields["name"] = name
+        log["name"] = name
+    times: dict[str, Any] = {}
+    if duration_seconds is not None:
+        times = {"moving_time": duration_seconds, "elapsed_time": duration_seconds}
 
     try:
         async with ICUClient(config) as client:
+            # ---- Find the day's recording (and any earlier manual log) ----
+            event: Event | None = None
             if event_id is not None:
-                activity = await client.mark_event_done(event_id, athlete_id=athlete_id)
+                event = await client.get_event(event_id, athlete_id=athlete_id)
+            day = (normalized_start or "")[:10]
+            if not day and event is not None and event.start_date_local:
+                day = event.start_date_local[:10]
+            sport = (event.type if event is not None and event.type else None) or event_type
+
+            recording: Any = None
+            manual_dup: Any = None
+            if activity_id is not None:
+                recording = await client.get_activity(activity_id=activity_id)
+            if day:
+                on_day = await client.get_activities(
+                    athlete_id=athlete_id, oldest=day, newest=day, limit=50
+                )
+                if event_id is not None:
+                    manual_dup = next(
+                        (
+                            a
+                            for a in on_day
+                            if not _is_recording(a) and a.paired_event_id == event_id
+                        ),
+                        None,
+                    )
+                if recording is None:
+                    candidates = _recording_candidates(on_day, sport, event_id)
+                    if len(candidates) > 1:
+                        listed = ", ".join(
+                            f"{a.id} ({a.type or 'type hidden'}, "
+                            f"{a.start_date_local.strftime('%H:%M')}, {a.source})"
+                            for a in candidates
+                        )
+                        return ResponseBuilder.build_error_response(
+                            f"Several recordings on {day} could be this session: {listed}. "
+                            "Pass activity_id for the right one.",
+                            error_type="validation_error",
+                        )
+                    if candidates:
+                        recording = candidates[0]
+
+            # ---- A recording exists: write the log onto it and pair it ----
+            if recording is not None:
+                fields: dict[str, Any] = {}
+                deleted_dup = False
+                if manual_dup is not None and manual_dup.id != recording.id:
+                    full_dup = await client.get_activity(activity_id=manual_dup.id)
+                    fields.update(_manual_log_fields(full_dup))
+                if event is not None and "name" not in fields and "name" not in log:
+                    fields["name"] = event.name
+                fields.update(log)
+                if event_id is not None:
+                    fields["paired_event_id"] = event_id
+                activity = (
+                    await client.update_activity(recording.id, fields) if fields else recording
+                )
+                if event_id is not None and activity.paired_event_id is None:
+                    activity.paired_event_id = event_id
+                data = _logged_session_to_dict(activity)
+                data["merged_into_recording"] = {
+                    "activity_id": recording.id,
+                    "source": recording.source,
+                }
+                message = f"Logged onto recorded activity {recording.id}"
+                if event_id is not None:
+                    message += f" and paired it to event {event_id}"
+                if manual_dup is not None and manual_dup.id != recording.id:
+                    if config.intervals_icu_delete_mode == "full":
+                        deleted_dup = await client.delete_activity(manual_dup.id)
+                    if deleted_dup:
+                        data["removed_manual_duplicate"] = manual_dup.id
+                    else:
+                        data["manual_duplicate"] = {
+                            "activity_id": manual_dup.id,
+                            "hint": (
+                                "Its notes and RPE are now on the recording. Delete this "
+                                "manual copy in Intervals.icu so the load is not counted "
+                                "twice (safe delete mode does not delete activities)."
+                            ),
+                        }
+                return ResponseBuilder.build_response(
+                    data=data,
+                    query_type="log_session",
+                    metadata={"message": message},
+                )
+
+            # ---- No recording: the manual activity, as before ----
+            fields = {**times, **log}
+            if event_id is not None:
+                if manual_dup is not None:
+                    activity = await client.get_activity(activity_id=manual_dup.id)
+                    message = f"Updated the session already logged for event {event_id}"
+                else:
+                    activity = await client.mark_event_done(event_id, athlete_id=athlete_id)
+                    message = f"Logged session and marked event {event_id} done"
                 if normalized_start is not None:
                     fields["start_date_local"] = normalized_start
                 if fields:
                     activity = await client.update_activity(activity.id, fields)
                 if activity.paired_event_id is None:
                     activity.paired_event_id = event_id
-                message = f"Logged session and marked event {event_id} done"
             else:
                 payload: dict[str, Any] = {
                     "start_date_local": normalized_start,
@@ -1562,8 +1710,13 @@ async def log_session(
                 activity = await client.create_manual_activity(payload, athlete_id=athlete_id)
                 message = "Logged session as a manual activity"
 
+            data = _logged_session_to_dict(activity)
+            data["recording_hint"] = (
+                "No watch or Strava recording on this day yet. If one syncs later, run "
+                "icu_log_session again with the same event_id to merge this log into it."
+            )
             return ResponseBuilder.build_response(
-                data=_logged_session_to_dict(activity),
+                data=data,
                 query_type="log_session",
                 metadata={"message": message},
             )

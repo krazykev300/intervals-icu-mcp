@@ -225,7 +225,40 @@ ACTIVITY = {
     "start_date_local": "2026-11-17T00:00:00",
     "name": "Strength",
     "type": "WeightTraining",
+    "source": "MANUAL",
 }
+EVENT = {
+    "id": 77,
+    "start_date_local": "2026-11-17T00:00:00",
+    "name": "Strength A3",
+    "category": "WORKOUT",
+    "type": "WeightTraining",
+}
+# What the API gives for a Strava-synced activity: no type, no metrics.
+STRAVA = {
+    "id": "21041576404",
+    "start_date_local": "2026-11-17T16:15:28",
+    "name": "Untitled",
+    "type": None,
+    "source": "STRAVA",
+}
+
+
+def _day(respx_mock, activities):
+    return respx_mock.get("/athlete/i123456/activities").mock(
+        return_value=Response(200, json=activities)
+    )
+
+
+def _event(respx_mock):
+    respx_mock.get("/athlete/i123456/events/77").mock(return_value=Response(200, json=EVENT))
+
+
+def _put_echo(base):
+    def echo(request):
+        return Response(200, json={**base, **json.loads(request.content)})
+
+    return echo
 
 
 class TestLogSession:
@@ -234,6 +267,7 @@ class TestLogSession:
             body = json.loads(request.content)
             return Response(200, json={**ACTIVITY, **body, "icu_training_load": 40})
 
+        _day(respx_mock, [])
         route = respx_mock.post("/athlete/i123456/activities/manual").mock(side_effect=echo)
         result = await log_session(
             start_date="2026-11-17", duration_seconds=3000, rpe=7, kg_lifted=4200.0, ctx=ctx
@@ -248,8 +282,11 @@ class TestLogSession:
         assert data["rpe"] == 7
         assert data["training_load"] == 40
         assert "training_load_hint" not in data
+        assert "recording_hint" in data
 
     async def test_pairs_with_event_then_updates(self, ctx, respx_mock):
+        _event(respx_mock)
+        _day(respx_mock, [])
         respx_mock.post("/athlete/i123456/events/77/mark-done").mock(
             return_value=Response(200, json={**ACTIVITY, "paired_event_id": 77})
         )
@@ -266,6 +303,8 @@ class TestLogSession:
         assert "training_load_hint" in data
 
     async def test_event_only_skips_update(self, ctx, respx_mock):
+        _event(respx_mock)
+        _day(respx_mock, [])
         respx_mock.post("/athlete/i123456/events/77/mark-done").mock(
             return_value=Response(200, json=ACTIVITY)
         )
@@ -273,6 +312,103 @@ class TestLogSession:
         result = await log_session(event_id=77, ctx=ctx)
         assert not put.called
         assert json.loads(result)["data"]["paired_event_id"] == 77
+
+    async def test_logs_onto_strava_recording_instead_of_manual(self, ctx, respx_mock):
+        _event(respx_mock)
+        _day(respx_mock, [STRAVA])
+        mark_done = respx_mock.post("/athlete/i123456/events/77/mark-done")
+        put = respx_mock.put("/activity/21041576404").mock(side_effect=_put_echo(STRAVA))
+        result = await log_session(
+            event_id=77, duration_seconds=3000, rpe=6, notes="3x6 trap bar", ctx=ctx
+        )
+        assert not mark_done.called
+        sent = json.loads(put.calls.last.request.content)
+        # The device's duration is kept; the plan's name replaces "Untitled".
+        assert sent == {
+            "name": "Strength A3",
+            "icu_rpe": 6,
+            "description": "3x6 trap bar",
+            "paired_event_id": 77,
+        }
+        data = json.loads(result)["data"]
+        assert data["activity_id"] == "21041576404"
+        assert data["paired_event_id"] == 77
+        assert data["merged_into_recording"]["source"] == "STRAVA"
+
+    async def test_merges_earlier_manual_log_into_recording(self, ctx, respx_mock):
+        manual = {
+            **ACTIVITY,
+            "name": "Strength A3 - re-entry",
+            "description": "Session RPE 6",
+            "icu_rpe": 6,
+            "paired_event_id": 77,
+        }
+        _event(respx_mock)
+        _day(respx_mock, [STRAVA, manual])
+        respx_mock.get("/activity/i9001").mock(return_value=Response(200, json=manual))
+        put = respx_mock.put("/activity/21041576404").mock(side_effect=_put_echo(STRAVA))
+        delete = respx_mock.delete("/activity/i9001")
+        result = await log_session(event_id=77, ctx=ctx)
+        sent = json.loads(put.calls.last.request.content)
+        assert sent == {
+            "name": "Strength A3 - re-entry",
+            "description": "Session RPE 6",
+            "icu_rpe": 6,
+            "paired_event_id": 77,
+        }
+        # Safe delete mode: the manual copy is reported, not deleted.
+        assert not delete.called
+        data = json.loads(result)["data"]
+        assert data["manual_duplicate"]["activity_id"] == "i9001"
+
+    async def test_full_delete_mode_removes_manual_duplicate(self, ctx, mock_config, respx_mock):
+        mock_config.intervals_icu_delete_mode = "full"
+        manual = {**ACTIVITY, "icu_rpe": 6, "paired_event_id": 77}
+        _event(respx_mock)
+        _day(respx_mock, [STRAVA, manual])
+        respx_mock.get("/activity/i9001").mock(return_value=Response(200, json=manual))
+        respx_mock.put("/activity/21041576404").mock(side_effect=_put_echo(STRAVA))
+        delete = respx_mock.delete("/activity/i9001").mock(return_value=Response(200))
+        result = await log_session(event_id=77, ctx=ctx)
+        assert delete.called
+        assert json.loads(result)["data"]["removed_manual_duplicate"] == "i9001"
+
+    async def test_rerun_without_recording_updates_existing_log(self, ctx, respx_mock):
+        manual = {**ACTIVITY, "paired_event_id": 77}
+        _event(respx_mock)
+        _day(respx_mock, [manual])
+        respx_mock.get("/activity/i9001").mock(return_value=Response(200, json=manual))
+        mark_done = respx_mock.post("/athlete/i123456/events/77/mark-done")
+        put = respx_mock.put("/activity/i9001").mock(side_effect=_put_echo(manual))
+        await log_session(event_id=77, rpe=7, ctx=ctx)
+        assert not mark_done.called
+        assert json.loads(put.calls.last.request.content) == {"icu_rpe": 7}
+
+    async def test_other_sport_and_other_pairing_ignored(self, ctx, respx_mock):
+        ride = {**STRAVA, "id": "1", "type": "Ride"}
+        paired_elsewhere = {**STRAVA, "id": "2", "paired_event_id": 5}
+        _event(respx_mock)
+        _day(respx_mock, [ride, paired_elsewhere])
+        mark_done = respx_mock.post("/athlete/i123456/events/77/mark-done").mock(
+            return_value=Response(200, json=ACTIVITY)
+        )
+        await log_session(event_id=77, ctx=ctx)
+        assert mark_done.called
+
+    async def test_several_recordings_ask_for_activity_id(self, ctx, respx_mock):
+        _event(respx_mock)
+        _day(respx_mock, [STRAVA, {**STRAVA, "id": "2"}])
+        result = await log_session(event_id=77, rpe=6, ctx=ctx)
+        assert "Pass activity_id" in json.loads(result)["error"]["message"]
+
+    async def test_explicit_activity_id(self, ctx, respx_mock):
+        _event(respx_mock)
+        _day(respx_mock, [STRAVA, {**STRAVA, "id": "2"}])
+        respx_mock.get("/activity/2").mock(return_value=Response(200, json={**STRAVA, "id": "2"}))
+        put = respx_mock.put("/activity/2").mock(side_effect=_put_echo({**STRAVA, "id": "2"}))
+        result = await log_session(event_id=77, rpe=6, activity_id="2", ctx=ctx)
+        assert json.loads(put.calls.last.request.content)["paired_event_id"] == 77
+        assert json.loads(result)["data"]["activity_id"] == "2"
 
     async def test_requires_date_and_duration_without_event(self, ctx):
         result = await log_session(rpe=7, ctx=ctx)
