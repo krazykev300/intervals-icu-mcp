@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from intervals_icu_mcp.coaching import methodology
-from intervals_icu_mcp.coaching.sources import PARAMETER_SOURCES, REFERENCES
+from intervals_icu_mcp.coaching.sources import BASIS_STRENGTH, PARAMETER_SOURCES, REFERENCES
 
 # Module-level names in methodology.py that are not coaching parameters.
 _NOT_PARAMETERS = {"KB_VERSION", "METHODOLOGY_SPEC"}
@@ -40,6 +40,22 @@ def test_entries_are_complete():
             assert ref in REFERENCES, f"{name} cites unknown reference {ref}"
         if entry["basis"] == "sourced":
             assert entry["refs"], f"{name} is sourced but cites nothing"
+
+
+def test_parts_name_real_keys_and_set_the_weakest_basis():
+    for name, entry in PARAMETER_SOURCES.items():
+        parts = entry.get("parts")
+        if not parts:
+            continue
+        value = getattr(methodology, name)
+        assert isinstance(value, dict), f"{name} has parts but is not a dict"
+        assert set(parts) == set(value), f"{name} parts must cover exactly its keys"
+        assert set(parts.values()) <= _BASES, name
+        weakest = min(parts.values(), key=BASIS_STRENGTH.__getitem__)
+        assert entry["basis"] == weakest, f"{name} basis must be its weakest part ({weakest})"
+        for key, basis in parts.items():
+            if basis == "sourced":
+                assert entry["refs"], f"{name}.{key} is sourced but {name} cites nothing"
 
 
 def test_references_are_complete_and_used():

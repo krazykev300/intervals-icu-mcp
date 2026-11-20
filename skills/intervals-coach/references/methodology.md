@@ -109,19 +109,19 @@ Intervals combined TSS is the CTL the charts use. Do not invent sport-weighted l
 basis: sourced = taken from the references; derived = computed from a sourced value or the load model; default = a coaching choice, bounded by the references. Say which when an athlete asks why.
 
 ```
-PHASE_FROM_A_RACE: default (Bosquet 2007)
-READINESS_THRESHOLDS: default (Plews 2013)
+PHASE_FROM_A_RACE: default [taper sourced] (Bosquet 2007)
+READINESS_THRESHOLDS: default (Kiviniemi 2007, Vesterinen 2016, Javaloyes 2019, Plews 2013, Craven 2022)
 TSB_EXCURSION_THRESHOLD: default
 TSB_RECOVERED_THRESHOLD: default
-DISTRIBUTION_MODELS: default (Seiler 2010, Rosenblat 2019, Rosenblat 2025)
-TAPER: sourced (Bosquet 2007)
-RAMP: default
+DISTRIBUTION_MODELS: default (Seiler 2010, Seiler & Kjerland 2006, Esteve-Lanao 2007, Neal 2013, Treff 2019, Rosenblat 2019, Rosenblat 2025)
+TAPER: sourced (Bosquet 2007, Wang 2023)
+RAMP: default (Nielsen 2014, Buist 2008, Frandsen 2025)
 CTL_WEEK_GAIN_FACTOR: derived
 RAMP_SELECTION: default
 RECOVERY_WEEK_RATIO: default
 TAPER_WEEK_LOAD_PCT: derived (Bosquet 2007)
-POST_A_RECOVERY_LOAD_PCT: default
+POST_A_RECOVERY_LOAD_PCT: default (Martinez-Navarro 2021)
 HARD_SESSION_INTENSITY_FACTOR: default
-FTP_CHECK: default (Allen & Coggan 2010)
+FTP_CHECK: default [twenty_min_factor sourced, change_pct derived] (Borszcz 2018, Borszcz 2019, Borszcz 2020, MacInnis 2019, Lillo-Bevia 2022, Allen & Coggan 2010)
 RETURN_FROM_BREAK: default (Coyle 1984, Mujika & Padilla 2000, IOC 2022, Eichner neck check)
 ```
