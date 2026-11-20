@@ -576,6 +576,10 @@ parameters, env vars and responses, and says nothing about prompts. Decide
 whether removing a prompt from the default profile is breaking, and write
 the answer into the contract before the release is cut.
 
+**Done:** breaking. The contract in the CHANGELOG header and CLAUDE.md now
+names prompts next to tools (removing, renaming, or changing default
+registration is major; rewording is not), and the trim is marked BREAKING.
+
 ### 8.7 Formatting drift on main [now, S]
 
 `make format` rewrites four files that `make lint` accepts as they are:
