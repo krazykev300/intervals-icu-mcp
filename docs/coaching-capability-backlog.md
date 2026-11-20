@@ -156,6 +156,8 @@ load.
 
 **Done:** `icu_log_session` (mark-done with `event_id`, else the manual-activity endpoint).
 
+**Done:** strength logs merge with the upload. With a watch or Strava recording on the day, `icu_log_session` writes the log onto it and pairs it (`paired_event_id`) instead of creating a manual twin; a re-run merges an earlier manual log. Not yet checked live: that the API pairs a Strava-sourced activity through `PUT /activity/{id}`.
+
 ### 1.10 Threshold and zone updates [next, S]
 
 When estimated and configured FTP diverge, propose the new value and, on

@@ -264,6 +264,7 @@ class ActivitySummary(BaseModel):
     icu_training_load: int | None = None
     icu_intensity: float | None = None
     source: str | None = None
+    paired_event_id: int | None = None
     note: str | None = Field(default=None, alias="_note")
 
 
@@ -300,7 +301,6 @@ class Activity(ActivitySummary):
     compliance: float | None = None
     kg_lifted: float | None = None
     session_rpe: int | None = None
-    paired_event_id: int | None = None
     avg_lr_balance: float | None = None
     commute: bool | None = None
     trainer: bool | None = None

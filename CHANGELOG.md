@@ -18,6 +18,7 @@ breaking; this narrower contract applies from the next release onward.)
 ## [Unreleased]
 
 ### Added
+- `icu_log_session` writes the log (RPE, notes, kg, name) onto the day's watch or Strava recording and pairs it to `event_id`, instead of creating a second, manual activity beside the upload. Run again after a late upload to merge an earlier manual log into the recording; the manual copy is deleted only in `DELETE_MODE=full` and otherwise reported. New `activity_id` parameter picks the recording when several match.
 - Methodology "Where these numbers come from": every coaching constant names its basis (sourced, derived or a coaching default) and references, from `coaching/sources.py`; a test fails while a constant has none.
 - `coach_brief.returning` on `icu_get_athlete_state` — a SICK / INJURED window that ended in the last 14 days, with days missed, the return-from-break rule and the rebuild week; `load.next_week_target` follows that rule until the rebuild ends.
 - `icu_get_coaching_guide` (coaching profile) — playbook, methodology, workout syntax and event categories as a tool result. Chat clients (Claude.ai, iOS) do not let the model open MCP resources itself, so the guide was unreachable there; server `instructions` and the playbook now point at the tool.
