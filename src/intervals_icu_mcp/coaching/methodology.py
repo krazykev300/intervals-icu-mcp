@@ -9,7 +9,7 @@ from typing import Any
 
 from .sources import render_sources_section
 
-KB_VERSION = "1.1.0"
+KB_VERSION = "1.2.0"
 
 # Days-out from the nearest RACE_A (or days after it for recovery).
 PHASE_FROM_A_RACE: dict[str, dict[str, int]] = {

@@ -613,7 +613,7 @@ rule records should read the methods of anything a prescription rests on.
 
 | Topic | Finding and its limits | Source | Status |
 |---|---|---|---|
-| Taper | Two weeks, volume cut 41–60% exponentially, intensity and frequency held; overall effect 0.72 | Bosquet et al. 2007, Med Sci Sports Exerc, PMID 17762369; Wang et al. 2023, PMID 37163550 | Confirmed |
+| Taper | Two weeks, volume cut 41–60% exponentially, intensity and frequency held; overall effect 0.72. Wang: tapers up to 21 days with the same cut improved time trials (14 studies) | Bosquet et al. 2007, Med Sci Sports Exerc, PMID 17762369; Wang et al. 2023, PMID 37163550 | Confirmed |
 | Strength, in season | Twice weekly for 12 weeks then once weekly kept strength and improved 40-minute power more than endurance alone. Twelve cyclists in total | Rønnestad, Hansen, Raastad 2010, Eur J Appl Physiol, PMID 20799042 | Confirmed |
 | Strength, late-ride power | 5-minute all-out power after 185 minutes rose from 371 to 400 W with strength work; no change without. Twenty cyclists | Rønnestad, Hansen, Raastad 2011, Scand J Med Sci Sports 21(2):250–259, PMID 19903319 | Confirmed |
 | Concurrent training | No loss of maximal strength or muscle growth. Explosive strength reduced (effect −0.28), mainly when both are done in one session; separating by three hours removed it. 43 studies | Schumann et al. 2022, Sports Med 52(3):601–612, doi 10.1007/s40279-021-01587-7 | Confirmed |
@@ -622,25 +622,40 @@ rule records should read the methods of anything a prescription rests on.
 | Polarized vs threshold | Moderate time-trial advantage for polarized (effect −0.66), from three low-quality trials | Rosenblat et al. 2019, J Strength Cond Res 33(12):3491–3500, PMID 29863593 | Confirmed |
 | Distribution by level | No overall difference between polarized and pyramidal. For VO2max, recreational athletes did better on pyramidal and competitive on polarized. 13 studies, 348 athletes | Rosenblat et al. 2025, Sports Med 55(3):655–673, doi 10.1007/s40279-024-02149-3 | Confirmed |
 | Distribution sequencing | All groups improved; pyramidal for eight weeks then polarized for eight gave the largest gains. Sixty well-trained male runners | Filipas et al. 2022, Scand J Med Sci Sports 32(3):498–511, PMID 34792817 | Confirmed |
+| Polarized in trained cyclists | 80/0/20 at 6.4 h a week beat threshold 57/43/0 for peak power, lactate threshold and high-intensity capacity over six weeks. Twelve cyclists, crossover | Neal et al. 2013, J Appl Physiol 114(4):461–471, PMID 23264537 | Confirmed |
+| Observed polarized pattern | Junior skiers' sessions by heart rate: 75% zone 1, 8% zone 2, 17% zone 3. Eleven athletes, 32 days | Seiler & Kjerland 2006, Scand J Med Sci Sports 16(1):49–56, PMID 16430681 | Confirmed |
+| Low-intensity share | 80/12/8 beat 67/25/8 (zone 1/2/3 time) over five months for 10.4 km. Twelve sub-elite runners | Esteve-Lanao et al. 2007, J Strength Cond Res 21(3):943–949, PMID 17685689 | Confirmed |
+| Polarization index | log10(z1 / z2 × z3 × 100), shares as fractions; above 2.00 is polarized. A hypothesis paper, not a trial | Treff et al. 2019, Front Physiol 10:707, PMID 31249533 | Confirmed |
 | Zone 2 at low volume | Evidence does not support zone 2 as the best intensity for the general population; higher intensities matter most at low volume. Narrative review | Storoschuk et al. 2025, Sports Med 55(7):1611–1624, PMID 40560504 | Confirmed |
 | Professional distribution | 28 male WorldTour riders: pyramidal in every phase, high-intensity share rising toward competition, load peaking in the competitive phase | Scand J Med Sci Sports 2025, 35(11):e70153, doi 10.1111/sms.70153 (authors not yet confirmed) | Confirmed |
 | Professional volume | Two Tour de France riders: 22.5 and 18.2 hours a week, about 81–89% of time in the lowest zone | Related case study found in search; full citation needed | Partly |
 | Block periodization | Small pooled benefit for VO2max (0.40) and peak power (0.28); studies small and low quality | Mølmen et al. 2019, Open Access J Sports Med | Confirmed |
 | HRV-guided training | Guided group improved peak power, threshold and 40-minute power; fixed-plan group did not; no significant difference between groups. Seventeen cyclists | Javaloyes et al. 2019, Int J Sports Physiol Perform 14:23–32, PMID 29809080 | Confirmed |
+| HRV swap rule | Hard sessions unless HRV fell below the 10-day mean minus 1 SD (or fell two days running); guided group gained more maximal running speed. 26 moderately fit men | Kiviniemi et al. 2007, Eur J Appl Physiol 101(6):743–751, PMID 17849143 | Confirmed |
+| HRV within normal range | Hard sessions only when morning HRV was inside the individual smallest worthwhile change: fewer hard sessions, 3000 m improved, VO2max gains similar. 40 recreational runners | Vesterinen et al. 2016, Med Sci Sports Exerc 48(7):1347–1354, PMID 26909534 | Confirmed |
+| Sleep loss | 6 h or less in 24 h cut performance 7.6% on average, endurance included; morning sessions largely spared. 69 studies | Craven et al. 2022, Sports Med 52(11):2669–2690, PMID 35708888 | Confirmed |
 | HRV monitoring | Weekly rolling ln(RMSSD) and its variation track adaptation better than single days; at least three readings a week | Plews et al. 2013, Sports Med 43(9):773–781, and related 2012–13 papers | Partly |
 | Recovery time by intensity | Parasympathetic recovery depends on intensity more than duration | Stanley, Peake, Buchheit 2013, Sports Med, doi 10.1007/s40279-013-0083-4 | Partly |
-| Running load spikes | Injury rate rose when a single run exceeded the longest of the last 30 days by more than 10% (hazard ratios 1.64, 1.52, 2.28 by band). No relation for week-to-week ratios. 5,205 runners | Frandsen et al. 2025, Br J Sports Med 59(17):1203–1210 | Confirmed |
+| Running load spikes | Injury rate rose when a single run exceeded the longest of the last 30 days by more than 10% (hazard ratios 1.64, 1.52, 2.28 by band). No relation for week-to-week ratios. 5,205 runners | Frandsen et al. 2025, Br J Sports Med 59(17):1203–1210, PMID 40623829 | Confirmed |
+| Weekly progression | Novice runners progressing weekly distance more than 30% had more distance-related injuries than those under 10% (hazard ratio 1.59, p = 0.07). 874 runners, exploratory | Nielsen et al. 2014, J Orthop Sports Phys Ther 44(10):739–747, PMID 25155475 | Confirmed |
+| 10% rule | A graded program built on the 10% rule did not reduce injuries (20.8% vs 20.3%). 532 novice runners, randomized | Buist et al. 2008, Am J Sports Med 36(1):33–39, PMID 17940147 | Confirmed |
 | Acute-to-chronic ratio | Conceptually flawed as an injury predictor; do not gate on it | Impellizzeri et al. 2020, Int J Sports Physiol Perform 15:907–913 | Confirmed |
 | Monotony and strain | Daily-load variability as an overreach marker | Foster 1998, Med Sci Sports Exerc | Partly |
 | Bone health | Road cycling gives no significant bone-building stimulus; add impact loading | Olmedillas et al. 2012, BMC Med, doi 10.1186/1741-7015-10-168 | Confirmed |
 | Durability | Deterioration of physiological markers during prolonged exercise as a performance factor | Maunder et al. 2021, Sports Med 51(8):1619–1628 | Confirmed |
 | Durability and intensity | Intensity of prior work, not kilojoules alone, determines the decline | Sánchez-Jiménez et al. 2025, Eur J Appl Physiol, doi 10.1007/s00421-025-05885-0 | Confirmed |
-| Session count rule | About 80% of sessions easy | Seiler 2010, Int J Sports Physiol Perform | Not checked |
+| Session count rule | About 80% of sessions easy, in athletes training 10–13 times a week. Descriptive review | Seiler 2010, Int J Sports Physiol Perform 5(3):276–291, PMID 20861519 | Confirmed |
 | Detraining | Short-term detraining (≤ 4 weeks) cuts VO2max and blood volume quickly in highly trained athletes | Mujika & Padilla 2000, Sports Med 30(2):79–87 | Partly (abstract) |
 | Detraining time course | VO2max −7% after 21 days off, stable at −16% by day 56; 7 endurance-trained subjects | Coyle et al. 1984, J Appl Physiol 57(6):1857–1864 | Confirmed (abstract) |
 | Return after respiratory illness | About 20% of illnesses cost training days; mean symptoms about 7 days; no established return-to-sport timelines | Schwellnus et al. 2022, IOC consensus, Br J Sports Med 56:1066–1088 | Partly |
 | Training with a cold | "Neck check": above-the-neck symptoms allow light exercise; fever or chest symptoms mean rest. A clinical heuristic, not a trial result | Eichner, as reported by secondary sources | Partly |
+| Week after a marathon | Three 40-minute moderate sessions from 48 h after did not slow muscle-damage recovery and sped neuromuscular recovery against rest. 64 runners, randomized | Martínez-Navarro et al. 2021, Eur J Sport Sci 21(12):1668–1674, PMID 33251988 | Confirmed |
 | FTP from a 20-minute test | FTP estimated as 95% of a 20-minute best | Allen & Coggan 2010, Training and Racing with a Power Meter, 2nd ed. | Partly |
+| FTP 20 vs 60 minutes | 95% of 20-minute power matched 60-minute power on average (bias −1 to −5 W); limits of agreement about ±60 W, so not interchangeable for one rider. 23 trained cyclists | Borszcz et al. 2018, Int J Sports Med 39(10):737–742, PMID 29801189 | Confirmed |
+| FTP vs MLSS | 95% of 20-minute power vs MLSS: bias 1.4% ± 9.2%, typical error 4.7% (3.0% well-trained, 6.4% trained). 15 cyclists | Borszcz et al. 2019, Int J Sports Physiol Perform 14(8):1029–1035, PMID 30676826 | Confirmed |
+| FTP test reliability | 20-minute test CV 2.9%, ICC 0.97. 25 trained cyclists | Borszcz et al. 2020, Int J Sports Med 41(3):175–181, PMID 31952081 | Confirmed |
+| 20 / 60 minute ratio | 20-minute power 342–344 W, 60-minute 309 W (ratio about 1.11); 20-minute typical error 4.6 W. Eight trained cyclists | MacInnis et al. 2019, Int J Sports Physiol Perform 14(1):38–45, PMID 29809063 | Confirmed |
+| FTP factor vs MLSS | 95% overestimated MLSS by 12 ± 7 W; 91% fitted; smallest detectable change ±9 W. Eleven cyclists | Lillo-Beviá et al. 2022, J Strength Cond Res 36(1):167–173, PMID 31714462 | Confirmed |
 | Fuelling | Carbohydrate per hour by duration and intensity | Jeukendrup 2014, Sports Med | Not checked |
 | Low energy availability | Screening flags | IOC REDs consensus 2023, Br J Sports Med | Not checked |
 | Heat training | Haemoglobin mass and performance gains in elite cyclists | Rønnestad et al. 2021–22 | Not checked |
@@ -657,6 +672,11 @@ What the check changed, and why the `verified` flag is not optional:
   2025 analysis is the better basis for the tier rule.
 - "Zone 2" should not be prescribed to low-volume athletes as the main
   stimulus.
+- The 20m × 0.95 FTP rule matches 60-minute power on average in one group
+  (Borszcz 2018), but other groups found 0.90–0.91, and limits of agreement
+  of about ±60 W mean it is not reliable for one rider. Prefer eFTP.
+- Polarized training worked at 6.4 hours a week in trained cyclists (Neal
+  2013), so a 14-hour floor for polarized is a coaching choice, not evidence.
 
 ### Keeping it current
 
