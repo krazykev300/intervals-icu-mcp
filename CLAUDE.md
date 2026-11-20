@@ -149,6 +149,9 @@ Tests use pytest + pytest-asyncio with `respx` for HTTP mocking.
 ## Working across Claude and Cursor
 
 Both tools work in this repo, often in parallel on separate branches.
+Cursor and other agents read `AGENTS.md`, which points here, so this file is
+the one set of instructions for every agent. Put new rules here, not in
+`AGENTS.md`.
 
 - **The backlog is the work queue.** `docs/coaching-capability-backlog.md`
   holds the items; lanes in a request name which items one agent owns, in
