@@ -98,6 +98,8 @@ rebuild:   back to pre-break load in even steps over as many weeks as were
 
 No intensity until the easy days felt normal. One hard session in the first week back at most, shortened. Never make up missed key sessions. Illness: the first session back comes after a full symptom-free day; fever or chest symptoms mean rest, not easy riding. Above-the-neck symptoms only: easy movement at most (Z1, up to 45 minutes). Injury: pain-free sports first, the injured sport last and easy; pain that changes how they move stops the session.
 
+These are coaching defaults, not a medical protocol. Fitness lost in 3-14 days off is small (VO2max about 7% down after three weeks: Coyle et al. 1984), so the cuts protect recovery from the illness or injury rather than make up lost fitness. Return-to-sport timelines after respiratory illness are not established (IOC consensus 2022). Anything beyond a mild illness, or symptoms that come back, is a question for a doctor.
+
 ## Mixed-sport load
 
 Intervals combined TSS is the CTL the charts use. Do not invent sport-weighted load. Flag mixed-sport weeks in analysis.

@@ -81,7 +81,13 @@ FTP_CHECK: dict[str, float] = {
 
 # Return after a SICK / INJURED window or any unplanned break, by days missed.
 # Load is a share of the last full training week before the break. Coaching
-# defaults from the assessment's M6 rule; not a medical protocol.
+# defaults from the assessment's M6 rule; not a medical protocol. Checked
+# against (backlog 8.2): Coyle et al. 1984 (VO2max -7% after 21 days off,
+# -16% by day 56), Mujika & Padilla 2000 (short-term detraining is <= 4
+# weeks), the IOC 2022 respiratory-infection consensus (mean symptoms about
+# 7 days, no established return-to-sport timelines) and the "neck check"
+# heuristic for above-the-neck colds. None gives a load share; fitness lost
+# in 3-14 days is small, so the cuts protect recovery, not lost fitness.
 RETURN_FROM_BREAK: dict[str, Any] = {
     "resume_plan_days_missed_max": 2,
     "short": {"days_missed_max": 7, "first_week_load_pct": 67, "easy_days_first": 2},
@@ -223,6 +229,13 @@ first session back comes after a full symptom-free day; fever or chest \
 symptoms mean rest, not easy riding. Above-the-neck symptoms only: easy \
 movement at most (Z1, up to 45 minutes). Injury: pain-free sports first, the \
 injured sport last and easy; pain that changes how they move stops the session.
+
+These are coaching defaults, not a medical protocol. Fitness lost in 3-14 \
+days off is small (VO2max about 7% down after three weeks: Coyle et al. \
+1984), so the cuts protect recovery from the illness or injury rather than \
+make up lost fitness. Return-to-sport timelines after respiratory illness are \
+not established (IOC consensus 2022). Anything beyond a mild illness, or \
+symptoms that come back, is a question for a doctor.
 
 ## Mixed-sport load
 

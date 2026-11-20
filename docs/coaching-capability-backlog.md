@@ -540,6 +540,14 @@ sourced figures. Check them against the detraining literature the assessment
 lists as not checked (Mujika & Padilla 2000) and a return-to-sport-after-
 illness source, then adjust the table and record the sources.
 
+**Done:** values kept. No source gives a load share for the first week back.
+Detraining over 3-14 days is small (Coyle et al. 1984: VO2max −7% at 21
+days), so 67% / 50% are cautious recovery defaults rather than fitness-based
+figures. The IOC 2022 consensus finds no established return timelines, and the
+45-minute cap matches the "neck check" advice to keep it light. Sources are in the
+assessment's evidence table, the `RETURN_FROM_BREAK` comment and the
+methodology text, which now says these are coaching defaults.
+
 ### 8.3 Surface an ended illness window in the brief [next, S]
 
 `coach_brief.away` lists `SICK` / `INJURED` windows that are open or start

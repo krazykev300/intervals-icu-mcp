@@ -634,7 +634,10 @@ rule records should read the methods of anything a prescription rests on.
 | Durability | Deterioration of physiological markers during prolonged exercise as a performance factor | Maunder et al. 2021, Sports Med 51(8):1619–1628 | Confirmed |
 | Durability and intensity | Intensity of prior work, not kilojoules alone, determines the decline | Sánchez-Jiménez et al. 2025, Eur J Appl Physiol, doi 10.1007/s00421-025-05885-0 | Confirmed |
 | Session count rule | About 80% of sessions easy | Seiler 2010, Int J Sports Physiol Perform | Not checked |
-| Detraining | Rate of loss after stopping, basis for return-from-break rules | Mujika & Padilla 2000, Sports Med | Not checked |
+| Detraining | Short-term detraining (≤ 4 weeks) cuts VO2max and blood volume quickly in highly trained athletes | Mujika & Padilla 2000, Sports Med 30(2):79–87 | Partly (abstract) |
+| Detraining time course | VO2max −7% after 21 days off, stable at −16% by day 56; 7 endurance-trained subjects | Coyle et al. 1984, J Appl Physiol 57(6):1857–1864 | Confirmed (abstract) |
+| Return after respiratory illness | About 20% of illnesses cost training days; mean symptoms about 7 days; no established return-to-sport timelines | Schwellnus et al. 2022, IOC consensus, Br J Sports Med 56:1066–1088 | Partly |
+| Training with a cold | "Neck check": above-the-neck symptoms allow light exercise; fever or chest symptoms mean rest. A clinical heuristic, not a trial result | Eichner, as reported by secondary sources | Partly |
 | Fuelling | Carbohydrate per hour by duration and intensity | Jeukendrup 2014, Sports Med | Not checked |
 | Low energy availability | Screening flags | IOC REDs consensus 2023, Br J Sports Med | Not checked |
 | Heat training | Haemoglobin mass and performance gains in elite cyclists | Rønnestad et al. 2021–22 | Not checked |
