@@ -103,3 +103,25 @@ These are coaching defaults, not a medical protocol. Fitness lost in 3-14 days o
 ## Mixed-sport load
 
 Intervals combined TSS is the CTL the charts use. Do not invent sport-weighted load. Flag mixed-sport weeks in analysis.
+
+## Where these numbers come from
+
+basis: sourced = taken from the references; derived = computed from a sourced value or the load model; default = a coaching choice, bounded by the references. Say which when an athlete asks why.
+
+```
+PHASE_FROM_A_RACE: default (Bosquet 2007)
+READINESS_THRESHOLDS: default (Plews 2013)
+TSB_EXCURSION_THRESHOLD: default
+TSB_RECOVERED_THRESHOLD: default
+DISTRIBUTION_MODELS: default (Seiler 2010, Rosenblat 2019, Rosenblat 2025)
+TAPER: sourced (Bosquet 2007)
+RAMP: default
+CTL_WEEK_GAIN_FACTOR: derived
+RAMP_SELECTION: default
+RECOVERY_WEEK_RATIO: default
+TAPER_WEEK_LOAD_PCT: derived (Bosquet 2007)
+POST_A_RECOVERY_LOAD_PCT: default
+HARD_SESSION_INTENSITY_FACTOR: default
+FTP_CHECK: default (Allen & Coggan 2010)
+RETURN_FROM_BREAK: default (Coyle 1984, Mujika & Padilla 2000, IOC 2022, Eichner neck check)
+```

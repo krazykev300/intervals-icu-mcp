@@ -60,7 +60,7 @@ make docker/run       # Run Docker container
 | Workout parser | `workout_parser.py` | Local linter/preview for workout descriptions |
 | Tool profile | `tool_profile.py` | `INTERVALS_ICU_TOOL_PROFILE` allow-lists + `mcp.tool` / `mcp.prompt` filters |
 | Identity | `identity.py` / `http_auth.py` | Link token → Intervals credentials; ASGI 401 without a bearer |
-| Coaching | `coaching/` | Fork-owned athlete-state assembly, brief computation, methodology, data quality, and event references |
+| Coaching | `coaching/` | Fork-owned athlete-state assembly, brief computation, methodology (`sources.py` cites every number), data quality, and event references |
 | Prompts | `prompts/` | Coaching playbook (`coaching_playbook.py`), named routines (`routines.py`), Claude Skill renderer (`skill.py`); kept out of `server.py` for rebases |
 | Tools | `tools/` | Thin MCP surfaces for 16 tool modules plus the `_strava.py` helper (see below) |
 
@@ -94,6 +94,28 @@ make docker/run       # Run Docker container
 - Target: Python 3.11+
 - Allow unused imports in `__init__.py` files
 - Run `make format` to auto-fix style issues
+
+## Coaching numbers are data-driven
+
+Every number the coach prescribes says where it came from.
+
+- **Numbers live in `coaching/methodology.py`.** A threshold, share or rate the
+  brief or the guide uses goes there as a named constant, not inline in
+  `coach_brief.py` or prose.
+- **Each constant has an entry in `coaching/sources.py`.** `PARAMETER_SOURCES`
+  gives its basis (`sourced`, `derived` or `default`), a one-line rationale,
+  and reference ids from `REFERENCES`. `tests/test_methodology_sources.py`
+  fails while a constant has no entry. The entries render into the
+  methodology text, so the model can say where a number comes from.
+- **Prefer evidence over defaults.** Look for a source before choosing a
+  value. A `default` is allowed only with a rationale that says why this
+  value and what evidence bounds it; it is a candidate for replacement.
+- **Read before citing.** A reference's `status` is `confirmed` only when the
+  citation and the finding were checked against PubMed or the publisher;
+  otherwise `partly`. Never cite from memory or from a search snippet alone.
+  Keep the evidence table in `docs/coaching-architecture-assessment.md`
+  (section 7) in step with `REFERENCES`.
+- Changing a value or its basis is a CHANGELOG entry and a `KB_VERSION` bump.
 
 ## Type Checking
 

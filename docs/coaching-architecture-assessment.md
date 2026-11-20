@@ -86,7 +86,7 @@ What is missing, measured against the products in section 3:
 | Feedback after a session | Post-workout survey or automatic scoring feeds the next session | Compliance matched by calendar date only |
 | Readiness | HRV, RHR, check-in, wearable scores | Single-day z-score; `unknown` whenever today's row is empty |
 | Strength and cross-training | Athletica plans multi-sport; most cycling apps ignore strength | Mentioned in prose only; load model ignores them |
-| Evidence trail | Mostly opaque | Numbers in `coaching/methodology.py` with no sources |
+| Evidence trail | Mostly opaque | Every constant in `coaching/methodology.py` has a basis, rationale and references in `coaching/sources.py`, enforced by a test; most are still coaching defaults |
 | Proactive contact | Daily readiness and plan changes pushed to the phone | Pull only |
 | Guardrails on writes | The engine cannot produce an invalid week | Rules are prompt text the model may ignore |
 | Measured behaviour | Internal | A routing eval with 36 cases, many for tools outside the coaching profile |
@@ -353,7 +353,9 @@ See [section 6](#6-strength-and-cross-training).
 
 ### R7. Cited, tiered knowledge base
 
-See [section 7](#7-research-knowledge-base).
+See [section 7](#7-research-knowledge-base). First step in place:
+`coaching/sources.py` gives every methodology constant a basis, rationale and
+references, and CI fails on a constant without one.
 
 ### R8. Readiness, second version (M)
 
@@ -638,6 +640,7 @@ rule records should read the methods of anything a prescription rests on.
 | Detraining time course | VO2max −7% after 21 days off, stable at −16% by day 56; 7 endurance-trained subjects | Coyle et al. 1984, J Appl Physiol 57(6):1857–1864 | Confirmed (abstract) |
 | Return after respiratory illness | About 20% of illnesses cost training days; mean symptoms about 7 days; no established return-to-sport timelines | Schwellnus et al. 2022, IOC consensus, Br J Sports Med 56:1066–1088 | Partly |
 | Training with a cold | "Neck check": above-the-neck symptoms allow light exercise; fever or chest symptoms mean rest. A clinical heuristic, not a trial result | Eichner, as reported by secondary sources | Partly |
+| FTP from a 20-minute test | FTP estimated as 95% of a 20-minute best | Allen & Coggan 2010, Training and Racing with a Power Meter, 2nd ed. | Partly |
 | Fuelling | Carbohydrate per hour by duration and intensity | Jeukendrup 2014, Sports Med | Not checked |
 | Low energy availability | Screening flags | IOC REDs consensus 2023, Br J Sports Med | Not checked |
 | Heat training | Haemoglobin mass and performance gains in elite cyclists | Rønnestad et al. 2021–22 | Not checked |

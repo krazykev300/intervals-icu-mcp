@@ -7,7 +7,9 @@ readiness stay consistent with the resource the coach is told to read.
 
 from typing import Any
 
-KB_VERSION = "1.0.0"
+from .sources import render_sources_section
+
+KB_VERSION = "1.1.0"
 
 # Days-out from the nearest RACE_A (or days after it for recovery).
 PHASE_FROM_A_RACE: dict[str, dict[str, int]] = {
@@ -96,7 +98,7 @@ RETURN_FROM_BREAK: dict[str, Any] = {
     "limited_illness_max_training_seconds": 2700,
 }
 
-METHODOLOGY_SPEC = """\
+_METHODOLOGY_TEXT = """\
 # Coaching methodology parameters (this server)
 
 Versioned numbers the coach reasons over. Not prose advice. Per-athlete \
@@ -242,3 +244,5 @@ symptoms that come back, is a question for a doctor.
 Intervals combined TSS is the CTL the charts use. Do not invent \
 sport-weighted load. Flag mixed-sport weeks in analysis.
 """
+
+METHODOLOGY_SPEC = _METHODOLOGY_TEXT + "\n" + render_sources_section()
