@@ -266,6 +266,7 @@ state: its dates are the window, its description is the record.
 7. Every later chat while the window is open: lead with how they are, not \
    with the plan. Do not prescribe sessions inside the window beyond its \
    limits, whatever `today.action` says. A window that ended in the last two \
-   weeks (`icu_get_calendar_events` with days_back=14): check the return \
-   week is on the calendar before planning anything harder.
+   weeks is `coach_brief.returning` (rule, rebuild week, load share), and \
+   `load.next_week_target` follows it: check the return week is on the \
+   calendar before planning anything harder.
 """

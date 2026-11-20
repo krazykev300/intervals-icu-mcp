@@ -17,6 +17,7 @@ breaking; this narrower contract applies from the next release onward.)
 ## [Unreleased]
 
 ### Added
+- `coach_brief.returning` on `icu_get_athlete_state` — a SICK / INJURED window that ended in the last 14 days, with days missed, the return-from-break rule and the rebuild week; `load.next_week_target` follows that rule until the rebuild ends.
 - `icu_get_coaching_guide` (coaching profile) — playbook, methodology, workout syntax and event categories as a tool result. Chat clients (Claude.ai, iOS) do not let the model open MCP resources itself, so the guide was unreachable there; server `instructions` and the playbook now point at the tool.
 - `analysis.coach_brief` on `icu_get_athlete_state` — server-computed prescription from the methodology tables: phase, intensity distribution, ramp tier from `tsb_tolerance`, next-week load target (`7 x (CTL + 6.51 x ramp)`, recovery-week / taper / post-A rules), today's go / swap / rest call, ordered `next_actions`.
 - Playbook routines with a fixed answer shape for "what should I do today", ride review, week review / plan, and "how am I doing"; methodology gains a session menu by phase and the explicit ramp-tier rule.

@@ -113,7 +113,7 @@ class TestIllnessProtocol:
             '"Return from a break"',
             "`icu_bulk_create_events`",
             "`end_date`",
-            "days_back=14",
+            "`coach_brief.returning`",
         ):
             assert needle in section, needle
 
