@@ -12,7 +12,10 @@ result is visible in Intervals without opening a chat.
 
 Sizes: S under a day of agent work, M one to two days, L several.
 Tags: **[now]** worth doing in the first phases, **[next]** after the core is
-in, **[later]** speculative or niche.
+in, **[later]** speculative or niche. **[done]** shipped; the item's
+`**Done:**` line says what. **[done, unchecked live]** shipped and tested, but
+not yet confirmed against a live athlete or client; the Done line names what
+to check. An item with no done tag is still to do.
 
 ## 0. Correct the numbers [now, first]
 
@@ -47,7 +50,7 @@ field names, not a design to copy into the rest of this backlog.
 The Intervals API exposes far more display surface than the server uses. These
 turn the Intervals calendar and activity pages into the coach's output.
 
-### 1.1 Sessions that explain themselves [now, S]
+### 1.1 Sessions that explain themselves [done, S]
 
 Every coach-written workout carries, in a fixed layout:
 
@@ -106,7 +109,7 @@ Check first: that custom wellness fields accept API writes (forum reports say
 fields created on the site can be updated like built-in ones), and the content
 shape of a fitness chart.
 
-### 1.6 Availability where it already lives [now, S]
+### 1.6 Availability where it already lives [done, unchecked live, S]
 
 Intervals has native availability on `HOLIDAY`-type events:
 `training_availability` (normal, limited, unavailable), `max_training_time`
@@ -116,7 +119,7 @@ weekly template stays in the profile.
 
 **Done:** `max_training_seconds` and `can_train_sports` on the write tools, read back on events and in `coach_brief.away`. The seconds unit follows the other duration fields and is not yet confirmed against a live event.
 
-### 1.7 Illness and injury as events [now, S]
+### 1.7 Illness and injury as events [done, S]
 
 `SICK` and `INJURED` events start the matching protocol: sessions inside the
 window are replaced with rest, the return ramp is planned from the end date,
@@ -133,6 +136,8 @@ description is the record. Not checked live: that Intervals drops the planned
 load when today's `WORKOUT` is changed to a `NOTE` (the step used where
 safe-mode delete refuses today's event). The brief does not yet surface a
 window that has ended; the playbook reads the calendar back 14 days instead.
+Both points are since closed: 8.1 confirmed the NOTE drops the planned load,
+and 8.3 surfaces the ended window as `coach_brief.returning`.
 
 ### 1.8 A coach folder in the workout library [next, M]
 
@@ -142,7 +147,7 @@ in the Intervals UI, and the coach recognises it by its id. Reusable blocks
 (an eight-week strength base, a three-week VO2 block) become `PLAN` folders,
 which Intervals can share between athletes.
 
-### 1.9 Logging what no device records [now, S]
+### 1.9 Logging what no device records [done, S]
 
 "Did the gym session, 50 minutes, RPE 7" becomes a manual activity paired to
 the planned event (`mark-done` or the manual-activity endpoint), with session
@@ -193,7 +198,7 @@ Start with one read-only card and grow:
 
 Cards are for looking and approving. Intervals remains where the plan lives.
 
-### 2.2 A Claude Skill for the coach [now, S]
+### 2.2 A Claude Skill for the coach [done, unchecked live, S]
 
 Package the playbook as a Claude Skill in the repo. A skill loads when the
 conversation turns to training, which is a more reliable trigger than server
@@ -209,7 +214,7 @@ install never coaches from old rules; the bundled playbook is the fallback.
 Install steps are in `user-setup.md`. Not checked: uploading the zip to
 Claude and that it triggers on a phone.
 
-### 2.3 Named routines [now, S]
+### 2.3 Named routines [done, unchecked live, S]
 
 Trim the ten prompts to the ones a coached athlete uses, and make each a
 single entry point that calls the right tools: morning check, review my week,
@@ -363,12 +368,75 @@ ladders, pace-based workout syntax, and brick sessions for multisport.
 Beyond the phase table in the assessment: an exercise library with
 progressions and substitutions by equipment, loading by reps in reserve,
 home and bodyweight variants, and a short prehab set tied to injury notes.
+Starts after 3.18 settles where the rules live and how rigid they are.
 
 ### 3.17 Season review [later, M]
 
 Once a year: what was planned, what happened, which blocks produced gains,
 what to change. Written as a note in Intervals and into the decision log as
 the starting point for the next season.
+
+### 3.18 Strength rules: research and the architecture decision [now, M]
+
+Decide how strength is prescribed before building 3.16 on top of it. Today
+every strength number is prose, so `tests/test_methodology_sources.py` checks
+none of them:
+
+- Playbook section 5: two sessions a week, not the day after VO2, start after
+  A-race recovery, never in peak or taper.
+- Methodology session menu: "strength x2" in base, no strength the day before
+  a key session.
+- Assessment section 6: a phase table (technique 2–3 weeks; heavy 3–4 × 4–10
+  for 8–12 weeks; once a week in build; stop heavy lifting 7–10 days before an
+  A-race) and placement rules (lift on hard days at least 3 hours after the
+  ride; no heavy legs within 24 hours of a key session, 48 in the first weeks).
+
+Confirmed evidence covers only part of it: Rønnestad 2010 and 2011 (twice
+weekly, then once weekly in season, in well-trained cyclists) and Schumann
+2022 (no interference with maximal strength; explosive strength suffers in the
+same session, not three hours apart). Unsourced so far: the pre-race stop,
+the 24 / 48-hour gaps, the technique-phase sets and reps, "not the day after
+VO2", and the 2–3 weeks of heavy legs when starting.
+
+Research and decide three things, and write the decisions here before any code:
+
+1. **Architecture.** Where strength rules live, and who applies them.
+   - Constants in `coaching/methodology.py`, beside the endurance numbers;
+     a per-sport module (the assessment's `sports/` config); or rule records
+     (the assessment's section 7 `knowledge/` package).
+   - Whether the brief computes strength (sessions due this week by phase,
+     placement against key sessions, done vs prescribed) the way it computes
+     the load target, or the guide only describes it and the model applies it.
+   - How strength sessions count in load (session RPE × minutes, `kg_lifted`)
+     and whether they feed compliance, the ramp and readiness.
+2. **Sources: merge or separate.** One registry or two.
+   - Merge: strength entries go into `coaching/sources.py`
+     `PARAMETER_SOURCES` and `REFERENCES`, under the same test and the same
+     sourced / derived / default tally.
+   - Separate: a strength registry with fields the endurance one lacks
+     (population, training age, exercise, load scheme), rendered as its own
+     section.
+   - Either way, keep the assessment's section 7 evidence table in step.
+3. **How rigid.** For each rule, decide whether it is:
+   - a hard boundary the server enforces (refuses or warns on a calendar
+     write, e.g. heavy legs the day before a key session, lifting inside the
+     pre-race stop);
+   - a default the model may adapt with a stated reason (frequency, sets and
+     reps, exercise choice); or
+   - guidance only (exercise selection, equipment substitutions).
+
+   Also decide which values the athlete can override (equipment, days
+   available, training age) and which stay fixed.
+
+Research to do: read on PubMed (status `confirmed` only when read) for the
+unsourced values above, concurrent-training placement and order, and
+strength cessation before endurance events. Also note how current systems
+(TrainerRoad, TrainingPeaks plans, coaching literature) set rigidity, and
+the population limits of cyclist-only trials.
+
+**Finished when** the three decisions are written here with their reasons, every
+strength number has a basis and references in the chosen registry, and 3.16
+is rescoped to build on them.
 
 ## 4. Proactive and event-driven
 
@@ -413,7 +481,7 @@ depends on a Claude client being available to run it.
 See the data-store design. Friends add the connector and log in; no API keys
 or tokens are exchanged by hand.
 
-### 5.2 Data-quality sentinel [now, M]
+### 5.2 Data-quality sentinel [done, unchecked live, M]
 
 The hardest practical problem people report with LLM coaching on Intervals
 data is bad input. Check and report, in `gaps`:
@@ -433,7 +501,7 @@ flagged activity ids are named, excluded from coach computations, and recorded
 in `coach_brief.provenance.data_quality`. Not yet checked against a live
 athlete response.
 
-### 5.3 Provenance on every number [now, S]
+### 5.3 Provenance on every number [done, S]
 
 Each figure in the brief carries where it came from: an Intervals field, or a
 computed value with its rule id. Missing inputs are named, never filled in
@@ -443,7 +511,7 @@ silently. Same inputs give the same output, and a test asserts it.
 Intervals inputs and a versioned rule id. It names missing inputs, and a
 determinism test compares two briefs built from identical inputs.
 
-### 5.4 Versioning of the coach [now, S]
+### 5.4 Versioning of the coach [done, S]
 
 `engine_version` and `kb_version` in every state response and stored with
 every brief, plan and verdict. When advice changes, the reason is traceable.
@@ -474,7 +542,7 @@ With each friend's consent: one summary of how everyone is doing, from
 Intervals' athlete-summary endpoint. Useful for a group training toward the
 same event. Off by default.
 
-### 5.9 Staying close to upstream [now, S]
+### 5.9 Staying close to upstream [done, S]
 
 Keep fork code in `coaching/`. Offer upstream the fixes that are not
 coach-specific: athlete-timezone dates and the percent-scale intensity
@@ -508,8 +576,8 @@ Folded into the phases of the assessment's roadmap:
 | Phase | Add from this backlog |
 |---|---|
 | 0 Corrections | Closed. Pace curve, run threshold unit, interval fields, intensity ratio, weight and date of birth, GPS longitude, discipline list. |
-| 1 Foundation | 1.1, 1.6, 1.7, 1.9, 2.2, 2.3, 5.2, 5.3, 5.4, 5.9 |
-| 2 Strength, cross-training, rule base | 1.2, 2.4, 3.16, section 6 |
+| 1 Foundation | Closed. 1.1, 1.6, 1.7, 1.9, 2.2, 2.3, 5.2, 5.3, 5.4, 5.9; 1.6, 2.2, 2.3 and 5.2 still need a live check. |
+| 2 Strength, cross-training, rule base | 1.2, 2.4, 3.18 then 3.16, section 6 |
 | 3 Session quality | 1.4, 1.8, 1.10, 3.3, 3.4, 3.5, 3.12, 3.14, 4.2 |
 | 4 Planning | 1.3, 1.5, 1.11, 2.7, 2.8, 3.6, 3.8 |
 | 5 Reach | 2.1, 2.5, 4.1, 4.3, 4.4, 5.1, 5.5, 5.6 |
@@ -520,7 +588,7 @@ Folded into the phases of the assessment's roadmap:
 Open checks and loose ends left by shipped items. Each names what to find out
 and what to change once it is known. Close them with a `**Done:**` line.
 
-### 8.1 Does a WORKOUT turned into a NOTE drop its planned load? [now, S]
+### 8.1 Does a WORKOUT turned into a NOTE drop its planned load? [done, S]
 
 The illness protocol (1.7) turns today's session into a rest `NOTE` with
 `icu_update_event`, because safe-mode delete refuses today's event. This
@@ -538,7 +606,7 @@ so in playbook section 7.
 and nothing extra is needed. The workout text stayed in the description, so
 playbook section 7 now also replaces the description with the reason.
 
-### 8.2 Source the return-from-break numbers [now, S]
+### 8.2 Source the return-from-break numbers [done, S]
 
 `RETURN_FROM_BREAK` uses 67% of pre-break load after 3-7 days missed, 50%
 after 8 or more, and a 45-minute cap for above-the-neck illness. They are
@@ -555,7 +623,7 @@ figures. The IOC 2022 consensus finds no established return timelines, and the
 assessment's evidence table, the `RETURN_FROM_BREAK` comment and the
 methodology text, which now says these are coaching defaults.
 
-### 8.3 Surface an ended illness window in the brief [next, S]
+### 8.3 Surface an ended illness window in the brief [done, unchecked live, S]
 
 `coach_brief.away` lists `SICK` / `INJURED` windows that are open or start
 in the next 14 days. One that ended yesterday disappears, so the return week
@@ -583,7 +651,7 @@ routine, and whether the skill uploads to Claude and triggers on web and on
 a phone. Add an `icu_get_athlete_state`-first case per routine to
 `tests/smoke_eval.json`; `make smoke-eval` costs money, so run it on purpose.
 
-### 8.6 Classify the prompt trim for the next release [now, S]
+### 8.6 Classify the prompt trim for the next release [done, S]
 
 The coaching profile stopped listing upstream's eight analysis prompts
 (2.3). The versioned contract in the CHANGELOG header names tools,
@@ -595,7 +663,7 @@ the answer into the contract before the release is cut.
 names prompts next to tools (removing, renaming, or changing default
 registration is major; rewording is not), and the trim is marked BREAKING.
 
-### 8.7 Formatting drift on main [now, S]
+### 8.7 Formatting drift on main [done, S]
 
 `make format` rewrites four files that `make lint` accepts as they are:
 `client.py`, `tools/event_management.py`, `tests/test_athlete_state.py` and
@@ -622,6 +690,41 @@ treat N zero weeks as a break and apply `RETURN_FROM_BREAK` by weeks missed;
 use the last non-zero week as the reference; or cap from a CTL floor
 (`7 x CTL x 1.3`). Touches `coaching/coach_brief.py`, `coaching/methodology.py`
 and `coaching/sources.py`.
+
+
+### 8.9 Data-driven coaching numbers [done, unchecked live, M]
+
+Every methodology number says where it comes from, and the endurance defaults
+are checked against peer-reviewed evidence.
+
+**Done:** #20 added `coaching/sources.py`: each constant in
+`coaching/methodology.py` has a basis (sourced, derived or default), a
+rationale and reference ids, enforced by `tests/test_methodology_sources.py`
+and rendered into the methodology text. #22 read the evidence for every
+default on PubMed and added per-value `parts` for mixed constants. #23 added
+two more; the registry now holds 25 confirmed and 5 partly-checked references. #23 applied the owner's decisions: zone shares from the trial
+arms, polarized from 8 h a week, the 1.3x week-over-week ramp cap, and the
+runs-only long-run flag. Rules are in CLAUDE.md under "Coaching numbers are
+data-driven". Not checked against a live athlete. Open follow-ups: 8.8, 8.10,
+3.18.
+
+### 8.10 Move the remaining inline thresholds into methodology [now, M]
+
+#22 listed numbers that still live in code instead of `methodology.py`, so they
+have no source entry. Move each into a named constant with a `sources.py`
+entry, or decide it is a sensor-sanity limit that belongs in its own table.
+
+- `coach_brief.py`: hard sessions per week (3 at 12 h and over, else 2, 1 in a
+  recovery week); the target range ×0.9 / ×1.1 and the p90 ×1.1 warning; the
+  14-day B/C-race window; `_AWAY_WINDOW_DAYS` and `_RETURN_LOOKBACK_DAYS`.
+- `athlete_state_compute.py`: `INTENSITY_BINS` IF 0.75 / 0.85 / 0.95 (0.85
+  repeats `HARD_SESSION_INTENSITY_FACTOR`); the 60-day readiness baseline and
+  the ±1.0 ms HRV trend; the 10% `60m_to_ftp_gap`; the 1.15 compliance flag
+  and `COMPLIANCE_WEEKS`; the 14-day empty-subjective flag;
+  `DURABILITY_BINS_KJ`.
+- `data_quality.py`: dropout lengths, power and heart-rate ceilings, the
+  600 s minimum ride, the 0.8 active share and the dedupe rounding. These are
+  likely sensor-sanity limits rather than coaching numbers.
 
 ## Sources
 
