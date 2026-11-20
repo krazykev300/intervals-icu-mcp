@@ -55,6 +55,7 @@ breaking; this narrower contract applies from the next release onward.)
 - A long-past `RACE_A` no longer anchors `phase_context` (`source` is now `unspecified` with `last_a_race`); an A-race in the last 14 days wins over a far-future one so the phase is `recovery`.
 
 ### Changed
+- Playbook section 7: a session turned into a rest NOTE also gets its description replaced with the reason. Checked live that Intervals drops the planned load, duration and sport on the NOTE, but keeps the old workout steps in the description.
 - Methodology "Return from a break" says its load shares are coaching defaults and cites the detraining and return-after-illness sources they were checked against (numbers unchanged).
 - Fork-owned athlete-state assembly, coach-brief computation, data-quality checks, methodology, and event-category references now live under `coaching/`; the MCP tool contract and runtime behavior are unchanged.
 - **BREAKING:** the `coaching` profile lists 9 prompts: the seven named routines, `coach_with_goals` and `verify_setup`. Upstream's analysis prompts (`analyze_recent_training`, `performance_analysis`, `activity_deep_dive`, `recovery_check`, `training_plan_review`, `plan_training_week`, `generate_workout`, `verify_multi_athlete`) register only with `INTERVALS_ICU_TOOL_PROFILE=full`, which now lists 17. Changing which prompts register by default is breaking under the contract above.
