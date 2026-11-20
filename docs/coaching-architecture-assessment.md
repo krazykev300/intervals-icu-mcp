@@ -639,7 +639,8 @@ rule records should read the methods of anything a prescription rests on.
 | Running load spikes | Injury rate rose when a single run exceeded the longest of the last 30 days by more than 10% (hazard ratios 1.64, 1.52, 2.28 by band). No relation for week-to-week ratios. 5,205 runners | Frandsen et al. 2025, Br J Sports Med 59(17):1203–1210, PMID 40623829 | Confirmed |
 | Weekly progression | Novice runners progressing weekly distance more than 30% had more distance-related injuries than those under 10% (hazard ratio 1.59, p = 0.07). 874 runners, exploratory | Nielsen et al. 2014, J Orthop Sports Phys Ther 44(10):739–747, PMID 25155475 | Confirmed |
 | 10% rule | A graded program built on the 10% rule did not reduce injuries (20.8% vs 20.3%). 532 novice runners, randomized | Buist et al. 2008, Am J Sports Med 36(1):33–39, PMID 17940147 | Confirmed |
-| Acute-to-chronic ratio | Conceptually flawed as an injury predictor; do not gate on it | Impellizzeri et al. 2020, Int J Sports Physiol Perform 15:907–913 | Confirmed |
+| Acute-to-chronic ratio | Conceptually flawed as an injury predictor; do not gate on it | Impellizzeri et al. 2020, Int J Sports Physiol Perform 15:907–913, PMID 32502973 | Confirmed |
+| Acute-to-chronic "sweet spot" | Ratio 0.8–1.3 called the sweet spot and ≥ 1.5 the danger zone; team-sport data | Gabbett 2016, Br J Sports Med 50(5):273–280, PMID 26758673 (full text) | Confirmed |
 | Monotony and strain | Daily-load variability as an overreach marker | Foster 1998, Med Sci Sports Exerc | Partly |
 | Bone health | Road cycling gives no significant bone-building stimulus; add impact loading | Olmedillas et al. 2012, BMC Med, doi 10.1186/1741-7015-10-168 | Confirmed |
 | Durability | Deterioration of physiological markers during prolonged exercise as a performance factor | Maunder et al. 2021, Sports Med 51(8):1619–1628 | Confirmed |
@@ -679,6 +680,11 @@ What the check changed, and why the `verified` flag is not optional:
   2013), so the polarized floor moved from 14 to 8 hours, with pyramidal
   offered to recreational athletes (Rosenblat 2025). The zone shares are now
   the trial arms (Esteve-Lanao 2007; Seiler & Kjerland 2006).
+- A CTL-point ramp from a steady week is a ×2.3 step at CTL 15. The brief now
+  caps a ramp week at 1.3× the reference week (Nielsen 2014's 30% band; the
+  acute:chronic ratio itself is not used as a gate, per Impellizzeri 2020),
+  and flags planned runs over 1.1× the 30-day longest (Frandsen 2025). The run
+  flag is not applied to rides: no cycling study links load spikes to injury.
 
 ### Keeping it current
 

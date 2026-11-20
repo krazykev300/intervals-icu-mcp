@@ -60,6 +60,15 @@ RAMP: dict[str, Any] = {
 # CTL + r / (1 - e^(-7/42)); the divisor is ~0.1535, so the multiplier is ~6.51.
 CTL_WEEK_GAIN_FACTOR = 6.51
 
+# A ramp or peak week's target is at most this multiple of the reference week:
+# the larger of the last completed week and the mean of the last three, so a
+# planned recovery week does not hold the next week below normal load.
+RAMP_WEEK_OVER_WEEK_MAX = 1.30
+
+# Runs only: flag a planned run longer (distance, else moving time) than this
+# multiple of the longest run in the window before today.
+LONG_RUN_SPIKE: dict[str, float] = {"max_ratio": 1.10, "window_days": 30, "horizon_days": 14}
+
 # Ramp tier from empirical TSB tolerance (first matching rule wins).
 RAMP_SELECTION: dict[str, Any] = {
     "aggressive": {"excursions_min": 2, "median_days_to_recover_max": 10},
@@ -147,6 +156,9 @@ recovery <= 10 days; conservative = median recovery > 14 days; standard = min \
 observed TSB <= -15; else conservative. Red readiness drops one tier.
 
 Weekly load for a CTL gain of r: 7 x (CTL + 6.51 x r). Peak holds CTL (r = 0). \
+Cap a ramp or peak week at 1.3x the reference week (the larger of the last \
+completed week and the mean of the last three); at low CTL the cap, not the \
+tier, sets the first weeks. \
 Taper week load vs the pre-taper reference: 65% at 8-14 days out, 45% in race \
 week. Post-A recovery: <= 50%, no intensity. A recovery week is one at or \
 under 75% of the mean of the three weeks before it.
@@ -167,6 +179,10 @@ taper:   same intensities, half the reps, short openers 1-2 days out
 recovery / general_fitness: Z1-Z2 only for recovery; for general fitness one
          threshold-type and one VO2-type session a week on a Z2 base
 ```
+
+Runs: a planned run more than 10% longer than the longest run of the last 30 \
+days is flagged; shorten it or build to it. Single-run spikes, not weekly \
+ratios, carried the injury signal in runners; rides are not checked.
 
 Rules: hard sessions at least 48h apart; never two hard days before the long \
 ride; a group ride counts as the hard session it actually is; strength not \
