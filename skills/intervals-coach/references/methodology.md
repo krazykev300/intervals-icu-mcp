@@ -21,14 +21,16 @@ base:   days_out >= 85
 ## Intensity distribution (by observed weekly hours)
 
 ```
-under 8h:     threshold or pyramidal
-8–14h:        pyramidal (polarized only in base)
-over 14h:     polarized
+8h and over:        polarized
+6h to under 8h:     pyramidal
+under 6h:           threshold
 ```
 
-Polarized: z1 0.80 / z2 0.05 / z3 0.15 (min ~14h).
-Pyramidal: z1 0.75 / z2 0.18 / z3 0.07.
-Threshold-weighted: z1 0.65 / z2 0.28 / z3 0.07.
+Polarized: z1 0.75 / z2 0.08 / z3 0.17.
+Pyramidal: z1 0.80 / z2 0.12 / z3 0.08.
+Threshold: z1 0.67 / z2 0.25 / z3 0.08.
+
+Polarized from 8h assumes a competitive athlete; for a recreational one, pyramidal gave more VO2max (Rosenblat 2025), so offer it as the alternative.
 Anti-pattern: living in the middle (endurance rides creeping into tempo).
 
 ## Taper (A-race)
@@ -41,7 +43,7 @@ CTL/week: conservative 3 / standard 5 / aggressive 7. Pick from `fitness_form.ts
 
 Tier rule (first match): aggressive = 2+ excursions below -25 TSB with median recovery <= 10 days; conservative = median recovery > 14 days; standard = min observed TSB <= -15; else conservative. Red readiness drops one tier.
 
-Weekly load for a CTL gain of r: 7 x (CTL + 6.51 x r). Peak holds CTL (r = 0). Taper week load vs the pre-taper reference: 65% at 8-14 days out, 45% in race week. Post-A recovery: <= 50%, no intensity. A recovery week is one at or under 75% of the mean of the three weeks before it.
+Weekly load for a CTL gain of r: 7 x (CTL + 6.51 x r). Peak holds CTL (r = 0). Cap a ramp or peak week at 1.3x the reference week (the larger of the last completed week and the mean of the last three); at low CTL the cap, not the tier, sets the first weeks. Taper week load vs the pre-taper reference: 65% at 8-14 days out, 45% in race week. Post-A recovery: <= 50%, no intensity. A recovery week is one at or under 75% of the mean of the three weeks before it.
 
 `icu_get_athlete_state` already applies these rules in `analysis.coach_brief`. Use those numbers; do not re-derive different ones.
 
@@ -58,6 +60,8 @@ taper:   same intensities, half the reps, short openers 1-2 days out
 recovery / general_fitness: Z1-Z2 only for recovery; for general fitness one
          threshold-type and one VO2-type session a week on a Z2 base
 ```
+
+Runs: a planned run more than 10% longer than the longest run of the last 30 days is flagged; shorten it or build to it. Single-run spikes, not weekly ratios, carried the injury signal in runners; rides are not checked.
 
 Rules: hard sessions at least 48h apart; never two hard days before the long ride; a group ride counts as the hard session it actually is; strength not the day before a key session; if `60m_to_ftp_gap` is flagged, bias toward longer threshold intervals over more VO2. B race: 2-3 easy days before, no full taper. C race: train through.
 
@@ -113,10 +117,12 @@ PHASE_FROM_A_RACE: default [taper sourced] (Bosquet 2007)
 READINESS_THRESHOLDS: default (Kiviniemi 2007, Vesterinen 2016, Javaloyes 2019, Plews 2013, Craven 2022)
 TSB_EXCURSION_THRESHOLD: default
 TSB_RECOVERED_THRESHOLD: default
-DISTRIBUTION_MODELS: default (Seiler 2010, Seiler & Kjerland 2006, Esteve-Lanao 2007, Neal 2013, Treff 2019, Rosenblat 2019, Rosenblat 2025)
+DISTRIBUTION_MODELS: default [shares sourced] (Seiler 2010, Seiler & Kjerland 2006, Esteve-Lanao 2007, Neal 2013, Treff 2019, Rosenblat 2019, Rosenblat 2025)
 TAPER: sourced (Bosquet 2007, Wang 2023)
 RAMP: default (Nielsen 2014, Buist 2008, Frandsen 2025)
 CTL_WEEK_GAIN_FACTOR: derived
+RAMP_WEEK_OVER_WEEK_MAX: default (Nielsen 2014, Buist 2008, Gabbett 2016, Impellizzeri 2020)
+LONG_RUN_SPIKE: default [max_ratio sourced, window_days sourced] (Frandsen 2025)
 RAMP_SELECTION: default
 RECOVERY_WEEK_RATIO: default
 TAPER_WEEK_LOAD_PCT: derived (Bosquet 2007)

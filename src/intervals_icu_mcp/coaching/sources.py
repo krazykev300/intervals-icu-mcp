@@ -101,6 +101,21 @@ REFERENCES: dict[str, dict[str, str]] = {
         "by more than 10%; no relation for the week-to-week ratio; 5,205 runners",
         "status": "confirmed",
     },
+    "gabbett_2016": {
+        "short": "Gabbett 2016",
+        "citation": "Gabbett TJ. Br J Sports Med 2016;50(5):273-280, PMID 26758673",
+        "finding": "Rapid load increases blamed for soft-tissue injury; acute:chronic ratio "
+        "0.8-1.3 called the 'sweet spot', >= 1.5 the 'danger zone' (team sports, full text)",
+        "status": "confirmed",
+    },
+    "impellizzeri_2020": {
+        "short": "Impellizzeri 2020",
+        "citation": "Impellizzeri FM et al. Int J Sports Physiol Perform 2020;15(6):907-913, "
+        "PMID 32502973",
+        "finding": "No evidence supports using the acute:chronic workload ratio to manage load "
+        "or reduce injury; the ratio is an inaccurate metric",
+        "status": "confirmed",
+    },
     "javaloyes_2019": {
         "short": "Javaloyes 2019",
         "citation": "Javaloyes A et al. Int J Sports Physiol Perform 2019;14(1):23-32, "
@@ -274,11 +289,12 @@ PARAMETER_SOURCES: dict[str, dict[str, Any]] = {
     },
     "DISTRIBUTION_MODELS": {
         "basis": "default",
-        "rationale": "Shares sit between trial arms: polarized 80/5/15 vs 80/0/20 (Neal) "
-        "and 75/8/17 observed (Seiler & Kjerland); pyramidal 75/18/7 between 80/12/8 and "
-        "67/25/8 (Esteve-Lanao); threshold 65/28/7 near 67/25/8. Polarization index 2.38 "
-        "for polarized, under 2 for the others. Hour floors are coaching choices; Neal's "
-        "polarized group trained 6.4 h/week",
+        "parts": {"shares": "sourced", "min_weekly_hours": "default"},
+        "rationale": "Shares are trial arms: pyramidal 80/12/8 and threshold 67/25/8 "
+        "(Esteve-Lanao), polarized 75/8/17 observed (Seiler & Kjerland); polarization "
+        "index 2.20 for polarized, under 2 for the others. Polarized from 8 h follows "
+        "Neal's gains at 6.4 h/week; pyramidal below, and offered to recreational "
+        "athletes (Rosenblat 2025); threshold under 6 h is a coaching choice",
         "refs": [
             "seiler_2010",
             "seiler_kjerland_2006",
@@ -308,6 +324,22 @@ PARAMETER_SOURCES: dict[str, dict[str, Any]] = {
         "rationale": "Daily load that moves a 42-day EWMA by r in 7 days is "
         "CTL + r / (1 - e^(-7/42)); 1 / 0.1535 = 6.51",
         "refs": [],
+    },
+    "RAMP_WEEK_OVER_WEEK_MAX": {
+        "basis": "default",
+        "rationale": "Weekly increases over 30% carried the only injury signal (novice "
+        "runners, p = 0.07) and 1.3 tops the acute:chronic band, which is not itself a valid "
+        "gate; 10% was not protective. Reference is the larger of last week and the 3-week "
+        "mean so a recovery week does not lower the next one",
+        "refs": ["nielsen_2014", "buist_2008", "gabbett_2016", "impellizzeri_2020"],
+    },
+    "LONG_RUN_SPIKE": {
+        "basis": "default",
+        "parts": {"max_ratio": "sourced", "window_days": "sourced", "horizon_days": "default"},
+        "rationale": "A run more than 10% longer than the longest of the last 30 days raised "
+        "the injury rate in 5,205 runners; the 14-day look-ahead is the brief's planning "
+        "window. Runs only: no cycling study links load spikes to injury",
+        "refs": ["frandsen_2025"],
     },
     "RAMP_SELECTION": {
         "basis": "default",

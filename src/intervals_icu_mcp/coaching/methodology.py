@@ -29,10 +29,16 @@ READINESS_THRESHOLDS: dict[str, Any] = {
 TSB_EXCURSION_THRESHOLD = -25.0
 TSB_RECOVERED_THRESHOLD = -10.0
 
+# Zone 1 / 2 / 3 time shares from the trial arms, and the observed weekly hours
+# at which each model applies. Selection takes the first model in
+# `min_weekly_hours` order whose floor the athlete's median week reaches.
 DISTRIBUTION_MODELS: dict[str, dict[str, Any]] = {
-    "polarized": {"z1": 0.80, "z2": 0.05, "z3": 0.15, "min_weekly_hours": 14},
-    "pyramidal": {"z1": 0.75, "z2": 0.18, "z3": 0.07, "min_weekly_hours": 6},
-    "threshold": {"z1": 0.65, "z2": 0.28, "z3": 0.07, "min_weekly_hours": 4},
+    "shares": {
+        "polarized": {"z1": 0.75, "z2": 0.08, "z3": 0.17},
+        "pyramidal": {"z1": 0.80, "z2": 0.12, "z3": 0.08},
+        "threshold": {"z1": 0.67, "z2": 0.25, "z3": 0.08},
+    },
+    "min_weekly_hours": {"polarized": 8, "pyramidal": 6, "threshold": 0},
 }
 
 TAPER: dict[str, Any] = {
@@ -53,6 +59,15 @@ RAMP: dict[str, Any] = {
 # Daily load that moves a 42-day EWMA (CTL) by `r` points in 7 days is
 # CTL + r / (1 - e^(-7/42)); the divisor is ~0.1535, so the multiplier is ~6.51.
 CTL_WEEK_GAIN_FACTOR = 6.51
+
+# A ramp or peak week's target is at most this multiple of the reference week:
+# the larger of the last completed week and the mean of the last three, so a
+# planned recovery week does not hold the next week below normal load.
+RAMP_WEEK_OVER_WEEK_MAX = 1.30
+
+# Runs only: flag a planned run longer (distance, else moving time) than this
+# multiple of the longest run in the window before today.
+LONG_RUN_SPIKE: dict[str, float] = {"max_ratio": 1.10, "window_days": 30, "horizon_days": 14}
 
 # Ramp tier from empirical TSB tolerance (first matching rule wins).
 RAMP_SELECTION: dict[str, Any] = {
@@ -124,19 +139,7 @@ build:  days_out <= 84
 base:   days_out >= 85
 ```
 
-## Intensity distribution (by observed weekly hours)
-
-```
-under 8h:     threshold or pyramidal
-8–14h:        pyramidal (polarized only in base)
-over 14h:     polarized
-```
-
-Polarized: z1 0.80 / z2 0.05 / z3 0.15 (min ~14h).
-Pyramidal: z1 0.75 / z2 0.18 / z3 0.07.
-Threshold-weighted: z1 0.65 / z2 0.28 / z3 0.07.
-Anti-pattern: living in the middle (endurance rides creeping into tempo).
-
+{distribution}
 ## Taper (A-race)
 
 Duration 8–14 days optimal (max 21). Cut volume exponentially 41–60% \
@@ -153,6 +156,9 @@ recovery <= 10 days; conservative = median recovery > 14 days; standard = min \
 observed TSB <= -15; else conservative. Red readiness drops one tier.
 
 Weekly load for a CTL gain of r: 7 x (CTL + 6.51 x r). Peak holds CTL (r = 0). \
+Cap a ramp or peak week at 1.3x the reference week (the larger of the last \
+completed week and the mean of the last three); at low CTL the cap, not the \
+tier, sets the first weeks. \
 Taper week load vs the pre-taper reference: 65% at 8-14 days out, 45% in race \
 week. Post-A recovery: <= 50%, no intensity. A recovery week is one at or \
 under 75% of the mean of the three weeks before it.
@@ -173,6 +179,10 @@ taper:   same intensities, half the reps, short openers 1-2 days out
 recovery / general_fitness: Z1-Z2 only for recovery; for general fitness one
          threshold-type and one VO2-type session a week on a Z2 base
 ```
+
+Runs: a planned run more than 10% longer than the longest run of the last 30 \
+days is flagged; shorten it or build to it. Single-run spikes, not weekly \
+ratios, carried the injury signal in runners; rides are not checked.
 
 Rules: hard sessions at least 48h apart; never two hard days before the long \
 ride; a group ride counts as the hard session it actually is; strength not \
@@ -245,4 +255,41 @@ Intervals combined TSS is the CTL the charts use. Do not invent \
 sport-weighted load. Flag mixed-sport weeks in analysis.
 """
 
-METHODOLOGY_SPEC = _METHODOLOGY_TEXT + "\n" + render_sources_section()
+
+def _render_distribution() -> str:
+    """Distribution section, rendered from DISTRIBUTION_MODELS so text and code agree."""
+    floors: dict[str, float] = DISTRIBUTION_MODELS["min_weekly_hours"]
+    shares: dict[str, dict[str, float]] = DISTRIBUTION_MODELS["shares"]
+    lines = ["## Intensity distribution (by observed weekly hours)", "", "```"]
+    upper: float | None = None
+    for model, floor in floors.items():
+        if upper is None:
+            band = f"{floor:g}h and over"
+        elif floor:
+            band = f"{floor:g}h to under {upper:g}h"
+        else:
+            band = f"under {upper:g}h"
+        lines.append(f"{band + ':':<20}{model}")
+        upper = floor
+    lines.append("```")
+    lines.append("")
+    for model, share in shares.items():
+        lines.append(
+            f"{model.capitalize()}: z1 {share['z1']:.2f} / z2 {share['z2']:.2f} / "
+            f"z3 {share['z3']:.2f}."
+        )
+    lines += [
+        "",
+        "Polarized from 8h assumes a competitive athlete; for a recreational one, "
+        "pyramidal gave more VO2max (Rosenblat 2025), so offer it as the alternative.",
+        "Anti-pattern: living in the middle (endurance rides creeping into tempo).",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+METHODOLOGY_SPEC = (
+    _METHODOLOGY_TEXT.replace("{distribution}", _render_distribution())
+    + "\n"
+    + render_sources_section()
+)

@@ -19,9 +19,11 @@ from .methodology import (
     DISTRIBUTION_MODELS,
     HARD_SESSION_INTENSITY_FACTOR,
     KB_VERSION,
+    LONG_RUN_SPIKE,
     POST_A_RECOVERY_LOAD_PCT,
     RAMP,
     RAMP_SELECTION,
+    RAMP_WEEK_OVER_WEEK_MAX,
     RECOVERY_WEEK_RATIO,
     RETURN_FROM_BREAK,
     TAPER_WEEK_LOAD_PCT,
@@ -38,6 +40,7 @@ FOCUS_NOTE_DAYS = 120
 FOCUS_PREFIX = "focus:"
 MAX_TODAY_FLAGS = 2
 _WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+_RUN_TYPES = frozenset({"Run", "VirtualRun", "TrailRun"})
 ENGINE_VERSION = "1.0.0"
 
 
@@ -114,13 +117,9 @@ def select_distribution(median_weekly_hours: float | None, phase: str | None) ->
     if median_weekly_hours is None:
         return {}
     hours = median_weekly_hours
-    if hours > 14:
-        model = "polarized"
-    elif hours >= 6:
-        model = "pyramidal"
-    else:
-        model = "threshold"
-    shares = DISTRIBUTION_MODELS[model]
+    floors: dict[str, float] = DISTRIBUTION_MODELS["min_weekly_hours"]
+    model = next((name for name, floor in floors.items() if hours >= floor), "threshold")
+    shares = DISTRIBUTION_MODELS["shares"][model]
     result: dict[str, Any] = {
         "model": model,
         "time_share": {
@@ -130,8 +129,8 @@ def select_distribution(median_weekly_hours: float | None, phase: str | None) ->
         },
         "based_on_median_weekly_hours": round(hours, 1),
     }
-    if model == "pyramidal" and hours >= 8 and phase == "base":
-        result["alternative"] = "polarized is acceptable in base at this volume"
+    if model == "polarized":
+        result["alternative"] = "pyramidal if training is recreational rather than competitive"
     return result
 
 
@@ -299,6 +298,12 @@ def today_flags(
         ranked.append(
             f"{race['category']} {race['name']} in {race['days_out']} days ({race['date']})."
         )
+    spikes: list[dict[str, Any]] = brief.get("long_run_spikes", [])
+    for spike in spikes:
+        ranked.append(
+            f"Planned run {spike['name']} on {spike['date']} is {spike['ratio']:g}x the longest "
+            "run of the last 30 days: shorten it or build to it."
+        )
     load: dict[str, Any] = brief.get("load", {})
     target: dict[str, Any] = load.get("next_week_target") or {}
     if load.get("recovery_week_due") and target:
@@ -386,6 +391,55 @@ def _today_block(
     if done:
         block["already_done"] = done
     return block
+
+
+def long_run_spikes(
+    events: list[Event], activities: list[ActivitySummary], today: date
+) -> list[dict[str, Any]]:
+    """Planned runs longer than LONG_RUN_SPIKE x the longest recent run.
+
+    Compares distance when both sides have it, else moving time. No runs in the
+    window means nothing to compare against, so nothing is flagged.
+    """
+    window_start = today - timedelta(days=int(LONG_RUN_SPIKE["window_days"]))
+    recent = [
+        a
+        for a in activities
+        if a.type in _RUN_TYPES and window_start <= parse_iso_date(a.start_date_local) < today
+    ]
+    if not recent:
+        return []
+    longest_m = max((float(a.distance or 0) for a in recent), default=0.0)
+    longest_s = max((float(a.moving_time or 0) for a in recent), default=0.0)
+    horizon_end = today + timedelta(days=int(LONG_RUN_SPIKE["horizon_days"]))
+    spikes: list[dict[str, Any]] = []
+    for event in events:
+        if event.category != "WORKOUT" or event.type not in _RUN_TYPES:
+            continue
+        day = parse_iso_date(event.start_date_local)
+        if not today <= day < horizon_end:
+            continue
+        planned_m = float(event.distance or event.distance_target or 0)
+        planned_s = float(event.moving_time or 0)
+        if planned_m and longest_m:
+            measure, planned, longest = "distance_m", planned_m, longest_m
+        elif planned_s and longest_s:
+            measure, planned, longest = "moving_time_s", planned_s, longest_s
+        else:
+            continue
+        if planned > longest * LONG_RUN_SPIKE["max_ratio"]:
+            spikes.append(
+                {
+                    "id": event.id,
+                    "name": event.name,
+                    "date": day.isoformat(),
+                    "measure": measure,
+                    "planned": round(planned),
+                    "longest_last_30d": round(longest),
+                    "ratio": round(planned / longest, 2),
+                }
+            )
+    return spikes
 
 
 def build_coach_brief(
@@ -498,6 +552,14 @@ def build_coach_brief(
             rate = RAMP["ctl_per_week"]["conservative"]
             basis = f"conservative ramp (no TSB history), +{rate} CTL/week from CTL {ctl:g}"
         target = round(7 * (float(ctl) + CTL_WEEK_GAIN_FACTOR * rate))
+        cap_reference = max(loads[-1], float(reference)) if loads and reference else 0.0
+        cap = round(cap_reference * RAMP_WEEK_OVER_WEEK_MAX)
+        if cap_reference > 0 and target > cap:
+            target = cap
+            basis += (
+                f"; capped at {RAMP_WEEK_OVER_WEEK_MAX:g}x the reference week "
+                f"({cap_reference:g}) before the CTL rate applies"
+            )
     if target is not None:
         load["next_week_target"] = {
             "load": target,
@@ -515,6 +577,10 @@ def build_coach_brief(
     load["recovery_week_due"] = bool(recovery_due)
     load["hard_sessions_per_week"] = _hard_sessions(phase, bool(recovery_due), hours)
     brief["load"] = load
+
+    spikes = long_run_spikes(events, activities, today)
+    if spikes:
+        brief["long_run_spikes"] = spikes
 
     brief["next_actions"] = _next_actions(
         brief=brief,
@@ -582,10 +648,23 @@ def _brief_provenance(
                 "wellness.ctl",
                 "wellness.tsb_history",
                 "methodology.ramp",
+                "methodology.ramp_week_over_week_max",
                 "methodology.taper",
             ],
         },
     }
+    if "long_run_spikes" in brief:
+        values["long_run_spikes"] = {
+            "kind": "computed",
+            "rule_id": "long_run_spike.v1",
+            "inputs": [
+                "events.distance",
+                "events.moving_time",
+                "activities.distance",
+                "activities.moving_time",
+                "methodology.long_run_spike",
+            ],
+        }
     if "away" in brief:
         values["away"] = {
             "kind": "intervals_field",

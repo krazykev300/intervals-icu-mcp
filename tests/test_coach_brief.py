@@ -172,10 +172,28 @@ class TestRampTier:
 class TestDistribution:
     def test_by_hours(self):
         assert select_distribution(4.0, "build")["model"] == "threshold"
-        assert select_distribution(10.5, "build")["model"] == "pyramidal"
+        assert select_distribution(5.9, "build")["model"] == "threshold"
+        assert select_distribution(6.0, "build")["model"] == "pyramidal"
+        assert select_distribution(7.9, "build")["model"] == "pyramidal"
+        assert select_distribution(8.0, "build")["model"] == "polarized"
         assert select_distribution(16.0, "build")["model"] == "polarized"
-        assert "alternative" in select_distribution(10.5, "base")
         assert select_distribution(None, "base") == {}
+
+    def test_polarized_offers_pyramidal_for_recreational_athletes(self):
+        assert "alternative" in select_distribution(10.5, "base")
+        assert "alternative" not in select_distribution(7.0, "base")
+
+    def test_shares_are_the_trial_arms(self):
+        shares = select_distribution(7.0, "build")["time_share"]
+        assert shares == {"z1_easy": 0.80, "z2_tempo_threshold": 0.12, "z3_vo2_plus": 0.08}
+
+    def test_methodology_text_matches_the_cut_offs(self):
+        from intervals_icu_mcp.coaching.methodology import METHODOLOGY_SPEC
+
+        assert "8h and over:        polarized" in METHODOLOGY_SPEC
+        assert "6h to under 8h:     pyramidal" in METHODOLOGY_SPEC
+        assert "under 6h:           threshold" in METHODOLOGY_SPEC
+        assert "Polarized: z1 0.75 / z2 0.08 / z3 0.17." in METHODOLOGY_SPEC
 
 
 class TestBrief:
@@ -201,8 +219,101 @@ class TestBrief:
         )
         assert brief["phase"]["a_race"]["days_out"] == 60
         assert brief["load"]["recovery_week_due"] is False
-        assert brief["load"]["next_week_target"]["load"] == round(7 * (70 + 6.51 * 7))
+        # 7 x (70 + 6.51 x 7) = 809 is above 1.3 x the 520 reference week
+        assert brief["load"]["next_week_target"]["load"] == round(520 * 1.3)
+        assert "capped at 1.3x" in brief["load"]["next_week_target"]["basis"]
         assert "follow_ups" not in brief
+
+    def test_build_target_from_ctl_and_ramp_when_cap_does_not_bind(self):
+        race = _event(TODAY + timedelta(days=60), "RACE_A", type="Ride")
+        brief = _brief(
+            events=[race],
+            activities=_weeks([700, 720, 430, 720]),
+            phase_context={"current_phase": "build", "source": "derived_from_race"},
+        )
+        target = brief["load"]["next_week_target"]
+        assert target["load"] == round(7 * (70 + 6.51 * 7))
+        assert "capped" not in target["basis"]
+
+
+class TestWeekOverWeekCap:
+    """From a steady week (7 x CTL), the conservative tier (r = 3) is capped at 1.3x."""
+
+    @staticmethod
+    def _steady(ctl: float) -> dict:
+        week = round(7 * ctl)
+        return _brief(
+            activities=_weeks([week, week, round(week * 0.6), week]),
+            phase_context={"current_phase": "build", "source": "derived_from_race"},
+            events=[_event(TODAY + timedelta(days=60), "RACE_A", type="Ride")],
+            current_fitness={"ctl": ctl, "tsb": -5.0},
+            tolerance={"min_observed": -8.0},
+            constraints={"typical_weekly_hours": {"median": 8.0}},
+        )
+
+    def test_cap_binds_at_low_ctl(self):
+        for ctl in (15.0, 30.0, 50.0):
+            target = self._steady(ctl)["load"]["next_week_target"]
+            assert target["load"] == round(round(7 * ctl) * 1.3), ctl
+
+    def test_tier_binds_at_high_ctl(self):
+        target = self._steady(80.0)["load"]["next_week_target"]
+        assert target["load"] == round(7 * (80 + 6.51 * 3))
+
+    def test_recovery_week_does_not_lower_the_next_week(self):
+        # last week was a 60% recovery week; the 3-week mean (467) is the reference
+        brief = _brief(
+            activities=_weeks([560, 560, 560, 280]),
+            phase_context={"current_phase": "build", "source": "derived_from_race"},
+            events=[_event(TODAY + timedelta(days=60), "RACE_A", type="Ride")],
+            current_fitness={"ctl": 80.0, "tsb": 5.0},
+            tolerance={"min_observed": -8.0},
+        )
+        assert brief["load"]["next_week_target"]["load"] == round(467 * 1.3)
+
+
+def _run(day: date, metres: float, seconds: int) -> ActivitySummary:
+    return ActivitySummary.model_validate(
+        {
+            "id": f"r{day.toordinal()}",
+            "start_date_local": datetime(day.year, day.month, day.day, 7).isoformat(),
+            "type": "Run",
+            "name": "Run",
+            "distance": metres,
+            "moving_time": seconds,
+            "icu_training_load": 50,
+        }
+    )
+
+
+class TestLongRunSpike:
+    def test_flags_a_planned_run_over_110_percent_of_the_30_day_longest(self):
+        runs = [_run(TODAY - timedelta(days=d), 10000, 3000) for d in (3, 10, 40)]
+        runs.append(_run(TODAY - timedelta(days=40), 20000, 6000))  # outside the window
+        planned = _event(
+            TODAY + timedelta(days=5), "WORKOUT", type="Run", name="Long run", distance=11500
+        )
+        ok = _event(TODAY + timedelta(days=6), "WORKOUT", type="Run", name="Easy", distance=10900)
+        brief = _brief(activities=_weeks([500, 520, 300, 520]) + runs, events=[planned, ok])
+        spikes = brief["long_run_spikes"]
+        assert [s["name"] for s in spikes] == ["Long run"]
+        assert spikes[0]["ratio"] == 1.15
+        assert spikes[0]["longest_last_30d"] == 10000
+        assert brief["provenance"]["values"]["long_run_spikes"]["rule_id"] == "long_run_spike.v1"
+        flags = today_flags(brief=brief, ftp_check=None, gaps=None)
+        assert any("Long run" in f for f in flags["flags"])
+
+    def test_falls_back_to_moving_time(self):
+        runs = [_run(TODAY - timedelta(days=4), 0, 3600)]
+        planned = _event(TODAY + timedelta(days=2), "WORKOUT", type="Run", moving_time=4500)
+        brief = _brief(activities=runs, events=[planned])
+        assert brief["long_run_spikes"][0]["measure"] == "moving_time_s"
+
+    def test_rides_and_athletes_without_recent_runs_are_not_checked(self):
+        ride = _event(TODAY + timedelta(days=2), "WORKOUT", type="Ride", moving_time=20000)
+        run = _event(TODAY + timedelta(days=2), "WORKOUT", type="Run", distance=30000)
+        brief = _brief(events=[ride, run])
+        assert "long_run_spikes" not in brief
 
     def test_empty_day_offers_calendar_write_before_follow_ups(self):
         brief = _brief(readiness_state="green")
