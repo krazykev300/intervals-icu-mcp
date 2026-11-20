@@ -6,9 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **The versioned contract covers what breaks integrations:** removing or renaming a
-tool, removing or renaming a tool parameter, changing the meaning of a config env
-var, changing which tools register by default, or removing information from a
-response. Any of these requires a **major** bump. Response payload *shape* changes
+tool or prompt, removing or renaming a tool parameter or prompt argument, changing
+the meaning of a config env var, changing which tools or prompts register by
+default, or removing information from a response. Any of these requires a
+**major** bump. Rewording a prompt's text is not breaking. Response payload *shape* changes
 that preserve the information (key renames, restructuring, added fields) ship in
 **minor** releases — MCP responses are read dynamically by LLMs, not parsed by typed
 clients. (Releases up to and including 4.0.0 treated any response-shape change as
@@ -53,7 +54,7 @@ breaking; this narrower contract applies from the next release onward.)
 
 ### Changed
 - Fork-owned athlete-state assembly, coach-brief computation, data-quality checks, methodology, and event-category references now live under `coaching/`; the MCP tool contract and runtime behavior are unchanged.
-- The `coaching` profile lists 9 prompts: the seven named routines, `coach_with_goals` and `verify_setup`. Upstream's analysis prompts (`analyze_recent_training`, `performance_analysis`, `activity_deep_dive`, `recovery_check`, `training_plan_review`, `plan_training_week`, `generate_workout`, `verify_multi_athlete`) register only with `INTERVALS_ICU_TOOL_PROFILE=full`, which now lists 17.
+- **BREAKING:** the `coaching` profile lists 9 prompts: the seven named routines, `coach_with_goals` and `verify_setup`. Upstream's analysis prompts (`analyze_recent_training`, `performance_analysis`, `activity_deep_dive`, `recovery_check`, `training_plan_review`, `plan_training_week`, `generate_workout`, `verify_multi_athlete`) register only with `INTERVALS_ICU_TOOL_PROFILE=full`, which now lists 17. Changing which prompts register by default is breaking under the contract above.
 - Coaching is calendar-first: a proposed session or week ends with an offer to add it to the Intervals calendar, and on a yes the model writes it in the same turn (targets matching the chat), then asks the next follow-up. `coach_brief.next_actions` leads with that offer when today is empty or a recovery week is due.
 - Playbook: no promises of later action ("from now on…", "after your run I'll…"); travel mentioned in chat but missing from the calendar goes into the same offer as a HOLIDAY; moving a session checks its new neighbours (no back-to-back strength, hard days 48h apart) and is offered as an `icu_update_event`.
 - `60m_to_ftp_gap` flag text points at `analysis.ftp_check` for the FTP verdict.

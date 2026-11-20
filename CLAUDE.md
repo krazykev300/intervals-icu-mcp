@@ -207,11 +207,11 @@ To cut a release:
 2. Commit (e.g., `chore(release): X.Y.Z`)
 3. Tag and push: `git tag vX.Y.Z && git push origin main vX.Y.Z`
 
-Follow SemVer with the narrowed contract defined in the CHANGELOG header. **Major** (breaking): removing or renaming a tool or tool parameter, changing config env var semantics, changing which tools register by default, or removing information from a response. **Minor**: response-shape changes that preserve the information (key renames, restructuring, added fields) — MCP responses are read dynamically by LLMs, not parsed by typed clients. Releases ≤ 4.0.0 predate this policy and treated any response-shape change as breaking.
+Follow SemVer with the narrowed contract defined in the CHANGELOG header. **Major** (breaking): removing or renaming a tool, prompt, tool parameter or prompt argument, changing config env var semantics, changing which tools or prompts register by default, or removing information from a response. Rewording prompt text is not breaking. **Minor**: response-shape changes that preserve the information (key renames, restructuring, added fields) — MCP responses are read dynamically by LLMs, not parsed by typed clients. Releases ≤ 4.0.0 predate this policy and treated any response-shape change as breaking.
 
 ### Deferred breaking changes (batch into the next major)
 
-**Prefer non-breaking fixes and ship them continuously** — add fields, or accept aliases (e.g. `icu_bulk_create_events` accepts `event_type` as an alias for the API's `type`). Most interface inconsistencies can be fixed this way; don't defer a fix that can be non-breaking. Only when a change *must* break the contract (renaming/removing a tool or parameter with no alias path, dropping an accepted alias, changing env-var semantics or default registration) do we **defer it and batch all such changes into one planned major** — so consumers migrate once and the cleaned-up interface is designed holistically, not dribbled out across majors.
+**Prefer non-breaking fixes and ship them continuously** — add fields, or accept aliases (e.g. `icu_bulk_create_events` accepts `event_type` as an alias for the API's `type`). Most interface inconsistencies can be fixed this way; don't defer a fix that can be non-breaking. Only when a change *must* break the contract (renaming/removing a tool, prompt or parameter with no alias path, dropping an accepted alias, changing env-var semantics or default tool/prompt registration) do we **defer it and batch all such changes into one planned major** — so consumers migrate once and the cleaned-up interface is designed holistically, not dribbled out across majors.
 
 Running list of deferred breaking cleanups (do together in the next major; keep this list current as more are found):
 
