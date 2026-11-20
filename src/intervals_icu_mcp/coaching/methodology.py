@@ -29,10 +29,16 @@ READINESS_THRESHOLDS: dict[str, Any] = {
 TSB_EXCURSION_THRESHOLD = -25.0
 TSB_RECOVERED_THRESHOLD = -10.0
 
+# Zone 1 / 2 / 3 time shares from the trial arms, and the observed weekly hours
+# at which each model applies. Selection takes the first model in
+# `min_weekly_hours` order whose floor the athlete's median week reaches.
 DISTRIBUTION_MODELS: dict[str, dict[str, Any]] = {
-    "polarized": {"z1": 0.80, "z2": 0.05, "z3": 0.15, "min_weekly_hours": 14},
-    "pyramidal": {"z1": 0.75, "z2": 0.18, "z3": 0.07, "min_weekly_hours": 6},
-    "threshold": {"z1": 0.65, "z2": 0.28, "z3": 0.07, "min_weekly_hours": 4},
+    "shares": {
+        "polarized": {"z1": 0.75, "z2": 0.08, "z3": 0.17},
+        "pyramidal": {"z1": 0.80, "z2": 0.12, "z3": 0.08},
+        "threshold": {"z1": 0.67, "z2": 0.25, "z3": 0.08},
+    },
+    "min_weekly_hours": {"polarized": 8, "pyramidal": 6, "threshold": 0},
 }
 
 TAPER: dict[str, Any] = {
@@ -124,19 +130,7 @@ build:  days_out <= 84
 base:   days_out >= 85
 ```
 
-## Intensity distribution (by observed weekly hours)
-
-```
-under 8h:     threshold or pyramidal
-8–14h:        pyramidal (polarized only in base)
-over 14h:     polarized
-```
-
-Polarized: z1 0.80 / z2 0.05 / z3 0.15 (min ~14h).
-Pyramidal: z1 0.75 / z2 0.18 / z3 0.07.
-Threshold-weighted: z1 0.65 / z2 0.28 / z3 0.07.
-Anti-pattern: living in the middle (endurance rides creeping into tempo).
-
+{distribution}
 ## Taper (A-race)
 
 Duration 8–14 days optimal (max 21). Cut volume exponentially 41–60% \
@@ -245,4 +239,41 @@ Intervals combined TSS is the CTL the charts use. Do not invent \
 sport-weighted load. Flag mixed-sport weeks in analysis.
 """
 
-METHODOLOGY_SPEC = _METHODOLOGY_TEXT + "\n" + render_sources_section()
+
+def _render_distribution() -> str:
+    """Distribution section, rendered from DISTRIBUTION_MODELS so text and code agree."""
+    floors: dict[str, float] = DISTRIBUTION_MODELS["min_weekly_hours"]
+    shares: dict[str, dict[str, float]] = DISTRIBUTION_MODELS["shares"]
+    lines = ["## Intensity distribution (by observed weekly hours)", "", "```"]
+    upper: float | None = None
+    for model, floor in floors.items():
+        if upper is None:
+            band = f"{floor:g}h and over"
+        elif floor:
+            band = f"{floor:g}h to under {upper:g}h"
+        else:
+            band = f"under {upper:g}h"
+        lines.append(f"{band + ':':<20}{model}")
+        upper = floor
+    lines.append("```")
+    lines.append("")
+    for model, share in shares.items():
+        lines.append(
+            f"{model.capitalize()}: z1 {share['z1']:.2f} / z2 {share['z2']:.2f} / "
+            f"z3 {share['z3']:.2f}."
+        )
+    lines += [
+        "",
+        "Polarized from 8h assumes a competitive athlete; for a recreational one, "
+        "pyramidal gave more VO2max (Rosenblat 2025), so offer it as the alternative.",
+        "Anti-pattern: living in the middle (endurance rides creeping into tempo).",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+METHODOLOGY_SPEC = (
+    _METHODOLOGY_TEXT.replace("{distribution}", _render_distribution())
+    + "\n"
+    + render_sources_section()
+)

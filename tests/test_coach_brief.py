@@ -172,10 +172,28 @@ class TestRampTier:
 class TestDistribution:
     def test_by_hours(self):
         assert select_distribution(4.0, "build")["model"] == "threshold"
-        assert select_distribution(10.5, "build")["model"] == "pyramidal"
+        assert select_distribution(5.9, "build")["model"] == "threshold"
+        assert select_distribution(6.0, "build")["model"] == "pyramidal"
+        assert select_distribution(7.9, "build")["model"] == "pyramidal"
+        assert select_distribution(8.0, "build")["model"] == "polarized"
         assert select_distribution(16.0, "build")["model"] == "polarized"
-        assert "alternative" in select_distribution(10.5, "base")
         assert select_distribution(None, "base") == {}
+
+    def test_polarized_offers_pyramidal_for_recreational_athletes(self):
+        assert "alternative" in select_distribution(10.5, "base")
+        assert "alternative" not in select_distribution(7.0, "base")
+
+    def test_shares_are_the_trial_arms(self):
+        shares = select_distribution(7.0, "build")["time_share"]
+        assert shares == {"z1_easy": 0.80, "z2_tempo_threshold": 0.12, "z3_vo2_plus": 0.08}
+
+    def test_methodology_text_matches_the_cut_offs(self):
+        from intervals_icu_mcp.coaching.methodology import METHODOLOGY_SPEC
+
+        assert "8h and over:        polarized" in METHODOLOGY_SPEC
+        assert "6h to under 8h:     pyramidal" in METHODOLOGY_SPEC
+        assert "under 6h:           threshold" in METHODOLOGY_SPEC
+        assert "Polarized: z1 0.75 / z2 0.08 / z3 0.17." in METHODOLOGY_SPEC
 
 
 class TestBrief:

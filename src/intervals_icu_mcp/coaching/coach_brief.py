@@ -114,13 +114,9 @@ def select_distribution(median_weekly_hours: float | None, phase: str | None) ->
     if median_weekly_hours is None:
         return {}
     hours = median_weekly_hours
-    if hours > 14:
-        model = "polarized"
-    elif hours >= 6:
-        model = "pyramidal"
-    else:
-        model = "threshold"
-    shares = DISTRIBUTION_MODELS[model]
+    floors: dict[str, float] = DISTRIBUTION_MODELS["min_weekly_hours"]
+    model = next((name for name, floor in floors.items() if hours >= floor), "threshold")
+    shares = DISTRIBUTION_MODELS["shares"][model]
     result: dict[str, Any] = {
         "model": model,
         "time_share": {
@@ -130,8 +126,8 @@ def select_distribution(median_weekly_hours: float | None, phase: str | None) ->
         },
         "based_on_median_weekly_hours": round(hours, 1),
     }
-    if model == "pyramidal" and hours >= 8 and phase == "base":
-        result["alternative"] = "polarized is acceptable in base at this volume"
+    if model == "polarized":
+        result["alternative"] = "pyramidal if training is recreational rather than competitive"
     return result
 
 

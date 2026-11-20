@@ -676,7 +676,9 @@ What the check changed, and why the `verified` flag is not optional:
   (Borszcz 2018), but other groups found 0.90–0.91, and limits of agreement
   of about ±60 W mean it is not reliable for one rider. Prefer eFTP.
 - Polarized training worked at 6.4 hours a week in trained cyclists (Neal
-  2013), so a 14-hour floor for polarized is a coaching choice, not evidence.
+  2013), so the polarized floor moved from 14 to 8 hours, with pyramidal
+  offered to recreational athletes (Rosenblat 2025). The zone shares are now
+  the trial arms (Esteve-Lanao 2007; Seiler & Kjerland 2006).
 
 ### Keeping it current
 

@@ -274,11 +274,12 @@ PARAMETER_SOURCES: dict[str, dict[str, Any]] = {
     },
     "DISTRIBUTION_MODELS": {
         "basis": "default",
-        "rationale": "Shares sit between trial arms: polarized 80/5/15 vs 80/0/20 (Neal) "
-        "and 75/8/17 observed (Seiler & Kjerland); pyramidal 75/18/7 between 80/12/8 and "
-        "67/25/8 (Esteve-Lanao); threshold 65/28/7 near 67/25/8. Polarization index 2.38 "
-        "for polarized, under 2 for the others. Hour floors are coaching choices; Neal's "
-        "polarized group trained 6.4 h/week",
+        "parts": {"shares": "sourced", "min_weekly_hours": "default"},
+        "rationale": "Shares are trial arms: pyramidal 80/12/8 and threshold 67/25/8 "
+        "(Esteve-Lanao), polarized 75/8/17 observed (Seiler & Kjerland); polarization "
+        "index 2.20 for polarized, under 2 for the others. Polarized from 8 h follows "
+        "Neal's gains at 6.4 h/week; pyramidal below, and offered to recreational "
+        "athletes (Rosenblat 2025); threshold under 6 h is a coaching choice",
         "refs": [
             "seiler_2010",
             "seiler_kjerland_2006",

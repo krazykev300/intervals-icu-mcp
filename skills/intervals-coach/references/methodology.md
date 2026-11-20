@@ -21,14 +21,16 @@ base:   days_out >= 85
 ## Intensity distribution (by observed weekly hours)
 
 ```
-under 8h:     threshold or pyramidal
-8–14h:        pyramidal (polarized only in base)
-over 14h:     polarized
+8h and over:        polarized
+6h to under 8h:     pyramidal
+under 6h:           threshold
 ```
 
-Polarized: z1 0.80 / z2 0.05 / z3 0.15 (min ~14h).
-Pyramidal: z1 0.75 / z2 0.18 / z3 0.07.
-Threshold-weighted: z1 0.65 / z2 0.28 / z3 0.07.
+Polarized: z1 0.75 / z2 0.08 / z3 0.17.
+Pyramidal: z1 0.80 / z2 0.12 / z3 0.08.
+Threshold: z1 0.67 / z2 0.25 / z3 0.08.
+
+Polarized from 8h assumes a competitive athlete; for a recreational one, pyramidal gave more VO2max (Rosenblat 2025), so offer it as the alternative.
 Anti-pattern: living in the middle (endurance rides creeping into tempo).
 
 ## Taper (A-race)
@@ -113,7 +115,7 @@ PHASE_FROM_A_RACE: default [taper sourced] (Bosquet 2007)
 READINESS_THRESHOLDS: default (Kiviniemi 2007, Vesterinen 2016, Javaloyes 2019, Plews 2013, Craven 2022)
 TSB_EXCURSION_THRESHOLD: default
 TSB_RECOVERED_THRESHOLD: default
-DISTRIBUTION_MODELS: default (Seiler 2010, Seiler & Kjerland 2006, Esteve-Lanao 2007, Neal 2013, Treff 2019, Rosenblat 2019, Rosenblat 2025)
+DISTRIBUTION_MODELS: default [shares sourced] (Seiler 2010, Seiler & Kjerland 2006, Esteve-Lanao 2007, Neal 2013, Treff 2019, Rosenblat 2019, Rosenblat 2025)
 TAPER: sourced (Bosquet 2007, Wang 2023)
 RAMP: default (Nielsen 2014, Buist 2008, Frandsen 2025)
 CTL_WEEK_GAIN_FACTOR: derived
