@@ -127,10 +127,18 @@ async def main():
                 "type": None,
                 "source": "STRAVA",
             }
-            m.put("/activity/2104").mock(
+            strava_put = m.put("/activity/2104").mock(return_value=Response(422))
+            m.put("/athlete/i1/events/77").mock(
                 side_effect=lambda r: (
-                    sent.__setitem__("strava_put", json.loads(r.content)),
-                    Response(200, json={**strava, **json.loads(r.content)}),
+                    sent.__setitem__("plan_put", json.loads(r.content)),
+                    Response(
+                        200,
+                        json={
+                            "id": 77,
+                            "start_date_local": "2026-11-17T00:00:00",
+                            **json.loads(r.content),
+                        },
+                    ),
                 )[1]
             )
             m.put("/activity/i9").mock(
@@ -305,10 +313,10 @@ async def main():
             )
             d = json.loads(_text(r))["data"]
             check(
-                "log lands on the Strava recording, paired",
-                d["activity_id"] == "2104"
-                and sent["strava_put"]
-                == {"name": "Strength A3", "icu_rpe": 6, "paired_event_id": 77},
+                "Strava day: log goes onto the plan, Strava untouched",
+                d["logged_to"]["event_id"] == 77
+                and not strava_put.called
+                and sent["plan_put"]["description"].endswith("-- Logged --\nRPE 6 · 50 min"),
             )
 
             # Illness protocol (playbook section 7): the two writes it prescribes.
