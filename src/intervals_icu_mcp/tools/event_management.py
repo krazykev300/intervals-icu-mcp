@@ -1492,6 +1492,53 @@ def _recording_candidates(
     return out
 
 
+STRAVA_SOURCE = "STRAVA"
+LOG_MARKER = "-- Logged --"
+STRAVA_LOAD_HINT = (
+    "Intervals.icu does not allow API edits to Strava-synced activities, so this "
+    "log is on the plan, not the activity, and its RPE does not set the session's "
+    "load. To count it, set RPE on the activity in Intervals.icu (or connect the "
+    "watch to Intervals.icu directly so logs can go onto the recording)."
+)
+STRAVA_PAIRING_HINT = (
+    "Intervals.icu pairs the Strava upload to the plan itself when no other "
+    "activity is paired to it. If the activity shows no compliance %, link it to "
+    "the workout in Intervals.icu."
+)
+
+
+def _is_strava(activity: Any) -> bool:
+    return (activity.source or "").upper() == STRAVA_SOURCE
+
+
+def _log_block(
+    rpe: int | None,
+    kg_lifted: float | None,
+    duration_seconds: int | None,
+    notes: str | None,
+) -> str:
+    """The log as text for a plan description."""
+    facts: list[str] = []
+    if rpe is not None:
+        facts.append(f"RPE {rpe}")
+    if duration_seconds is not None:
+        facts.append(f"{round(duration_seconds / 60)} min")
+    if kg_lifted:
+        facts.append(f"{kg_lifted:g} kg lifted")
+    lines = [LOG_MARKER]
+    if facts:
+        lines.append(" · ".join(facts))
+    if notes:
+        lines.append(notes.strip())
+    return "\n".join(lines)
+
+
+def _with_log_block(description: str | None, block: str) -> str:
+    """Put the log under the plan, replacing an earlier log block."""
+    head = (description or "").split(LOG_MARKER, 1)[0].rstrip()
+    return f"{head}\n\n{block}" if head else block
+
+
 def _manual_log_fields(manual: Any) -> dict[str, Any]:
     """The log fields of an earlier manual activity, in PUT form."""
     values = {
@@ -1534,14 +1581,15 @@ async def log_session(
     athlete_id: Annotated[str | None, "Athlete ID (for coaches managing multiple athletes)"] = None,
     ctx: Context | None = None,
 ) -> str:
-    """LOG a session: RPE, notes and kg onto the day's recording, or a manual activity.
+    """LOG a session: RPE, notes and kg, without a second activity beside a recording.
 
-    "Did the gym session, 50 minutes, RPE 7". When a watch or Strava recording
-    of that sport is on the day, the log is written onto it (its own duration
-    kept) and it is paired to `event_id`, so the plan, notes and recording are
-    one activity. With no recording, a manual activity is created (paired via
-    mark-done with `event_id`). Run it again after a late upload to merge an
-    earlier manual log into the recording.
+    "Did the gym session, 50 minutes, RPE 7". A watch recording of that sport
+    on the day gets the log written onto it and is paired to `event_id`. A
+    Strava recording cannot be edited through the API, so the log goes onto
+    the planned event's description (a NOTE without `event_id`) and Intervals
+    pairs the upload itself. With no recording, a manual activity is created
+    (mark-done with `event_id`). Run it again after a late upload to fold an
+    earlier manual log in.
     """
     assert ctx is not None
     config: ICUConfig = await ctx.get_state("config")
@@ -1638,6 +1686,71 @@ async def log_session(
                         )
                     if candidates:
                         recording = candidates[0]
+
+            # ---- A Strava recording: the API cannot edit it, log onto the plan ----
+            if recording is not None and _is_strava(recording):
+                dup_full: Any = None
+                if manual_dup is not None:
+                    dup_full = await client.get_activity(activity_id=manual_dup.id)
+                block = _log_block(
+                    rpe if rpe is not None else getattr(dup_full, "perceived_exertion", None),
+                    kg_lifted if kg_lifted is not None else getattr(dup_full, "kg_lifted", None),
+                    duration_seconds,
+                    notes or getattr(dup_full, "description", None),
+                )
+                data: dict[str, Any] = {"strava_activity_id": recording.id}
+                if event is not None and event_id is not None:
+                    await client.update_event(
+                        event_id,
+                        {"description": _with_log_block(event.description, block)},
+                        athlete_id=athlete_id,
+                    )
+                    data["logged_to"] = {"event_id": event_id, "name": event.name}
+                    message = f"Logged onto planned event {event_id} (Strava activity left as is)"
+                else:
+                    note = await client.create_event(
+                        {
+                            "start_date_local": (
+                                f"{day or recording.start_date_local.date().isoformat()}T00:00:00"
+                            ),
+                            "category": "NOTE",
+                            "name": f"{name or 'Strength'} log",
+                            "description": block,
+                        },
+                        athlete_id=athlete_id,
+                    )
+                    data["logged_to"] = {"note_event_id": note.id, "name": note.name}
+                    message = "Logged as a calendar note (Strava activity left as is)"
+                data["log"] = block
+                if rpe is not None or training_load is not None:
+                    data["load_hint"] = STRAVA_LOAD_HINT
+                if event_id is not None:
+                    data["pairing_hint"] = STRAVA_PAIRING_HINT
+                if name or training_load is not None:
+                    data["not_applied"] = [
+                        k for k, v in (("name", name), ("training_load", training_load)) if v
+                    ]
+                if manual_dup is not None:
+                    deleted = False
+                    if config.intervals_icu_delete_mode == "full":
+                        deleted = await client.delete_activity(manual_dup.id)
+                    if deleted:
+                        data["removed_manual_duplicate"] = manual_dup.id
+                    else:
+                        data["manual_duplicate"] = {
+                            "activity_id": manual_dup.id,
+                            "hint": (
+                                "Its notes are now on the plan. Delete this manual copy in "
+                                "Intervals.icu so the session is one activity and Intervals "
+                                "can pair the Strava upload (safe delete mode does not "
+                                "delete activities)."
+                            ),
+                        }
+                return ResponseBuilder.build_response(
+                    data=data,
+                    query_type="log_session",
+                    metadata={"message": message},
+                )
 
             # ---- A recording exists: write the log onto it and pair it ----
             if recording is not None:

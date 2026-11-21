@@ -169,7 +169,7 @@ The threaded notes/comments shown under an activity — the user's own training 
 | `icu_bulk_create_events`    | Create multiple events in a single operation               |
 | `icu_bulk_delete_events`    | Delete multiple events in a single operation *(safe mode partitions into `deleted` / `skipped`)* |
 | `icu_duplicate_events`      | Duplicate one or more events with configurable copies and spacing |
-| `icu_log_session`           | Log a session (RPE, notes, `kg_lifted`) and pair it to its planned event: written onto the day's watch/Strava recording when one exists, else a manual activity; re-run after a late upload to merge |
+| `icu_log_session`           | Log a session (RPE, notes, `kg_lifted`) and pair it to its planned event: written onto the day's watch recording; on a Strava day (not editable via the API) onto the plan; else a manual activity; re-run after a late upload |
 | `icu_apply_training_plan` | Apply an entire training plan (workout folder) onto the calendar |
 
 ### Performance / Curves (3 tools)

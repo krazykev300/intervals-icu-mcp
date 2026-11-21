@@ -85,10 +85,11 @@ thing to change next time. No stat dumps.
 **"Did the gym session, 50 minutes, RPE 7"** (or yoga, or a ride with no \
 head unit) `icu_log_session` with duration_seconds, rpe, and kg_lifted when \
 given. If a planned session sits on that day, pass its `event_id` so it is \
-marked done and counts in compliance. A watch or Strava recording on that \
-day gets the log written onto it, so plan, notes and recording are one \
-activity; if it syncs after you logged, run it again to merge. One line back: \
-logged, load, paired or not.
+marked done and counts in compliance. It never adds a second \
+activity beside a recording: a watch upload gets the log written onto it; a \
+Strava upload cannot be edited, so the log goes onto the plan and the reply's \
+`load_hint` says how to count the RPE. If the upload syncs after you logged, \
+run it again. One line back: logged where, load, paired or not.
 
 **Review my week** Use `compliance` and \
 `coach_brief.load.last_completed_weeks`. Show a Mon-Sun table (day, planned, \
