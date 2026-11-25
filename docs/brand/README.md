@@ -35,6 +35,15 @@ fall back to Georgia and a system monospace.
 | `coach-mark.svg` | Connector icon, avatar |
 | `coach-lockup.svg` | README header, docs |
 
+PNG copies with transparent corners live in `png/`, for places that won't
+take SVG:
+
+- `*-mark-32.png` for favicons, `*-mark-180.png` for the Apple touch icon,
+  `*-mark-512.png` for avatars and app icons.
+- `*-lockup.png` at 760×160 (2× the SVG), with the fonts baked in.
+
+Re-export them from the SVGs after any change.
+
 - Marks read down to 16px.
 - On the paper page background, give the foothill2skyline mark a cream
   (`#F3EDE3`) background so it doesn't blend in.
