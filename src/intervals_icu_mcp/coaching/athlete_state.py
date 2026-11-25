@@ -37,6 +37,7 @@ from .athlete_state_compute import (
 )
 from .coach_brief import build_coach_brief, today_flags, training_focus
 from .data_quality import data_quality_report, is_strava_stub, stream_sensor_issues
+from .weather import fetch_forecast, weather_block
 
 VALID_INCLUDE = frozenset(
     {
@@ -170,6 +171,7 @@ async def get_athlete_state(
     need_activities = bool(blocks & {"athlete_constraints", "compliance", "durability"})
     need_curves = "power_profile" in blocks
     need_settings = bool(blocks & {"power_profile", "athlete_constraints"})
+    need_weather = "calendar" in blocks
 
     try:
         async with ICUClient(config) as client:
@@ -211,16 +213,29 @@ async def get_athlete_state(
                     return []
                 return await client.get_sport_settings(athlete_id=athlete_id)
 
+            async def _forecast() -> dict[str, Any] | None:
+                if not need_weather:
+                    return None
+                return await fetch_forecast(client, resolved_athlete)
+
             gathered = await asyncio.gather(
                 _wellness(),
                 _events(),
                 _activities(),
                 _curves(),
                 _settings(),
+                _forecast(),
                 return_exceptions=True,
             )
 
-            wellness_res, events_res, activities_res, curves_res, settings_res = gathered
+            (
+                wellness_res,
+                events_res,
+                activities_res,
+                curves_res,
+                settings_res,
+                forecast_res,
+            ) = gathered
             fetch_errors: list[str] = []
 
             wellness = _unwrap(wellness_res, "wellness", fetch_errors, default=list[Wellness]())
@@ -346,6 +361,7 @@ async def get_athlete_state(
                     tolerance=tsb_tolerance(daily) if daily else {},
                     constraints=constraints,
                     readiness_state=readiness.get("readiness_state") if readiness else None,
+                    weather=weather_block(forecast_res, events, today),
                 )
 
             flags = derived_flags(
