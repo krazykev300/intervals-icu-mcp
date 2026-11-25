@@ -9,7 +9,7 @@ from typing import Any
 
 from .sources import render_sources_section
 
-KB_VERSION = "1.2.0"
+KB_VERSION = "1.3.0"
 
 # Days-out from the nearest RACE_A (or days after it for recovery).
 PHASE_FROM_A_RACE: dict[str, dict[str, int]] = {
@@ -111,6 +111,27 @@ RETURN_FROM_BREAK: dict[str, Any] = {
     "long": {"days_missed_min": 8, "first_week_load_pct": 50, "easy_days_first": 3},
     "rebuild_weeks": "weeks_missed_rounded_up",
     "limited_illness_max_training_seconds": 2700,
+}
+
+# Weather flags on planned outdoor sessions (backlog 1.12). Daily values from
+# the Intervals forecast: rain and snow in mm, feels-like in deg C, gusts in m/s.
+WEATHER: dict[str, float] = {
+    # A ride is flagged wet at this much rain in the day (climate "wet day").
+    "wet_day_rain_mm_min": 1.0,
+    # Runs are flagged wet only at this much: rain matters less on foot.
+    "run_rain_mm_min": 10.0,
+    # Hot: the day's highest feels-like at or above this.
+    "heat_feels_like_c_min": 28.0,
+    # Cold: the lowest daytime (morning, day, evening) feels-like at or below this.
+    "cold_feels_like_c_max": -10.0,
+    # Frostbite risk: feels-like (wind chill) at or below this.
+    "frostbite_feels_like_c_max": -27.0,
+    # Ice risk: a wet or snowy day whose minimum air temperature is at or below this.
+    "ice_temp_c_max": 1.0,
+    # Windy: the day's gust at or above this.
+    "gust_ms_min": 14.0,
+    # Sessions are moved only inside this window (the 3-hourly forecast covers ~5 days).
+    "move_window_days": 5,
 }
 
 _METHODOLOGY_TEXT = """\
@@ -249,6 +270,7 @@ make up lost fitness. Return-to-sport timelines after respiratory illness are \
 not established (IOC consensus 2022). Anything beyond a mild illness, or \
 symptoms that come back, is a question for a doctor.
 
+{weather}
 ## Mixed-sport load
 
 Intervals combined TSS is the CTL the charts use. Do not invent \
@@ -288,8 +310,39 @@ def _render_distribution() -> str:
     return "\n".join(lines)
 
 
+def _render_weather() -> str:
+    """Weather section, rendered from WEATHER so text and code agree."""
+    w = WEATHER
+    return (
+        "## Weather (planned outdoor sessions)\n"
+        "\n"
+        "`coach_brief.weather` reads the Intervals forecast for the athlete's forecast "
+        "location and flags planned outdoor sessions:\n"
+        "\n"
+        "```\n"
+        f"wet:        rain >= {w['wet_day_rain_mm_min']:g} mm in the day "
+        f"(runs: >= {w['run_rain_mm_min']:g} mm)\n"
+        f"snow:       snow >= {w['wet_day_rain_mm_min']:g} mm\n"
+        f"ice_risk:   rain or snow >= {w['wet_day_rain_mm_min']:g} mm and minimum "
+        f"<= {w['ice_temp_c_max']:g} C\n"
+        f"heat:       feels-like >= {w['heat_feels_like_c_min']:g} C\n"
+        f"cold:       daytime feels-like <= {w['cold_feels_like_c_max']:g} C "
+        f"(frostbite risk <= {w['frostbite_feels_like_c_max']:g} C)\n"
+        f"windy:      gusts >= {w['gust_ms_min']:g} m/s\n"
+        "```\n"
+        "\n"
+        f"Move a session only inside the next {w['move_window_days']:g} days, to a dry day "
+        "in the same week, keeping hard days 48h apart; otherwise offer the indoor "
+        "version. Later days are a heads-up only. Heat: hard work early or indoors, by "
+        "heart rate or RPE, more fluid and sodium; acclimatising takes 1-2 weeks of "
+        "heat exposure. These are defaults; the athlete's own tolerance wins.\n"
+    )
+
+
 METHODOLOGY_SPEC = (
-    _METHODOLOGY_TEXT.replace("{distribution}", _render_distribution())
+    _METHODOLOGY_TEXT.replace("{distribution}", _render_distribution()).replace(
+        "{weather}", _render_weather()
+    )
     + "\n"
     + render_sources_section()
 )

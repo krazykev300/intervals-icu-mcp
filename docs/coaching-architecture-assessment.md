@@ -657,6 +657,12 @@ rule records should read the methods of anything a prescription rests on.
 | FTP test reliability | 20-minute test CV 2.9%, ICC 0.97. 25 trained cyclists | Borszcz et al. 2020, Int J Sports Med 41(3):175–181, PMID 31952081 | Confirmed |
 | 20 / 60 minute ratio | 20-minute power 342–344 W, 60-minute 309 W (ratio about 1.11); 20-minute typical error 4.6 W. Eight trained cyclists | MacInnis et al. 2019, Int J Sports Physiol Perform 14(1):38–45, PMID 29809063 | Confirmed |
 | FTP factor vs MLSS | 95% overestimated MLSS by 12 ± 7 W; 91% fitted; smallest detectable change ±9 W. Eleven cyclists | Lillo-Beviá et al. 2022, J Strength Cond Res 36(1):167–173, PMID 31714462 | Confirmed |
+| Heat and endurance | Marathon times slowed steadily as WBGT rose from 5 to 25 °C; slower runners slowed more. Seven marathons, 6–36 years each | Ely et al. 2007, Med Sci Sports Exerc 39(3):487–493, PMID 17473775 | Confirmed |
+| Heat and cycling power | 30-minute time-trial power 6.5% lower at 32 °C than 23 °C (60% humidity). Eleven elite road cyclists | Tatterson et al. 2000, J Sci Med Sport 3(2):186–193, PMID 11104310 | Confirmed |
+| Training in the heat | Acclimatise with repeated exercise-heat exposure over 1–2 weeks; start euhydrated, limit dehydration, use cooling. Consensus | Racinais et al. 2015, Br J Sports Med 49(18):1164–1173, PMID 26069301 | Confirmed |
+| Cold | Use wind chill for frostbite risk; heightened surveillance below −27 °C wind chill. ACSM position stand | Castellani et al. 2006, Med Sci Sports Exerc 38(11):2012–2029, PMID 17095937 | Confirmed |
+| Wet day | A wet day has ≥ 1 mm of precipitation | ETCCDI climate indices (SDII, CWD, CDD) | Confirmed |
+| Wind | Beaufort force 7 (near gale) 14–17 m/s, force 8 (gale) 17–21 m/s | UK Met Office Beaufort scale | Confirmed |
 | Fuelling | Carbohydrate per hour by duration and intensity | Jeukendrup 2014, Sports Med | Not checked |
 | Low energy availability | Screening flags | IOC REDs consensus 2023, Br J Sports Med | Not checked |
 | Heat training | Haemoglobin mass and performance gains in elite cyclists | Rønnestad et al. 2021–22 | Not checked |

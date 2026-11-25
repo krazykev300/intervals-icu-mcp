@@ -94,6 +94,49 @@ REFERENCES: dict[str, dict[str, str]] = {
         "67/25/8; 12 sub-elite runners",
         "status": "confirmed",
     },
+    "ely_2007": {
+        "short": "Ely 2007",
+        "citation": "Ely MR et al. Med Sci Sports Exerc 2007;39(3):487-493, PMID 17473775",
+        "finding": "Marathon times slowed progressively as WBGT rose from 5 to 25 C (top men "
+        "1.7% to 4.5% off the course record); slower runners slowed more",
+        "status": "confirmed",
+    },
+    "etccdi_wet_day": {
+        "short": "ETCCDI",
+        "citation": "ETCCDI climate change indices (SDII, CWD, CDD), "
+        "etccdi.pacificclimate.org/list_27_indices.shtml",
+        "finding": "A wet day has precipitation >= 1 mm; a dry day under 1 mm",
+        "status": "confirmed",
+    },
+    "castellani_2006": {
+        "short": "ACSM cold 2006",
+        "citation": "Castellani JW et al. ACSM position stand, Med Sci Sports Exerc "
+        "2006;38(11):2012-2029, PMID 17095937",
+        "finding": "Use the wind-chill index for frostbite risk; heightened surveillance below "
+        "-27 C wind chill; most cold environments are safe for exercise with planning",
+        "status": "confirmed",
+    },
+    "met_office_beaufort": {
+        "short": "Met Office Beaufort",
+        "citation": "UK Met Office, Beaufort wind force scale, "
+        "weather.metoffice.gov.uk/guides/coast-and-sea/beaufort-scale",
+        "finding": "Force 7 (near gale) 14-17 m/s; force 8 (gale) 17-21 m/s",
+        "status": "confirmed",
+    },
+    "racinais_2015": {
+        "short": "Racinais 2015",
+        "citation": "Racinais S et al. Br J Sports Med 2015;49(18):1164-1173, PMID 26069301",
+        "finding": "Heat impairs endurance capacity; acclimatise with repeated exercise-heat "
+        "exposure over 1-2 weeks, start euhydrated, limit dehydration, use cooling",
+        "status": "confirmed",
+    },
+    "tatterson_2000": {
+        "short": "Tatterson 2000",
+        "citation": "Tatterson AJ et al. J Sci Med Sport 2000;3(2):186-193, PMID 11104310",
+        "finding": "30-minute time-trial power 6.5% lower at 32 C than 23 C (60% humidity); "
+        "11 elite road cyclists",
+        "status": "confirmed",
+    },
     "frandsen_2025": {
         "short": "Frandsen 2025",
         "citation": "Schuster Brandt Frandsen J et al. Br J Sports Med 2025;59(17):1203-1210, PMID 40623829",
@@ -400,6 +443,33 @@ PARAMETER_SOURCES: dict[str, dict[str, Any]] = {
         "timelines after illness are not established; the 45-minute cap keeps "
         "above-the-neck colds light",
         "refs": ["coyle_1984", "mujika_padilla_2000", "schwellnus_2022", "eichner_neck_check"],
+    },
+    "WEATHER": {
+        "basis": "default",
+        "parts": {
+            "wet_day_rain_mm_min": "sourced",
+            "run_rain_mm_min": "default",
+            "heat_feels_like_c_min": "default",
+            "cold_feels_like_c_max": "default",
+            "frostbite_feels_like_c_max": "sourced",
+            "ice_temp_c_max": "default",
+            "gust_ms_min": "default",
+            "move_window_days": "default",
+        },
+        "rationale": "Wet is the climate wet day (>= 1 mm); runs tolerate rain, so 10 mm. Heat "
+        "at 28 C feels-like sits below the 32 C / 60% humidity where elite power fell 6.5%, "
+        "and marathons slowed steadily from WBGT 5 to 25 C. Cold -10 C: rider speed adds "
+        "wind, so the bike's wind chill sits about 10 C lower; frostbite at ACSM's -27 C. "
+        "Ice at 1 C allows for road surfaces colder than the air. Gusts from the bottom of "
+        "Beaufort force 7. The move window is the 3-hourly forecast's ~5-day reach",
+        "refs": [
+            "etccdi_wet_day",
+            "tatterson_2000",
+            "ely_2007",
+            "racinais_2015",
+            "castellani_2006",
+            "met_office_beaufort",
+        ],
     },
 }
 

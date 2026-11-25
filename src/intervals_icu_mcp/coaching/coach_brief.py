@@ -29,6 +29,7 @@ from .methodology import (
     TAPER_WEEK_LOAD_PCT,
     TSB_EXCURSION_THRESHOLD,
 )
+from .weather import weather_flag_lines
 
 _TIERS = ("conservative", "standard", "aggressive")
 _AWAY_CATEGORIES = ("HOLIDAY", "SICK", "INJURED")
@@ -304,6 +305,7 @@ def today_flags(
             f"Planned run {spike['name']} on {spike['date']} is {spike['ratio']:g}x the longest "
             "run of the last 30 days: shorten it or build to it."
         )
+    ranked.extend(weather_flag_lines(brief.get("weather"), parse_iso_date(brief["today"]["date"])))
     load: dict[str, Any] = brief.get("load", {})
     target: dict[str, Any] = load.get("next_week_target") or {}
     if load.get("recovery_week_due") and target:
@@ -452,6 +454,7 @@ def build_coach_brief(
     tolerance: dict[str, Any],
     constraints: dict[str, Any],
     readiness_state: str | None,
+    weather: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the brief. Every input may be empty; omit what cannot be computed."""
     next_a, last_a = _a_race(events, today)
@@ -581,6 +584,8 @@ def build_coach_brief(
     spikes = long_run_spikes(events, activities, today)
     if spikes:
         brief["long_run_spikes"] = spikes
+    if weather is not None:
+        brief["weather"] = weather
 
     brief["next_actions"] = _next_actions(
         brief=brief,
@@ -663,6 +668,18 @@ def _brief_provenance(
                 "activities.distance",
                 "activities.moving_time",
                 "methodology.long_run_spike",
+            ],
+        }
+    if "weather" in brief:
+        values["weather"] = {
+            "kind": "computed",
+            "rule_id": "weather_flags.v1",
+            "inputs": [
+                "weather_forecast.daily",
+                "weather_forecast.hourly",
+                "events.type",
+                "events.indoor",
+                "methodology.weather",
             ],
         }
     if "away" in brief:
@@ -752,6 +769,22 @@ def _next_actions(*, brief: dict[str, Any], phase: str, recovery_due: bool) -> l
         actions.append(
             f"Back from {returning['category'].lower()} ({returning['end']}): check the return "
             "week is on the calendar before planning anything harder; offer to write it if not."
+        )
+    weather: dict[str, Any] = brief.get("weather") or {}
+    movable = [
+        s for s in weather.get("flagged_sessions", []) if s.get("act") == "offer_move_or_indoor"
+    ]
+    if movable:
+        city = weather["city"]
+        ask_city = (
+            f" Several forecast locations are on ({city} used): ask where they will be first."
+            if weather.get("other_enabled_locations")
+            else ""
+        )
+        actions.append(
+            f"Weather in {city} flags {len(movable)} planned outdoor session(s) "
+            "(weather.flagged_sessions): name the city, then offer a move to a clear day "
+            "this week or the indoor version; write on yes." + ask_city
         )
     if recovery_due:
         actions.append(

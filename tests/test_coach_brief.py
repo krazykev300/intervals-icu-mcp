@@ -90,7 +90,7 @@ class TestProvenance:
         assert first == second
         provenance = first["provenance"]
         assert provenance["engine_version"] == "1.0.0"
-        assert provenance["kb_version"] == "1.2.0"
+        assert provenance["kb_version"] == "1.3.0"
         assert provenance["values"]["load"]["rule_id"] == "weekly_load_target.v1"
         assert provenance["values"]["phase"]["source"] == "unspecified"
 

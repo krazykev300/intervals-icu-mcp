@@ -104,6 +104,21 @@ No intensity until the easy days felt normal. One hard session in the first week
 
 These are coaching defaults, not a medical protocol. Fitness lost in 3-14 days off is small (VO2max about 7% down after three weeks: Coyle et al. 1984), so the cuts protect recovery from the illness or injury rather than make up lost fitness. Return-to-sport timelines after respiratory illness are not established (IOC consensus 2022). Anything beyond a mild illness, or symptoms that come back, is a question for a doctor.
 
+## Weather (planned outdoor sessions)
+
+`coach_brief.weather` reads the Intervals forecast for the athlete's forecast location and flags planned outdoor sessions:
+
+```
+wet:        rain >= 1 mm in the day (runs: >= 10 mm)
+snow:       snow >= 1 mm
+ice_risk:   rain or snow >= 1 mm and minimum <= 1 C
+heat:       feels-like >= 28 C
+cold:       daytime feels-like <= -10 C (frostbite risk <= -27 C)
+windy:      gusts >= 14 m/s
+```
+
+Move a session only inside the next 5 days, to a dry day in the same week, keeping hard days 48h apart; otherwise offer the indoor version. Later days are a heads-up only. Heat: hard work early or indoors, by heart rate or RPE, more fluid and sodium; acclimatising takes 1-2 weeks of heat exposure. These are defaults; the athlete's own tolerance wins.
+
 ## Mixed-sport load
 
 Intervals combined TSS is the CTL the charts use. Do not invent sport-weighted load. Flag mixed-sport weeks in analysis.
@@ -130,4 +145,5 @@ POST_A_RECOVERY_LOAD_PCT: default (Martinez-Navarro 2021)
 HARD_SESSION_INTENSITY_FACTOR: default
 FTP_CHECK: default [twenty_min_factor sourced, change_pct derived] (Borszcz 2018, Borszcz 2019, Borszcz 2020, MacInnis 2019, Lillo-Bevia 2022, Allen & Coggan 2010)
 RETURN_FROM_BREAK: default (Coyle 1984, Mujika & Padilla 2000, IOC 2022, Eichner neck check)
+WEATHER: default [wet_day_rain_mm_min sourced, frostbite_feels_like_c_max sourced] (ETCCDI, Tatterson 2000, Ely 2007, Racinais 2015, ACSM cold 2006, Met Office Beaufort)
 ```

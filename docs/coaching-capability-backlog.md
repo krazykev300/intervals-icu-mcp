@@ -170,11 +170,69 @@ The race event's description holds the pacing plan, fuelling plan, kit and
 logistics checklist. Expected duration and load are set on the event so the
 forecast includes the race.
 
-### 1.12 Weather-aware scheduling [later, S]
+### 1.12 Weather-aware scheduling [done, S]
 
 Intervals exposes a weather forecast for the athlete's location. Use it to put
 the long ride on the dry day, flag heat for hard sessions, and choose the
 indoor or outdoor version.
+
+**What the API returns** (checked live 2026-11-24):
+
+- `GET /athlete/{id}/weather-config`: the forecast locations, each with
+  `label`, `location` ("Leeds,England,GB"), `lat`, `lon` and `enabled`.
+  The athlete can change them in Intervals and the API reflects it at once.
+- `GET /athlete/{id}/weather-forecast`: per location, `daily` (14 days) and
+  `hourly` (40 rows, 3-hour steps, about 5 days), plus an `error` field.
+  Fields are temperature and feels-like (°C, morning/day/evening/night in
+  daily), humidity, dew point, `rain` and `snow` (mm), wind speed, gust and
+  direction (m/s), clouds, a description, and sunrise and sunset.
+  There is no chance-of-rain figure, only an amount, and no UV or air quality.
+- `GET /activity/{id}/weather-summary`: past-ride temperature, feels-like,
+  wind, headwind and tailwind %, and rain. Used later with 3.3, not in this item.
+
+**Design:**
+
+- `icu_get_athlete_state` adds `coach_brief.weather`. No new tool, so the
+  tool counts stay the same. It flags only planned outdoor sessions in the
+  next 5 days (the hourly window). Days 6–14 give an early heads-up only;
+  sessions are never moved because of them.
+- Rain is judged by amount, since the API has no chance-of-rain figure. The
+  rain, heat (feels-like or dew point), cold or ice, and gust thresholds go
+  in `coaching/methodology.py`, each with a source in `coaching/sources.py`.
+- The coach proposes the change: move the session to a drier day in the same
+  week, keeping the hard/easy pattern and never two key sessions back to back,
+  or use the indoor version (3.12). It writes nothing until the athlete agrees.
+- If there is no enabled location or `error` is set, the brief says so and the
+  coach does not guess.
+- The coach asks once whether the athlete has a trainer or treadmill, and
+  keeps the answer in the chat client's memory, not in Intervals.
+
+**Name the city.** Every time the coach gives a reason based on weather, it
+names the forecast city: "Rain is forecast in Leeds on Thursday, so...".
+The athlete can then say they will be somewhere else. In that case the coach
+plans that day without the forecast, or asks what the weather looks like there.
+If the athlete wants to change their default city, the coach tells them how
+to do it in Intervals: open **Options → Weather** (from the calendar or an
+activity view), choose **Add location**, add the new city, and turn off or
+delete the old one. Multiple locations can be saved and turned on or off,
+which suits a trip or a race. The coach does not change the location itself.
+If more than one location is turned on, the brief lists each one and the
+coach asks which applies.
+
+Out of scope: heat and altitude blocks (3.11), air quality, and weather on
+past rides (with 3.3).
+
+**Done:** `coaching/weather.py` builds `coach_brief.weather` from
+`/weather-forecast` whenever the state call includes the calendar: city,
+`how_to_change_location`, the next five days, and `flagged_sessions` (wet,
+snow, ice risk, heat, cold, frostbite risk, windy) with clear days this week,
+clear daylight hours and `indoor_version`. Sessions within two days also reach
+`coach_brief.flags`. Thresholds are `WEATHER` in the methodology with sources
+(KB 1.3.0). Checked live 2026-11-24: the brief reads a real forecast, hourly
+`id` times are local to the forecast city, and a wet day flags a ride with its
+clear days and hours (against a synthetic event; nothing was written). Not yet
+checked: what an account without weather access gets (the brief then says
+`unavailable`).
 
 ### 1.13 Sync failures surfaced [next, S]
 
@@ -341,11 +399,15 @@ the IOC consensus criteria. No diagnosis.
 For the top volume tier or a specific hot or high event: a dated protocol
 block before the race, flagged as advanced.
 
-### 3.12 Indoor and outdoor versions [next, S]
+### 3.12 Indoor and outdoor versions [done, S]
 
 Each key session has a trainer version (exact steps) and a road version
 (fewer, longer efforts tied to terrain). The coach picks by the `indoor`
 preference, day and weather.
+
+**Done:** the playbook asks for an indoor version in the `fallback` of key
+road sessions, terrain-tied efforts on the road, and `indoor`: true on trainer
+sessions; `coach_brief.weather.flagged_sessions` says when to offer the switch.
 
 ### 3.13 Fuelling day by day [later, M]
 
@@ -580,10 +642,10 @@ Folded into the phases of the assessment's roadmap:
 | 0 Corrections | Closed. Pace curve, run threshold unit, interval fields, intensity ratio, weight and date of birth, GPS longitude, discipline list. |
 | 1 Foundation | Closed. 1.1, 1.6, 1.7, 1.9, 2.2, 2.3, 5.2, 5.3, 5.4, 5.9; 1.6, 2.2, 2.3 and 5.2 still need a live check. |
 | 2 Strength, cross-training, rule base | 1.2, 2.4, 3.18 then 3.16, section 6 |
-| 3 Session quality | 1.4, 1.8, 1.10, 3.3, 3.4, 3.5, 3.12, 3.14, 4.2 |
+| 3 Session quality | 1.4, 1.8, 1.10, 3.3, 3.4, 3.5, 3.14, 4.2; 1.12 and 3.12 done |
 | 4 Planning | 1.3, 1.5, 1.11, 2.7, 2.8, 3.6, 3.8 |
 | 5 Reach | 2.1, 2.5, 4.1, 4.3, 4.4, 5.1, 5.5, 5.6 |
-| Later | 1.12, 3.1, 3.2, 3.7, 3.9–3.11, 3.13, 3.15, 3.17, 4.5, 4.6, 5.7, 5.8 |
+| Later | 3.1, 3.2, 3.7, 3.9–3.11, 3.13, 3.15, 3.17, 4.5, 4.6, 5.7, 5.8 |
 
 ## 8. Technical follow-ups
 
