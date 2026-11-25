@@ -9,7 +9,7 @@ from typing import Any
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
-from .auth import load_config, validate_credentials
+from .auth import validate_credentials
 
 
 class ConfigMiddleware(Middleware):
@@ -24,9 +24,9 @@ class ConfigMiddleware(Middleware):
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Callable[..., Any]):
         """Load and validate config before every tool call."""
-        from .identity import current_http_config
+        from .identity import request_config
 
-        config = current_http_config() or load_config()
+        config = request_config()
 
         # Validate credentials are properly configured
         if not validate_credentials(config):

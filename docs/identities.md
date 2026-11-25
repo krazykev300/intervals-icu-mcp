@@ -144,8 +144,11 @@ If a link token is configured, Serve clients must send it too:
 If you have **no** `INTERVALS_ICU_LINK_TOKEN` and no identities file, HTTP stays
 open (`auto`). That is the Serve-only setup.
 
-## Resource caveat
+## Isolation between athletes
 
-The `intervals-icu://athlete/profile` resource does not see HTTP headers; it
-still reflects process `.env`. Tools use the bearer identity. Prefer tools for
-phone/Claude.ai coaching turns.
+Every tool and the `intervals-icu://athlete/profile` resource call Intervals.icu
+with the bearer's identity, never the host `.env`. In-process caches are keyed
+by a fingerprint of the API key plus the athlete id. Tool profile and delete
+mode stay process-wide: every identity on one server gets the same tool set.
+`tests/test_identity_isolation.py` enforces this; `CLAUDE.md` has the rule for
+contributors.
