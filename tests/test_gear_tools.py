@@ -18,8 +18,8 @@ from intervals_icu_mcp.tools.gear import (
 
 @pytest.fixture
 def patch_config(monkeypatch, mock_config):
-    """gear uses load_config() directly, so patch the module-level imports."""
-    monkeypatch.setattr(gear_tool, "load_config", lambda: mock_config)
+    """gear uses request_config() directly, so patch the module-level imports."""
+    monkeypatch.setattr(gear_tool, "request_config", lambda: mock_config)
     monkeypatch.setattr(gear_tool, "validate_credentials", lambda _config: True)
 
 
@@ -114,7 +114,7 @@ class TestGetGearList:
         assert response["metadata"]["count"] == 0
 
     async def test_missing_credentials(self, monkeypatch, mock_config):
-        monkeypatch.setattr(gear_tool, "load_config", lambda: mock_config)
+        monkeypatch.setattr(gear_tool, "request_config", lambda: mock_config)
         monkeypatch.setattr(gear_tool, "validate_credentials", lambda _config: False)
 
         result = await get_gear_list()
@@ -204,7 +204,7 @@ class TestCreateGear:
         assert not route.called
 
     async def test_missing_credentials(self, monkeypatch, mock_config):
-        monkeypatch.setattr(gear_tool, "load_config", lambda: mock_config)
+        monkeypatch.setattr(gear_tool, "request_config", lambda: mock_config)
         monkeypatch.setattr(gear_tool, "validate_credentials", lambda _config: False)
 
         result = await create_gear(name="X", gear_type="BIKE")
@@ -268,7 +268,7 @@ class TestUpdateGear:
         assert "No fields provided" in response["error"]["message"]
 
     async def test_missing_credentials(self, monkeypatch, mock_config):
-        monkeypatch.setattr(gear_tool, "load_config", lambda: mock_config)
+        monkeypatch.setattr(gear_tool, "request_config", lambda: mock_config)
         monkeypatch.setattr(gear_tool, "validate_credentials", lambda _config: False)
 
         result = await update_gear(gear_id="g1", name="X")

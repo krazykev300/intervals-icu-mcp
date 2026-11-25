@@ -73,8 +73,8 @@ SWIM_SETTINGS = {
 
 @pytest.fixture
 def patch_config(monkeypatch, mock_config):
-    """sport_settings uses load_config() directly, so patch the module-level imports."""
-    monkeypatch.setattr(sport_settings_tool, "load_config", lambda: mock_config)
+    """sport_settings uses request_config() directly, so patch the module-level imports."""
+    monkeypatch.setattr(sport_settings_tool, "request_config", lambda: mock_config)
     monkeypatch.setattr(sport_settings_tool, "validate_credentials", lambda _config: True)
 
 
@@ -257,7 +257,7 @@ class TestSportSettingsTools:
 
     async def test_get_sport_settings_missing_credentials(self, monkeypatch, mock_config):
         """When validate_credentials returns False, no API call is made."""
-        monkeypatch.setattr(sport_settings_tool, "load_config", lambda: mock_config)
+        monkeypatch.setattr(sport_settings_tool, "request_config", lambda: mock_config)
         monkeypatch.setattr(sport_settings_tool, "validate_credentials", lambda _config: False)
 
         result = await get_sport_settings()

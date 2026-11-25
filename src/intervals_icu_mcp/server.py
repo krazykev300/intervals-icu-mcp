@@ -735,13 +735,13 @@ if _DELETE_MODE == "full":
 @mcp.resource("intervals-icu://athlete/profile")
 async def athlete_profile_resource() -> str:
     """Complete athlete profile with fitness metrics and sport settings for context."""
-    from .auth import load_config
     from .client import ICUAPIError, ICUClient
+    from .identity import request_config
     from .response_builder import ResponseBuilder
     from .sport_settings_format import format_sport_settings_entry
 
-    # Load config directly since resources don't go through middleware
-    config = load_config()
+    # Resources skip the tool middleware, so pick the caller's identity here.
+    config = request_config()
 
     try:
         async with ICUClient(config) as client:

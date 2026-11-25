@@ -11,6 +11,7 @@ from fastmcp import Context
 
 from ..auth import ICUConfig
 from ..client import ICUAPIError, ICUClient
+from ..identity import credential_key
 from ..models import ActivityStream, ActivitySummary, CurveSet, Event, SportSettings, Wellness
 from ..response_builder import ResponseBuilder
 from .athlete_state_compute import (
@@ -61,14 +62,15 @@ _RIDE_TYPES = frozenset({"Ride", "VirtualRide"})
 
 SERIES_WEEKS = 12
 
-# athlete id → IANA timezone from the Intervals profile. The server clock is
-# often UTC (Docker), which makes "today" tomorrow every evening.
-_timezone_cache: dict[str, str] = {}
+# (credential, athlete id) → IANA timezone from the Intervals profile. The server
+# clock is often UTC (Docker), which makes "today" tomorrow every evening.
+_timezone_cache: dict[tuple[str, str], str] = {}
 
 
 async def _athlete_today(client: ICUClient, athlete_id: str) -> tuple[date, str | None]:
     """Today in the athlete's own timezone; server date if the profile is unreachable."""
-    tz_name = _timezone_cache.get(athlete_id)
+    cache_key = (credential_key(client.config), athlete_id)
+    tz_name = _timezone_cache.get(cache_key)
     if tz_name is None:
         try:
             response = await client._request("GET", f"/athlete/{athlete_id}")  # pyright: ignore[reportPrivateUsage]
@@ -76,7 +78,7 @@ async def _athlete_today(client: ICUClient, athlete_id: str) -> tuple[date, str 
             if isinstance(raw, str) and raw:
                 ZoneInfo(raw)
                 tz_name = raw
-                _timezone_cache[athlete_id] = raw
+                _timezone_cache[cache_key] = raw
         except Exception:
             tz_name = None
     if tz_name is None:
@@ -84,8 +86,9 @@ async def _athlete_today(client: ICUClient, athlete_id: str) -> tuple[date, str 
     return datetime.now(ZoneInfo(tz_name)).date(), tz_name
 
 
-# identity + ISO week → durability payload. Never process-global without the identity key.
-_durability_cache: dict[tuple[str, str], dict[str, Any]] = {}
+# (credential, athlete id, ISO week) → durability payload. The credential is part
+# of the key so one caller cannot read another's cached block by passing their id.
+_durability_cache: dict[tuple[str, str, str], dict[str, Any]] = {}
 
 
 def _parse_include(include: list[str] | str | None) -> set[str] | str:
@@ -486,7 +489,7 @@ async def _durability_block(
     today: date,
 ) -> dict[str, Any] | None:
     iso = today.isocalendar()
-    cache_key = (athlete_id, f"{iso.year}-W{iso.week:02d}")
+    cache_key = (credential_key(client.config), athlete_id, f"{iso.year}-W{iso.week:02d}")
     cached = _durability_cache.get(cache_key)
     if cached is not None:
         return cached

@@ -4,8 +4,9 @@ from typing import Annotated
 
 from fastmcp import Context
 
-from ..auth import load_config, validate_credentials
+from ..auth import validate_credentials
 from ..client import ICUAPIError, ICUClient
+from ..identity import request_config
 from ..response_builder import ResponseBuilder
 from ..sport_settings_format import build_sport_settings_api_payload, format_sport_settings_entry
 
@@ -25,7 +26,7 @@ async def get_sport_settings(
     TSS are all computed from these — reasoning about zones from any other number puts the
     answer at odds with the athlete's own charts. Zones are not derived from curve data.
     """
-    config = load_config()
+    config = request_config()
     if not validate_credentials(config):
         return (
             "Error: Intervals.icu credentials not configured. Run intervals-icu-mcp-auth to set up."
@@ -76,7 +77,7 @@ async def update_sport_settings(
     ctx: Context | None = None,
 ) -> str:
     """Update an existing per-sport threshold record (outdoor/indoor FTP, FTHR, pace, swim)."""
-    config = load_config()
+    config = request_config()
     if not validate_credentials(config):
         return (
             "Error: Intervals.icu credentials not configured. Run intervals-icu-mcp-auth to set up."
@@ -130,7 +131,7 @@ async def apply_sport_settings(
     Different from update_sport_settings (which just stores new values).
     Use after changing FTP/FTHR/pace to backfill chart math.
     """
-    config = load_config()
+    config = request_config()
     if not validate_credentials(config):
         return (
             "Error: Intervals.icu credentials not configured. Run intervals-icu-mcp-auth to set up."
@@ -171,7 +172,7 @@ async def create_sport_settings(
     ctx: Context | None = None,
 ) -> str:
     """Create a per-sport threshold record with outdoor/indoor FTP, FTHR, pace, or swim settings."""
-    config = load_config()
+    config = request_config()
     if not validate_credentials(config):
         return (
             "Error: Intervals.icu credentials not configured. Run intervals-icu-mcp-auth to set up."
@@ -212,7 +213,7 @@ async def delete_sport_settings(
     ctx: Context | None = None,
 ) -> str:
     """Permanently delete a per-sport threshold record. Destructive — affects historical chart math; only registered when INTERVALS_ICU_DELETE_MODE=full."""
-    config = load_config()
+    config = request_config()
     if not validate_credentials(config):
         return (
             "Error: Intervals.icu credentials not configured. Run intervals-icu-mcp-auth to set up."

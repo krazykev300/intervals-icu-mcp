@@ -95,6 +95,25 @@ make docker/run       # Run Docker container
 - Allow unused imports in `__init__.py` files
 - Run `make format` to auto-fix style issues
 
+## Every Intervals call is the caller's identity
+
+One HTTP server can serve several athletes, each selected by a link token
+(`docs/identities.md`). Data from one athlete must never reach another.
+
+- **Credentials come from the request.** Tools read `await ctx.get_state("config")`;
+  code without a ctx (resources, helpers) calls `identity.request_config()`.
+  Never call `load_config()` for API credentials: it returns the host's own
+  account. `server.py` uses it only for process-wide settings (tool profile,
+  delete mode).
+- **Caches are keyed by credential and athlete.** An in-process cache key
+  includes `identity.credential_key(config)` and the athlete id. An athlete id
+  alone is not enough: any caller can pass any id as a tool argument.
+- **No per-athlete data in process state, files or logs** outside such a keyed
+  cache.
+- `tests/test_identity_isolation.py` enforces the first two rules and drives two
+  identities through the HTTP gate. A new resource or tool that reads athlete
+  data gets a case there.
+
 ## Coaching numbers are data-driven
 
 Every number the coach prescribes says where it came from.

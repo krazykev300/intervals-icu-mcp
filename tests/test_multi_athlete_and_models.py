@@ -40,11 +40,11 @@ COACH_ATHLETE = "i999888"
 
 
 def _patch_direct_config(monkeypatch, mod, config):
-    """gear.py and sport_settings.py bypass the middleware and call load_config()
+    """gear.py and sport_settings.py bypass the middleware and call request_config()
     themselves; validate_credentials() also rejects the fixture's placeholder
     athlete id, so both have to be patched for those modules."""
-    if hasattr(mod, "load_config"):
-        monkeypatch.setattr(mod, "load_config", lambda: config)
+    if hasattr(mod, "request_config"):
+        monkeypatch.setattr(mod, "request_config", lambda: config)
         monkeypatch.setattr(mod, "validate_credentials", lambda _c: True)
 
 
@@ -279,7 +279,7 @@ class TestMultiAthleteRemainingReads:
 
         mod = importlib.import_module(f"intervals_icu_mcp.tools.{tool_path}")
         func = getattr(mod, func_name)
-        # gear.py and sport_settings.py read credentials via load_config() instead of
+        # gear.py and sport_settings.py read credentials via request_config() instead of
         # the middleware-injected ctx state, so mock_config alone does not reach them.
         _patch_direct_config(monkeypatch, mod, mock_config)
 

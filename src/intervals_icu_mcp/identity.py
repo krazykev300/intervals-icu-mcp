@@ -7,6 +7,7 @@ stdio and HTTP-without-a-token still use `.env`.
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 from contextvars import ContextVar, Token
@@ -33,6 +34,30 @@ class Identity:
 def current_http_config() -> ICUConfig | None:
     """Identity selected by the HTTP bearer for this request, if any."""
     return _http_config.get()
+
+
+def request_config() -> ICUConfig:
+    """Intervals credentials for the caller of this request.
+
+    Over HTTP with a link token this is that identity's key and athlete id;
+    over stdio (or HTTP with auth off) it is the process `.env`. Anything that
+    calls the Intervals API must get its credentials here (or from the
+    middleware-injected ctx state, which is set from this), never from
+    `load_config()` directly: that always returns the host's own account, so a
+    second athlete on a shared server would read or write the host's data.
+    """
+    return current_http_config() or load_config()
+
+
+def credential_key(config: ICUConfig) -> str:
+    """Short, non-reversible fingerprint of the API key, for keying caches.
+
+    Key every in-process cache by this plus the athlete id. An athlete id alone
+    is not a secret: a caller can pass any id as a tool argument, and a cache hit
+    would return another account's data before Intervals.icu checks the key.
+    """
+    digest = hashlib.sha256(config.intervals_icu_api_key.encode("utf-8")).hexdigest()
+    return digest[:16]
 
 
 def set_http_config(config: ICUConfig | None) -> Token[ICUConfig | None]:
